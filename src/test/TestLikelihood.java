@@ -18,7 +18,7 @@ public class TestLikelihood {
 		
 		public static double r = 1.3e-8; 
 		public static double seqError = 0.01;
-		public static String dir = System.getProperty("user.dir") + "/data/";
+		public static String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/";
 		public static int back = 30000;
 		public static Random rgen = new Random(192259785);
 

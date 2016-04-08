@@ -44,7 +44,7 @@ public class RunMCMCMC {
 		int maxNumNodes = 4;
 		int genTime = 16;
 		PairwiseLikelihoodCoreStream2 core = new PairwiseLikelihoodCoreStream2(seqError, r, back, numIndiv);
-		String dir = System.getProperty("user.dir") + "/data/simulations/";
+		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
 		String pathToOmegaPath = dir + "pathToOmega.txt";
 
 		//String marginalPath = dir + ".marginal";
@@ -69,7 +69,7 @@ public class RunMCMCMC {
 		PrintWriter writer1 = DataParser.openWriter(kinshipAccPath);
 		PrintWriter writer2 = DataParser.openWriter(relAccPath);
 		
-		for(int t=0; t<100; t++){
+		for(int t=0; t<1; t++){
 
 			System.out.println(t);
 			
@@ -109,7 +109,7 @@ public class RunMCMCMC {
 			System.out.println(String.format("final swap rate: %.2f", mcmcmc.nSwapSuccess/((double)(burnIn+runLength)/swapInterval)));
 			System.out.println(String.format("Running time: %.1f seconds", duration));
 			
-			/*
+			
 			//Results
 			System.out.println();
 			for(int j=0; j<nChain; j++){
@@ -133,7 +133,7 @@ public class RunMCMCMC {
 					
 				}
 			}
-			*/
+			
 			
 			
 			
