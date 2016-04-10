@@ -52,14 +52,14 @@ public class RunMCMCMC {
 		
 		//MCMC parameters
 		int nChain = 4;
-		int burnIn = 2000000;
+		int burnIn = 1000000;
 		int runLength = 100000;
 		int sampleRate = 100;
 		double deltaT = .5;
 		int swapInterval = 1;
 		Random rGen = new Random(192580);
 		Move[] moves = new Move[]{new Link("link", .2), new Cut("cut", .1), new Split("split", .1), new Split2("split2", 0.05), new Swap("swap", .1), new SwitchSex("switchSex", 0.05), new CutLink("cutLink", .2), new SplitLink("splitLink", .2)};
-		String testName = "test3";
+		String testName = "test4";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
 		String relAccPath = dir + "results/"+testName+".rel.acc";
@@ -110,7 +110,7 @@ public class RunMCMCMC {
 			System.out.println(String.format("final swap rate: %.2f", mcmcmc.nSwapSuccess/((double)(burnIn+runLength)/swapInterval)));
 			System.out.println(String.format("Running time: %.1f seconds", duration));
 			
-			/*
+			
 			//Results
 			System.out.println();
 			for(int j=0; j<nChain; j++){
@@ -134,7 +134,7 @@ public class RunMCMCMC {
 					
 				}
 			}
-			*/
+			
 			
 			
 			

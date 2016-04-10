@@ -74,7 +74,7 @@ public class RunPairwiseTest {
 		
 		//files
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String testName = "test3";
+		String testName = "test4";
 		String inPath = dir + "pairwiseLikelihood/"+testName+".pairwise.";
 		String outPath = dir + "results/test.out";
 		String accPath = dir + "results/"+testName+".kinship.pairwise.acc";

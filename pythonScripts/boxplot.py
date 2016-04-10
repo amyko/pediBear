@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pdb
 import os.path
 
-testName = "test3"
+testName = "test"
 inPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".kinship.acc"
 nIndiv = 6
 nPairs = nIndiv*(nIndiv-1)/2
@@ -45,7 +45,7 @@ xdata = [i for i in range(1,nPairs+1)]
 
 plt.figure()
 plt.boxplot(data)
-#plt.scatter(xdata, means)
+plt.scatter(xdata, means)
 plt.ylim([-.1,1.1])
 plt.xlabel("pair")
 plt.ylabel("accuracy")
