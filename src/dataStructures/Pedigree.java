@@ -277,6 +277,14 @@ public class Pedigree {
  		child.addParent(parent);
  		
  	}
+ 	
+ 	
+ 	public void disconnect(Node parent, Node child){
+ 		
+ 		parent.removeChild(child);
+ 		child.removeParent(parent);
+ 		
+ 	}
 	
 	//delete unnecessary ghost nodes
 	public Node clean(Node node){//works
@@ -614,6 +622,113 @@ public class Pedigree {
 	}
 	
 	
+	
+	public void cutOneLinkTwo(Node child){
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		
+		//cut child from parent
+		Node parent = child.getParents().get(0);
+		disconnect(parent, child);
+		
+		//make a new ghost parent for child
+		Node newParent = makeNewNode(parent.getDepth(), (parent.getSex()+1)%2); //choose the opposite sex; this way, there will no symmetry 
+		connect(newParent, child);
+		
+		
+		//connect parent and newParent to two grand parents
+		List<Node> grandParents = parent.getParents();
+		for(int i=0; i<2; i++){
+			
+			Node gp;
+			
+			if(i < grandParents.size()){ //grand parent exists
+				gp = grandParents.get(i);
+			}
+			else{ // doesn't exist yet
+				
+				//make gp
+				int gpSex = 0;
+				
+				if(i==1){
+					gpSex = (grandParents.get(i-1).getSex()+1)%2;
+				}
+				
+				gp = makeNewNode(parent.getDepth()+1, gpSex);
+				
+				//connect gp to parent
+				connect(gp, parent);
+			}
+			
+			//add to new parent
+			connect(gp, newParent);
+			
+		}
+		
+		//sanity check
+		if(grandParents.get(0).getSex()==grandParents.get(1).getSex()) throw new RuntimeException("Same sex parents");
+		
+		
+		//adjust adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+	}
+	
+	
+	
+	public void cutTwoLinkOne(Node parent, Node newParent){
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = parent.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		
+		
+		//cut parent from grandparents & clean up
+		for(Node gp : parent.getParents()){
+			gp.removeChild(parent);
+			clean(gp);
+		}
+		parent.getParents().clear();
+		
+		
+		//cut child from parent & delete parent
+		Node child = parent.getChildren().get(0);
+		disconnect(parent, child);
+		deleteNode(parent);
+		
+		//connect child with new parent
+		connect(newParent, child);
+		
+		
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+	}
+	
+	
+	
 	///////// UPDATE ADJACENCY MATRIX ////////
 	public void updateAdjMat(Node node){
 		
@@ -926,6 +1041,36 @@ public class Pedigree {
 		
 	}
 	
+	//returns number of full siblings child has with the given sex
+	public List<Node> getFullSibs(Node child, int targetSex){
+		
+		List<Node> toReturn = new ArrayList<Node>();
+		
+		if(child.getParents().size() < 2){
+			return toReturn;
+		}
+		
+		clearVisit();
+		
+		for(Node parent : child.getParents()){
+			
+			for(Node sib : parent.getChildren()){
+				
+				if(sib.getNumVisit() > 0) continue;
+				sib.setNumVisit(1);
+				
+				if(sib.getSex()==targetSex && sib.getChildren().size() > 0 && fullSibs(child, sib))
+					toReturn.add(sib);
+					
+			}
+			
+		}
+		
+		return toReturn;
+		
+		
+	}
+	
 	
 	
 	public Node getHighestNode(Node node){//works
@@ -1035,6 +1180,32 @@ public class Pedigree {
 
 	}
 
+ 	
+ 	
+ 	public boolean sanityCheck(){
+
+ 		for(int i=0; i<nActiveNodes[curr]; i++){
+ 			
+ 			Node node = nodes.get(curr).get(i);
+ 			
+ 			if(node.getParents().size()==2){
+ 				
+ 				Node p1 = node.getParents().get(0);
+ 				Node p2 = node.getParents().get(1);
+ 				
+ 				if(!(p1.getSex()==0 && p2.getSex()==1) && !(p1.getSex()==1 && p2.getSex()==0))
+ 				
+ 					return false;
+ 				
+ 			}
+ 			
+ 			
+ 		}
+ 		
+ 		
+ 		return true;
+ 		
+ 	}
 
 
 

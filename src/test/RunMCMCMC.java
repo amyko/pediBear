@@ -16,6 +16,8 @@ import likelihood.PairwiseLikelihoodCoreStream2;
 import mcmc.MCMCMC;
 import mcmcMoves.Cut;
 import mcmcMoves.CutLink;
+import mcmcMoves.CutOneLinkTwo;
+import mcmcMoves.CutTwoLinkOne;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
 import mcmcMoves.Split;
@@ -44,7 +46,7 @@ public class RunMCMCMC {
 		double seqError = 0.01;
 		double r = 1.3e-8;
 		int back = 30000;
-		int maxNumNodes = 4;
+		int maxNumNodes = 10;
 		int genTime = 16;
 		PairwiseLikelihoodCoreStream2 core = new PairwiseLikelihoodCoreStream2(seqError, r, back, numIndiv);
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
@@ -60,9 +62,10 @@ public class RunMCMCMC {
 		int sampleRate = 100;
 		double deltaT = .5;
 		int swapInterval = 1;
-		Random rGen = new Random(192580);
-		Move[] moves = new Move[]{new Link("link", .2), new Cut("cut", .1), new Split("split", .05), new Split2("split2", 0.05), new Swap("swap", .1), new SwitchSex("switchSex", 0.05), new CutLink("cutLink", .2), new SplitLink("splitLink", .2), new ShiftClusterLevel("shiftClusterLevel", .05)};
-		String testName = "test3";
+		Random rGen = new Random(1068580L);
+		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .1), new Split("split", .05), new Split2("split2", 0.05), new Swap("swap", .1), new SwitchSex("switchSex", 0.05), 
+				new CutLink("cutLink", .2), new SplitLink("splitLink", .2), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .05), new CutTwoLinkOne("cutTwoLinkOne", .05)};
+		String testName = "test5";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
 		String relAccPath = dir + "results/"+testName+".rel.acc";
@@ -75,7 +78,7 @@ public class RunMCMCMC {
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		
-		for(int t=0; t<100; t++){
+		for(int t=1; t<100; t++){
 
 			System.out.println(t);
 			
