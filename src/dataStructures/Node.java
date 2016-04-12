@@ -152,12 +152,36 @@ public class Node {
 	
 	
 	//get nodes connected to this node, including this node using DFS
-	public List<Node> getConnectedNodes(List<Node> toReturn){//works
+	public List<Node> getConnectedSampledNodes(List<Node> toReturn){//works
 		
 		//mark node visited and add to list
 		this.numVisit++;
 		if(this.sampled)
 			toReturn.add(this);
+		
+		//recurse on parents
+		for(Node p : this.parents){
+			if(p.numVisit > 0) continue;
+			p.getConnectedSampledNodes(toReturn);
+		}
+		
+		//recurse on children
+		for(Node c : this.children){
+			if(c.numVisit > 0) continue;
+			c.getConnectedSampledNodes(toReturn);
+		}
+	
+		return toReturn;
+		
+		
+	}
+	
+	//get nodes connected to this node, including this node using DFS
+	public List<Node> getConnectedNodes(List<Node> toReturn){//works
+		
+		//mark node visited and add to list
+		this.numVisit++;
+		toReturn.add(this);
 		
 		//recurse on parents
 		for(Node p : this.parents){

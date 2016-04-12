@@ -168,8 +168,9 @@ public class MCMCMC {
 					}
 					//System.out.println();
 						
-						System.out.println(chains.get(j).getNActiveNodes());
-						chains.get(j).printAdjMat();
+					System.out.println(chains.get(j).getNActiveNodes());
+					chains.get(j).printAdjMat();
+					System.out.println();
 						
 				}
 					
@@ -207,6 +208,7 @@ public class MCMCMC {
 
 				
 			}
+			
 
 
 		}

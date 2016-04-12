@@ -23,6 +23,9 @@ import mcmcMoves.Split2;
 import mcmcMoves.SplitLink;
 import mcmcMoves.Swap;
 import mcmcMoves.SwitchSex;
+import mcmcMoves.ShiftClusterLevel;
+
+
 
 public class RunMCMCMC {
 	
@@ -58,17 +61,19 @@ public class RunMCMCMC {
 		double deltaT = .5;
 		int swapInterval = 1;
 		Random rGen = new Random(192580);
-		Move[] moves = new Move[]{new Link("link", .2), new Cut("cut", .1), new Split("split", .1), new Split2("split2", 0.05), new Swap("swap", .1), new SwitchSex("switchSex", 0.05), new CutLink("cutLink", .2), new SplitLink("splitLink", .2)};
-		String testName = "test4";
+		Move[] moves = new Move[]{new Link("link", .2), new Cut("cut", .1), new Split("split", .05), new Split2("split2", 0.05), new Swap("swap", .1), new SwitchSex("switchSex", 0.05), new CutLink("cutLink", .2), new SplitLink("splitLink", .2), new ShiftClusterLevel("shiftClusterLevel", .05)};
+		String testName = "test3";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
 		String relAccPath = dir + "results/"+testName+".rel.acc";
 		String kinshipAccPath = dir + "results/"+testName+".kinship.acc";
 		
+		
 		//open accuracy path
 		PrintWriter writer1 = DataParser.openWriter(kinshipAccPath);
 		PrintWriter writer2 = DataParser.openWriter(relAccPath);
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
+		
 		
 		for(int t=0; t<100; t++){
 
@@ -167,11 +172,13 @@ public class RunMCMCMC {
 			writer2.flush();
 			
 			
+			
 		}
 		
 		
 		writer1.close();
 		writer2.close();
+		
 		
 
 		

@@ -14,7 +14,7 @@ public abstract class Move {
 
 	public final static int maxDepth = 5;
 	public final static int initSize = 10;
-	//protected final static Random rGen = new Random(123457); //TODO how to import this?
+
 	
 	//features for each move
 	final int index; 

@@ -85,7 +85,7 @@ public class testMethods {
 		
 		int c=0;
 		
-		for(int t=0; t<1; t++){
+		for(int t=7; t<8; t++){
 			
 			lkhdPath = dir +"pairwise."+t;
 			core2.setLikelihoods(lkhdPath);

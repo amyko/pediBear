@@ -331,7 +331,7 @@ public class Pedigree {
 		
 		//subtract old likelihood
 		clearVisit();
-		List<Node> nodesBeforeCut = parent.getConnectedNodes(new ArrayList<Node>());
+		List<Node> nodesBeforeCut = parent.getConnectedSampledNodes(new ArrayList<Node>());
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(nodesBeforeCut);
 		
 		
@@ -354,9 +354,9 @@ public class Pedigree {
 		else{ //split pedigrees
 
 			clearVisit();
-			List<Node> childPed = child.getConnectedNodes(new ArrayList<Node>());
+			List<Node> childPed = child.getConnectedSampledNodes(new ArrayList<Node>());
 			clearVisit();
-			List<Node> parentPed = parent.getConnectedNodes(new ArrayList<Node>());
+			List<Node> parentPed = parent.getConnectedSampledNodes(new ArrayList<Node>());
 
 			this.logLikelihood[curr] += likelihoodLocalPedigree(childPed);
 			this.logLikelihood[curr] += likelihoodLocalPedigree(parentPed);
@@ -371,7 +371,7 @@ public class Pedigree {
 		
 		//subtract old likelihood
 		clearVisit();
-		List<Node> nodesBeforeSplit = parent.getConnectedNodes(new ArrayList<Node>());
+		List<Node> nodesBeforeSplit = parent.getConnectedSampledNodes(new ArrayList<Node>());
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(nodesBeforeSplit);
 		
 		//make ghost parent
@@ -399,9 +399,9 @@ public class Pedigree {
 		else{
 			
 			clearVisit();
-			List<Node> parentPed = parent.getConnectedNodes(new ArrayList<Node>());
+			List<Node> parentPed = parent.getConnectedSampledNodes(new ArrayList<Node>());
 			clearVisit();
-			List<Node> splitPed = splitParent.getConnectedNodes(new ArrayList<Node>());
+			List<Node> splitPed = splitParent.getConnectedSampledNodes(new ArrayList<Node>());
 			
 			this.logLikelihood[curr] += likelihoodLocalPedigree(splitPed);
 			this.logLikelihood[curr] += likelihoodLocalPedigree(parentPed);
@@ -420,7 +420,7 @@ public class Pedigree {
 		
 		//subtract old likelihood
 		clearVisit();
-		List<Node> nodesBeforeSplit =  parent.getConnectedNodes(new ArrayList<Node>());
+		List<Node> nodesBeforeSplit =  parent.getConnectedSampledNodes(new ArrayList<Node>());
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(nodesBeforeSplit);
 		
 		
@@ -452,9 +452,9 @@ public class Pedigree {
 		}
 		else{
 			clearVisit();
-			List<Node> parentPed = parent.getConnectedNodes(new ArrayList<Node>());
+			List<Node> parentPed = parent.getConnectedSampledNodes(new ArrayList<Node>());
 			clearVisit();
-			List<Node> stayPed = stayParent.getConnectedNodes(new ArrayList<Node>());
+			List<Node> stayPed = stayParent.getConnectedSampledNodes(new ArrayList<Node>());
 			
 			//setUnrelated(parentPed, stayPed);
 			
@@ -473,14 +473,14 @@ public class Pedigree {
 						
 		//subtract current subpedigree likelihoods
 		clearVisit();
-		List<Node> recipientPed = recipient.getConnectedNodes(new ArrayList<Node>());
+		List<Node> recipientPed = recipient.getConnectedSampledNodes(new ArrayList<Node>());
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(recipientPed);
 		
 		
 		//boolean onePed = recipientPed.contains(donor);
 		if(!onePed){ //if two pedigrees, subtract donor pedigree as well
 			clearVisit();
-			List<Node> donorPed = donor.getConnectedNodes(new ArrayList<Node>());
+			List<Node> donorPed = donor.getConnectedSampledNodes(new ArrayList<Node>());
 			this.logLikelihood[curr] -= likelihoodLocalPedigree(donorPed);
 		}
 
@@ -521,7 +521,7 @@ public class Pedigree {
 		else{ //if two different pedigrees, get new merged pedigree
 			
 			clearVisit();
-			List<Node> mergedPed = recipient.getConnectedNodes(new ArrayList<Node>());
+			List<Node> mergedPed = recipient.getConnectedSampledNodes(new ArrayList<Node>());
 			
 			//update
 			for(Node i : mergedPed){
@@ -542,7 +542,7 @@ public class Pedigree {
 		
 		//get cluster
 		clearVisit();
-		List<Node> ped = child.getConnectedNodes(new ArrayList<Node>());
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
 
 
 		//subtract old terms

@@ -350,6 +350,9 @@ public class TestLikelihood {
 			relationships.add(new Relationship(10d, new double[] {63d/64d, 1d/64d, 0d}, new Path[]{new Path(4,4,2)}));
 			
 
+			//depth = distantly related
+			//relationships.add(new Relationship(11d, new double[] {1-1d/128d, 1d/128d, 0}, new Path[]{new Path(5,0,1), new Path(5,1,1), new Path(5,2,1), new Path(5,3,1), new Path(5,4,1), new Path(5,5,1), new Path(5,1,2), new Path(5,2,2), new Path(5,3,2), new Path(5,4,2), new Path(5,5,2)})); 
+			
 			//////////////////////////////
 	
 			
