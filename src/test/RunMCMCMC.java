@@ -56,20 +56,22 @@ public class RunMCMCMC {
 		//String lkhdPath = dir + ".pairwise";
 		
 		//MCMC parameters
-		int nChain = 4;
-		int burnIn = 1000000;
+		int nChain = 8;
+		int burnIn = 3000000;
 		int runLength = 100000;
 		int sampleRate = 100;
 		double deltaT = .5;
 		int swapInterval = 1;
 		Random rGen = new Random(1068580L);
-		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .1), new Split("split", .05), new Split2("split2", 0.05), new Swap("swap", .1), new SwitchSex("switchSex", 0.05), 
-				new CutLink("cutLink", .2), new SplitLink("splitLink", .2), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .05), new CutTwoLinkOne("cutTwoLinkOne", .05)};
-		String testName = "test5";
+		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .1), new Split("split", .05), new Split2("split2", 0.05), new Swap("swap", 0.05), new SwitchSex("switchSex", 0.05), 
+				new CutLink("cutLink", .2), new SplitLink("splitLink", .2), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .05)};
+		String testName = "test3";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
 		String relAccPath = dir + "results/"+testName+".rel.acc";
 		String kinshipAccPath = dir + "results/"+testName+".kinship.acc";
+		//String relAccPath = dir + "results/testing.rel.acc";
+		//String kinshipAccPath = dir + "results/testing.kinship.acc";
 		
 		
 		//open accuracy path
@@ -77,8 +79,12 @@ public class RunMCMCMC {
 		PrintWriter writer2 = DataParser.openWriter(relAccPath);
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
+		//true path
+		//truePath = dir + "results/test.true";
+		Path[][] trueRel = Accuracy.getTruePath(truePath, numIndiv);
 		
-		for(int t=1; t<100; t++){
+		
+		for(int t=0; t<100; t++){
 
 			System.out.println(t);
 			
@@ -96,7 +102,7 @@ public class RunMCMCMC {
 				//data
 				Node[] inds = new Node[numIndiv];
 				for(int i=0; i<numIndiv; i++){ //(sampled, index, sex, depth ,age)
-					inds[i] = new Node(true, i, i%2, 0, -1);
+					inds[i] = new Node(true, i, i%2, 0, 30);
 				}
 				
 				Random rGen2 = new Random(2304985 + chain);
@@ -128,6 +134,28 @@ public class RunMCMCMC {
 				System.out.println();
 
 			}
+			
+			
+			//likelihood for true pedigree
+			Path[][] mcmcmcRel = chains.get(mcmcmc.coldChain).getRelationships();
+			for(int i=0; i<numIndiv; i++){
+				for(int j=i+1; j<numIndiv; j++){
+					
+					Path real = trueRel[i][j];
+					mcmcmcRel[i][j].updatePath(real.getUp(), real.getDown(), real.getNumVisit());
+					
+				}
+			}
+			List<Node> inds = new ArrayList<Node>();
+			for(int i=0; i<numIndiv; i++){ //(sampled, index, sex, depth ,age)
+				inds.add(new Node(true, i, i%2, 0, 30));
+			}
+			
+			
+			double trueLkhd = chains.get(mcmcmc.coldChain).likelihoodLocalPedigree(inds);
+			
+			System.out.println(String.format("lkhd of true pedigree: %.2f", trueLkhd));
+			
 
 			System.out.println(String.format("cold chain index: %d", mcmcmc.coldChain));
 			System.out.println(String.format("final swap rate: %.2f", mcmcmc.nSwapSuccess/((double)(burnIn+runLength)/swapInterval)));

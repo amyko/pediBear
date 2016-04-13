@@ -95,9 +95,15 @@ public class Pedigree {
 		core.setLikelihoods(lkhdPath);
 		
 		//compute current likelihood
+		NormalDistribution normalDist = new NormalDistribution(muGenTime, varGenTime);
 		for(Node i : inds){
 			logLikelihood[curr] += core.getMarginal(i);
+			
+			if(i.getAge()!=-1){
+				logLikelihood[curr] += Math.log(normalDist.density(i.getAge()));
+			}
 		}
+		
 		
 		
 		
@@ -701,7 +707,12 @@ public class Pedigree {
 		//cut parent from grandparents & clean up
 		for(Node gp : parent.getParents()){
 			gp.removeChild(parent);
-			clean(gp);
+			//clean(gp);
+			
+			//clean gp
+			if(!gp.sampled && gp.getNumEdges() < 2)
+				deleteNode(gp);
+			
 		}
 		parent.getParents().clear();
 		
@@ -723,6 +734,25 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+	}
+	
+	
+	public void shiftCluster(List<Node> cluster, int offset){
+		
+		//subtract old likelihood
+		this.logLikelihood[curr] -= ageLikelihood(cluster);
+		
+		//shift cluster
+		for(Node i : cluster){
+			i.setDepth(i.getDepth() + offset);
+		}
+		
+
+		//add new likelihood
+		this.logLikelihood[curr] += ageLikelihood(cluster);
+		
 		
 		
 	}
@@ -880,7 +910,7 @@ public class Pedigree {
 		
 		
 		//TODO testing
-		//lkhd += ageLikelihood(connectedSamples);
+		lkhd += ageLikelihood(connectedSamples);
 		
 
 		return lkhd;
@@ -888,32 +918,19 @@ public class Pedigree {
 	}
 	
 	
-	public double ageLikelihood(List<Node> connectedSamples){
+	private double ageLikelihood(List<Node> connectedSamples){
 		
 		double toReturn = 0d;
 		
-		for(int i=0; i<connectedSamples.size(); i++){
-			Node ind1 = connectedSamples.get(i);
+		for(Node i : connectedSamples){
+
+				if(i.getAge()==-1) continue;
 			
-			if(ind1.getAge()==-1) continue;
+				NormalDistribution normalDist = new NormalDistribution((i.getDepth()+1)*muGenTime, varGenTime); //TODO precompute
+				
+				toReturn += Math.log(normalDist.density(i.getAge()));
+				
 			
-			for(int j=i+1; j<connectedSamples.size(); j++){
-				Node ind2 = connectedSamples.get(j);
-				
-				if(ind2.getAge()==-1) continue;
-				
-				Path rel = relationships[curr][ind1.getIndex()][ind2.getIndex()];
-				if(rel.getNumVisit()==0) continue; //unrelated
-				
-				int up = rel.getUp();
-				int down = rel.getDown();
-				
-				
-				NormalDistribution normalDist = new NormalDistribution(ind1.getAge() + (up-down)*muGenTime, Math.sqrt((up+down)*varGenTime)); //TODO precompute
-				
-				toReturn += Math.log(normalDist.density(ind2.getAge()));
-				
-			}
 		}
 		
 		

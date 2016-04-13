@@ -100,21 +100,6 @@ public class MCMCMC {
 					
 					Move move = chooseMove();				
 					move.mcmcMove(chains.get(j), heat[j]);
-					
-					//TESTING			
-					if(!chains.get(j).sanityCheck()){
-						System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
-					
-						for(int k=0; k< chains.get(j).getNActiveNodes(); k++){
-							chains.get(j).getNode(k).print();
-						}
-						//System.out.println();
-							
-						System.out.println(chains.get(j).getNActiveNodes());
-						chains.get(j).printAdjMat();
-						System.out.println();
-							
-					}
 						
 					
 					
@@ -178,7 +163,7 @@ public class MCMCMC {
 				
 				
 				//TESTING			
-				if(!chains.get(j).sanityCheck()){
+				if(false){
 					System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
 				
 					for(int k=0; k< chains.get(j).getNActiveNodes(); k++){

@@ -125,7 +125,7 @@ public abstract class Move {
 		//grow list
 		if(idx > powersOfHalf.size()-1){
 			int oldCapacity = powersOfHalf.size();
-			int newCapacity = (3*oldCapacity)/2 + 1;
+			int newCapacity = (3*oldCapacity)/2 + 2;
 			
 			for(int i=oldCapacity; i<newCapacity; i++){
 				powersOfHalf.add(1d/Math.pow(2, i));
@@ -141,7 +141,7 @@ public abstract class Move {
 		//grow list
 		if(idx > powersOfHalf2.size()-1){
 			int oldCapacity = powersOfHalf2.size();
-			int newCapacity = (3*oldCapacity)/2 + 1;
+			int newCapacity = (3*oldCapacity)/2 + 2;
 			
 			for(int i=oldCapacity; i<newCapacity; i++){
 				powersOfHalf2.add(1d/(Math.pow(2, i)-1));
@@ -157,7 +157,7 @@ public abstract class Move {
 		//grow list
 		if(idx > powersOfTwo.size()-1){
 			int oldCapacity = powersOfTwo.size();
-			int newCapacity = (3*oldCapacity)/2 + 1;
+			int newCapacity = (3*oldCapacity)/2 + 2;
 			
 			for(int i=oldCapacity; i<newCapacity; i++){
 				powersOfTwo.add(Math.pow(2, i));
@@ -173,7 +173,7 @@ public abstract class Move {
 		//grow list
 		if(idx > logChooseOne.size()-1){
 			int oldCapacity = logChooseOne.size();
-			int newCapacity = (3*oldCapacity)/2 + 1;
+			int newCapacity = (3*oldCapacity)/2 + 2;
 			
 			for(int i=oldCapacity; i<newCapacity; i++){
 				logChooseOne.add(Math.log(1d/i));
@@ -187,9 +187,11 @@ public abstract class Move {
 	protected double getLogChooseTwo(int idx){
 		
 		//grow list
-		if(idx > logChooseTwo.size()-1){
+		if(idx >= logChooseTwo.size()){
 			int oldCapacity = logChooseTwo.size();
-			int newCapacity = (3*oldCapacity)/2 + 1;
+			int newCapacity = (3*oldCapacity)/2 + 2;
+			
+			//System.out.println(String.format("%d, %d", oldCapacity, newCapacity));
 			
 			for(int i=oldCapacity; i<newCapacity; i++){
 				logChooseTwo.add(Math.log(2d/(i*(i-1))));

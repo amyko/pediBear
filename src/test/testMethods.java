@@ -32,7 +32,7 @@ public class testMethods {
 		double r = 1.3e-8;
 		double genTime = 16;
 		int back = 100;
-		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/pairwiseLikelihood/test5.";
+		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/pairwiseLikelihood/test3.";
 		Random rGen = new Random(1489864090);
 		int numMaxNodes = 2;
 		PairwiseLikelihoodCoreStream2 core2 = new PairwiseLikelihoodCoreStream2(seqError, r, back, numIndiv);
@@ -85,7 +85,7 @@ public class testMethods {
 		
 		int c=0;
 		
-		for(int t=7; t<8; t++){
+		for(int t=18; t<19; t++){
 			
 			lkhdPath = dir +"pairwise."+t;
 			core2.setLikelihoods(lkhdPath);
