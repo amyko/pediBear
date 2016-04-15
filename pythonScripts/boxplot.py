@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pdb
 import os.path
 
-testName = "test3"
+testName = "test6"
 inPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".kinship.acc"
 nIndiv = 6
 nPairs = nIndiv*(nIndiv-1)/2

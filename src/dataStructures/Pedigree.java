@@ -771,12 +771,15 @@ public class Pedigree {
 
 		//cut from parent(s)
 		int nParents = child.getParents().size();
-		for(Node parent : child.getParents()){
-			deleteNode(parent);
+		List<Node> parents = new ArrayList<Node>();
+		parents.addAll(child.getParents());
+		for(Node p : parents){
+			deleteNode(p);
 		}
 		
 		
 		//shift child cluster down
+		clearVisit();
 		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
 		for(Node i : childCluster){
 			i.setDepth(i.getDepth() - 2);
@@ -800,6 +803,62 @@ public class Pedigree {
 				connect(newGP, newParent);
 			}
 			
+		}
+		
+		
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+		
+	}
+	
+	
+	
+	public void cousinToUncle(Node child, Node sib){
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		
+		
+		//how many parents; choose sib
+		Node parent = child.getParents().get(0);
+		List<Node> gp = new ArrayList<Node>();
+		gp.addAll(parent.getParents());
+		int nParent = gp.size();
+
+		//disconnect parent
+		deleteNode(parent);
+			
+		//shift child cluster up
+		clearVisit();
+		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
+		for(Node i : childCluster){
+			i.setDepth(i.getDepth() + 2);
+		}
+		
+		
+		
+		//make sib and child siblings
+		for(int i=0; i<nParent; i++){
+			Node newParent = makeNewNode(child.getDepth()+1, i);
+			connect(newParent, child);
+			connect(newParent, sib);
+		}
+		
+		//clean
+		for(Node i : gp){
+			clean(i);
 		}
 		
 		
@@ -1273,6 +1332,19 @@ public class Pedigree {
  				
  					return false;
  				
+ 			}
+ 			
+ 			for(Node k : node.getParents()){
+ 				if(k.getDepth() != node.getDepth()+1) return false;
+ 			}
+ 			
+ 			for(Node k : node.getChildren()){
+ 				if(k.getDepth() != node.getDepth()-1) return false;
+ 			}
+ 			
+ 			
+ 			if(node.getDepth() > maxDepth || node.getDepth() < 0){
+ 				return false;
  			}
  			
  			
