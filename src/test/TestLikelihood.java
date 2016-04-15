@@ -307,7 +307,7 @@ public class TestLikelihood {
 			int nSmallCluster = 2;
 			int nBigCluster = 1;
 			int nChildren = 3;
-			int nGen = 3;
+			int nGen = 4;
 			
 			//initialize simulator
 			SimulatorStream sim = new SimulatorStream(r);

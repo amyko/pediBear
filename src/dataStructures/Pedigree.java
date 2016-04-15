@@ -35,8 +35,8 @@ public class Pedigree {
 	
 	//for age
 	public final double genTime;
-	final double muGenTime = 29;
-	final double varGenTime = 36;
+	final double muGenTime = 25;
+	final double varGenTime = 64;
 
 	
 
@@ -752,6 +752,65 @@ public class Pedigree {
 
 		//add new likelihood
 		this.logLikelihood[curr] += ageLikelihood(cluster);
+		
+		
+		
+	}
+	
+	
+	public void uncleToCousin(Node child, Node sibChild){
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		
+
+		//cut from parent(s)
+		int nParents = child.getParents().size();
+		for(Node parent : child.getParents()){
+			deleteNode(parent);
+		}
+		
+		
+		//shift child cluster down
+		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
+		for(Node i : childCluster){
+			i.setDepth(i.getDepth() - 2);
+		}
+		
+		//make a ghost node for child
+		Node newParent = makeNewNode(child.getDepth() + 1 , child.getSex());
+		connect(newParent, child);
+		
+		
+		//connect new parent to grand parents
+		List<Node> gp = sibChild.getParents();
+		for(int i=0; i<nParents; i++){
+			
+			if(i < gp.size()){
+				connect(gp.get(i), newParent);
+			}
+			else{
+				Node newGP = makeNewNode(gp.get(0).getDepth(), (gp.get(0).getSex()+1)%2);
+				connect(newGP, sibChild);
+				connect(newGP, newParent);
+			}
+			
+		}
+		
+		
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		
 		
 		

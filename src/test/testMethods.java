@@ -27,7 +27,7 @@ public class testMethods {
 		
 		//parameters
 		int depth = 4;
-		int numIndiv = 6;
+		int numIndiv = 4;
 		double seqError = 0.01;
 		double r = 1.3e-8;
 		double genTime = 16;
@@ -85,7 +85,7 @@ public class testMethods {
 		
 		int c=0;
 		
-		for(int t=18; t<19; t++){
+		for(int t=10; t<20; t++){
 			
 			lkhdPath = dir +"pairwise."+t;
 			core2.setLikelihoods(lkhdPath);
