@@ -742,7 +742,7 @@ public class Pedigree {
 	public void shiftCluster(List<Node> cluster, int offset){
 		
 		//subtract old likelihood
-		this.logLikelihood[curr] -= ageLikelihood(cluster);
+		//this.logLikelihood[curr] -= ageLikelihood(cluster);
 		
 		//shift cluster
 		for(Node i : cluster){
@@ -751,14 +751,14 @@ public class Pedigree {
 		
 
 		//add new likelihood
-		this.logLikelihood[curr] += ageLikelihood(cluster);
+		//this.logLikelihood[curr] += ageLikelihood(cluster);
 		
 		
 		
 	}
 	
 	
-	public void uncleToCousin(Node child, Node sibChild){
+	public void uncleToCousin(Node child, Node sib, Node sibChild){
 		
 		//cluster containing child
 		clearVisit();
@@ -769,11 +769,12 @@ public class Pedigree {
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
 		
 
+
 		//cut from parent(s)
 		int nParents = child.getParents().size();
-		List<Node> parents = new ArrayList<Node>();
-		parents.addAll(child.getParents());
-		for(Node p : parents){
+		List<Node> oldParents = new ArrayList<Node>();
+		oldParents.addAll(child.getParents());
+		for(Node p : oldParents){
 			deleteNode(p);
 		}
 		
@@ -794,6 +795,7 @@ public class Pedigree {
 		List<Node> gp = sibChild.getParents();
 		for(int i=0; i<nParents; i++){
 			
+
 			if(i < gp.size()){
 				connect(gp.get(i), newParent);
 			}
@@ -816,6 +818,9 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		
 		
+		clean(sib);
+		
+		
 		
 	}
 	
@@ -829,7 +834,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		
+
 		
 		//how many parents; choose sib
 		Node parent = child.getParents().get(0);
@@ -1053,6 +1058,31 @@ public class Pedigree {
 		
 		
 		return toReturn;
+		
+	}
+	
+	
+	public double totalLikelihood(){
+		
+		double toReturn = 0d;
+		
+		clearVisit();
+		
+		for(int i=0; i<numIndiv; i++){
+			
+			Node node = nodes.get(curr).get(i);
+			
+			if(node.getNumVisit() > 0) continue;
+			
+			List<Node> ped = node.getConnectedSampledNodes(new ArrayList<Node>());
+			
+			toReturn += likelihoodLocalPedigree(ped);
+			
+			
+		}
+		
+		return toReturn;
+		
 		
 	}
 	
@@ -1323,32 +1353,58 @@ public class Pedigree {
  			
  			Node node = nodes.get(curr).get(i);
  			
+ 			
+ 			//parent sex
  			if(node.getParents().size()==2){
  				
  				Node p1 = node.getParents().get(0);
  				Node p2 = node.getParents().get(1);
  				
- 				if(!(p1.getSex()==0 && p2.getSex()==1) && !(p1.getSex()==1 && p2.getSex()==0))
- 				
+ 				if(!(p1.getSex()==0 && p2.getSex()==1) && !(p1.getSex()==1 && p2.getSex()==0)){
+ 					System.out.println("Parent error!");
  					return false;
+ 				}
  				
  			}
  			
+ 			//depth consistency
  			for(Node k : node.getParents()){
- 				if(k.getDepth() != node.getDepth()+1) return false;
+ 				if(k.getDepth() != node.getDepth()+1){
+ 					System.out.println("depth error!");
+ 					return false;
+ 				}
  			}
  			
  			for(Node k : node.getChildren()){
- 				if(k.getDepth() != node.getDepth()-1) return false;
+ 				if(k.getDepth() != node.getDepth()-1){
+ 					return false;
+ 				}
  			}
  			
  			
  			if(node.getDepth() > maxDepth || node.getDepth() < 0){
+ 				System.out.println("depth error!");
+ 				return false;
+ 			}
+ 			
+ 			
+ 			//ghost nodes
+ 			if(!node.sampled && node.getNumEdges()<2){
+ 				System.out.println("ghost error!");
  				return false;
  			}
  			
  			
  		}
+ 		
+ 		
+
+ 		if(Math.abs(totalLikelihood() - logLikelihood[curr]) > 1e-1){
+ 			System.out.println("lkhd error!");
+ 			System.out.println(Math.abs(totalLikelihood() - logLikelihood[curr]));
+ 			return false;
+ 		}
+
  		
  		
  		return true;

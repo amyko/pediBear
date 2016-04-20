@@ -161,7 +161,6 @@ public class MCMCMC {
 
 				Move move = chooseMove();
 				
-				
 				//TESTING			
 				if(!chains.get(j).sanityCheck()){
 					System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
@@ -175,16 +174,12 @@ public class MCMCMC {
 					chains.get(j).printAdjMat();
 					System.out.println();
 					
-					if(!chains.get(j).sanityCheck())
-						throw new RuntimeException("depth error!");
-					
+
 						
 				}
-					
-
+				
 				
 				move.mcmcMove(chains.get(j), heat[j]);
-				
 				
 				
 		

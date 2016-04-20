@@ -44,7 +44,7 @@ public class RunMCMCMC {
 		//pedigree parameters
 		int depth = 4;
 		int maxDepthForSamples = 4;
-		int numIndiv = 3;
+		int numIndiv = 6;
 		double seqError = 0.01;
 		double r = 1.3e-8;
 		int back = 30000;
@@ -58,8 +58,8 @@ public class RunMCMCMC {
 		//String lkhdPath = dir + ".pairwise";
 		
 		//MCMC parameters
-		int nChain = 1;
-		int burnIn = 500000;
+		int nChain = 4;
+		int burnIn = 1000000;
 		int runLength = 100000;
 		int sampleRate = 100;
 		double deltaT = .5;
@@ -68,32 +68,32 @@ public class RunMCMCMC {
 		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .1), new Split("split", .05), new Split2("split2", 0.05), new Swap("swap", 0.05), new SwitchSex("switchSex", 0.05), 
 				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .05),
 				new CousinToUncle("cousinToUncle", .1), new UncleToCousin("uncleToCousin", .1),};
-		String testName = "test3";
+		String testName = "test";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
-		//String relAccPath = dir + "results/"+testName+".rel.acc";
-		//String kinshipAccPath = dir + "results/"+testName+".kinship.acc";
-		String relAccPath = dir + "results/testing.rel.acc";
-		String kinshipAccPath = dir + "results/testing.kinship.acc";
+		String relAccPath = dir + "results/"+testName+".rel.acc";
+		String kinshipAccPath = dir + "results/"+testName+".kinship.acc";
+		//String relAccPath = dir + "results/testing.rel.acc";
+		//String kinshipAccPath = dir + "results/testing.kinship.acc";
 		
 		
 		//open accuracy path
-		//PrintWriter writer1 = DataParser.openWriter(kinshipAccPath);
-		//PrintWriter writer2 = DataParser.openWriter(relAccPath);
-		//Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
+		PrintWriter writer1 = DataParser.openWriter(kinshipAccPath);
+		PrintWriter writer2 = DataParser.openWriter(relAccPath);
+		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		//true path
-		truePath = dir + "results/test3.true";
-		//Path[][] trueRel = Accuracy.getTruePath(truePath, numIndiv);
+		//truePath = dir + "results/test3.true";
+		Path[][] trueRel = Accuracy.getTruePath(truePath, numIndiv);
 		
 		
-		for(int t=0; t<1; t++){
+		for(int t=0; t<100; t++){
 
 			System.out.println(t);
 			
 			//write header for output path
-			//writer1.write(String.format(">\t%d\n", t));
-			//writer2.write(String.format(">\t%d\n", t));
+			writer1.write(String.format(">\t%d\n", t));
+			writer2.write(String.format(">\t%d\n", t));
 			
 			String marginalPath = dir + "pairwiseLikelihood/"+testName+".marginal."+t;
 			String lkhdPath = dir + "pairwiseLikelihood/"+testName+".pairwise."+t;
@@ -127,7 +127,7 @@ public class RunMCMCMC {
 			System.out.println(String.format("final swap rate: %.2f", mcmcmc.nSwapSuccess/((double)(burnIn+runLength)/swapInterval)));
 			System.out.println(String.format("Running time: %.1f seconds", duration));
 			
-			/*
+			
 			//Results
 			System.out.println();
 			for(int j=0; j<nChain; j++){
@@ -137,6 +137,7 @@ public class RunMCMCMC {
 				System.out.println();
 
 			}
+			
 			
 			
 			//likelihood for true pedigree
@@ -163,7 +164,7 @@ public class RunMCMCMC {
 			System.out.println(String.format("cold chain index: %d", mcmcmc.coldChain));
 			System.out.println(String.format("final swap rate: %.2f", mcmcmc.nSwapSuccess/((double)(burnIn+runLength)/swapInterval)));
 			System.out.println(String.format("Running time: %.1f seconds", duration));
-
+			
 			
 			
 			//Accuracy
@@ -204,7 +205,7 @@ public class RunMCMCMC {
 			//flush
 			writer1.flush();
 			writer2.flush();
-			*/
+			
 			
 			
 			
