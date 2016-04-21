@@ -48,7 +48,7 @@ public class Accuracy {
 						n++;				
 					}
 					
-					if(Integer.parseInt(fields[UP])==path.getDown() && Integer.parseInt(fields[DOWN])==path.getUp()){
+					else if(Integer.parseInt(fields[UP])==path.getDown() && Integer.parseInt(fields[DOWN])==path.getUp()){
 						n++;	
 					}
 				}	
@@ -289,6 +289,7 @@ public class Accuracy {
 		
 		BufferedReader reader = DataParser.openReader(inPath);
 		String line;
+
 		while((line = reader.readLine())!=null){
 			
 			String[] fields = line.split("\t");
@@ -297,6 +298,7 @@ public class Accuracy {
 			Path key = new Path(Integer.parseInt(fields[UP]) , Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[NUMVISIT]));
 			
 			trueRel[i][j] = key;
+
 			
 		}
 		

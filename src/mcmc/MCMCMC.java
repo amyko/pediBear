@@ -37,6 +37,11 @@ public class MCMCMC {
 	
 	private double deltaT;
 	private double[] heat;
+	
+	
+	
+	public double bestLkhd = Double.NEGATIVE_INFINITY;
+	
 
 	//TODO parallelize 
 	public MCMCMC(List<Pedigree> chains, double deltaT, Move[] moves, int burnIn, int runLength, int sampleRate, int swapInterval, Random rGen, String outPath) throws IOException{
@@ -57,7 +62,9 @@ public class MCMCMC {
 		this.tuned = false;
 		
 		this.heat = new double[nChain];
-		for(int i=0; i<nChain; i++) heat[i] = 1 / (1 + deltaT*i);
+		for(int i=0; i<nChain; i++) 
+			//heat[i] = 0;
+			heat[i] = 1 / (1 + deltaT*i);
 		
 		
 	}
@@ -161,6 +168,7 @@ public class MCMCMC {
 
 				Move move = chooseMove();
 				
+				/*
 				//TESTING			
 				if(!chains.get(j).sanityCheck()){
 					System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
@@ -177,6 +185,7 @@ public class MCMCMC {
 
 						
 				}
+				*/
 				
 				
 				move.mcmcMove(chains.get(j), heat[j]);
@@ -235,6 +244,14 @@ public class MCMCMC {
 		//now start sampling
 		for(int i = 0; i < runLength; i++){
 			
+			//record best likelihood
+			double currLkhd = chains.get(this.coldChain).getLogLikelihood();
+			if(currLkhd > this.bestLkhd){
+				this.bestLkhd = currLkhd;
+				//System.out.println(bestLkhd);
+			}
+			
+			
 			//sample from cold chain
 			if(i % sampleRate == 0){
 				sample(chains.get(this.coldChain));
@@ -250,7 +267,8 @@ public class MCMCMC {
 			if(i%swapInterval==0){
 				swapStates();
 			}
-		
+			
+	
 		}
 		
 		
@@ -338,7 +356,7 @@ public class MCMCMC {
 	private void sample(Pedigree currPedigree){
 		
 		//header for this sample
-		writer.write(">\n");
+		writer.write(String.format(">\t%.2f\n", currPedigree.getLogLikelihood()));
 		
 		for(int i=0; i<currPedigree.numIndiv; i++){
 			for(int j=i+1; j<currPedigree.numIndiv; j++){

@@ -14,7 +14,7 @@ import dataStructures.Path;
 import dataStructures.Pedigree;
 import likelihood.PairwiseLikelihoodCoreStream2;
 import mcmc.MCMCMC;
-import mcmcMoves.CousinToUncle;
+import mcmcMoves.CousinToGreatUncle;
 import mcmcMoves.Cut;
 import mcmcMoves.CutLink;
 import mcmcMoves.CutOneLinkTwo;
@@ -27,7 +27,7 @@ import mcmcMoves.SplitLink;
 import mcmcMoves.Swap;
 import mcmcMoves.SwitchSex;
 import mcmcMoves.ShiftClusterLevel;
-import mcmcMoves.UncleToCousin;
+import mcmcMoves.GreatUncleToCousin;
 
 
 
@@ -43,8 +43,9 @@ public class RunMCMCMC {
 
 		//pedigree parameters
 		int depth = 4;
-		int maxDepthForSamples = 4;
+		int maxDepthForSamples = depth;
 		int numIndiv = 6;
+		int totalIndiv = 6;
 		double seqError = 0.01;
 		double r = 1.3e-8;
 		int back = 30000;
@@ -65,16 +66,16 @@ public class RunMCMCMC {
 		double deltaT = .5;
 		int swapInterval = 1;
 		Random rGen = new Random(1068580L);
-		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .1), new Split("split", .05), new Split2("split2", 0.05), new Swap("swap", 0.05), new SwitchSex("switchSex", 0.05), 
-				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .05),
-				new CousinToUncle("cousinToUncle", .1), new UncleToCousin("uncleToCousin", .1),};
-		String testName = "test";
+		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .05), new Split("split", .05), new Split2("split2", .05), new Swap("swap", .05), new SwitchSex("switchSex", .05), 
+				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .1),
+				new CousinToGreatUncle("cousinToGreatUncle", .1), new GreatUncleToCousin("greatUncleToCousin",.1)};
+		String testName = "test2";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
-		String relAccPath = dir + "results/"+testName+".rel.acc";
-		String kinshipAccPath = dir + "results/"+testName+".kinship.acc";
-		//String relAccPath = dir + "results/testing.rel.acc";
-		//String kinshipAccPath = dir + "results/testing.kinship.acc";
+		//String relAccPath = dir + "results/"+testName+".rel.acc";
+		//String kinshipAccPath = dir + "results/"+testName+".kinship.acc";
+		String relAccPath = dir + "results/testing.rel.acc";
+		String kinshipAccPath = dir + "results/testing.kinship.acc";
 		
 		
 		//open accuracy path
@@ -83,17 +84,13 @@ public class RunMCMCMC {
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		//true path
-		//truePath = dir + "results/test3.true";
-		Path[][] trueRel = Accuracy.getTruePath(truePath, numIndiv);
+		Path[][] trueRel = Accuracy.getTruePath(truePath, totalIndiv);
 		
 		
-		for(int t=0; t<100; t++){
+		for(int t=0; t<1; t++){
 
 			System.out.println(t);
 			
-			//write header for output path
-			writer1.write(String.format(">\t%d\n", t));
-			writer2.write(String.format(">\t%d\n", t));
 			
 			String marginalPath = dir + "pairwiseLikelihood/"+testName+".marginal."+t;
 			String lkhdPath = dir + "pairwiseLikelihood/"+testName+".pairwise."+t;
@@ -152,7 +149,7 @@ public class RunMCMCMC {
 			}
 			List<Node> inds = new ArrayList<Node>();
 			for(int i=0; i<numIndiv; i++){ //(sampled, index, sex, depth ,age)
-				inds.add(new Node(true, i, i%2, 0, 30));
+				inds.add(new Node(true, i, i%2, 0, -1));
 			}
 			
 			
@@ -178,27 +175,24 @@ public class RunMCMCMC {
 			
 			
 			
+			//kinship accuracy
+			double[][] kinshipAcc = Accuracy.kinshipAccuracy(outPath, truePath, totalIndiv, pathToKinship);
+			double[][] relAcc = Accuracy.relAccuracy(outPath, truePath, totalIndiv);
 			
+			//write header for output path
+			writer1.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
+			writer2.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
 			
-			double[][] kinshipAcc = Accuracy.kinshipAccuracy(outPath, truePath, numIndiv, pathToKinship);
-			double[][] relAcc = Accuracy.relAccuracy(outPath, truePath, numIndiv);
-			
-			//System.out.println("Accuracy:");
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){
-					//System.out.print(String.format("%.2f\t", kinshipAcc[i][j]));
 					writer1.write(String.format("%d\t%d\t%.3f\n", i, j, kinshipAcc[i][j]));
 				}
-				//System.out.println();
 			}
 			
-			//System.out.println("Kinship accuracy:");
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){
-					//System.out.print(String.format("%.1e\t", relAcc[i][j]));
 					writer2.write(String.format("%d\t%d\t%.3f\n", i, j, relAcc[i][j]));
 				}
-				//System.out.println();
 			}
 			
 			
@@ -209,11 +203,12 @@ public class RunMCMCMC {
 			
 			
 			
+			
 		}
 		
 		
-		//writer1.close();
-		//writer2.close();
+		writer1.close();
+		writer2.close();
 		
 		
 
@@ -256,6 +251,7 @@ public class RunMCMCMC {
 			System.out.println(String.format("(%d,%d,%d) %d", rel.getUp(), rel.getDown(), rel.getNumVisit(), count));
 		}
 		*/
+		
 		
 		
 		

@@ -742,7 +742,7 @@ public class Pedigree {
 	public void shiftCluster(List<Node> cluster, int offset){
 		
 		//subtract old likelihood
-		//this.logLikelihood[curr] -= ageLikelihood(cluster);
+		this.logLikelihood[curr] -= ageLikelihood(cluster);
 		
 		//shift cluster
 		for(Node i : cluster){
@@ -751,14 +751,14 @@ public class Pedigree {
 		
 
 		//add new likelihood
-		//this.logLikelihood[curr] += ageLikelihood(cluster);
+		this.logLikelihood[curr] += ageLikelihood(cluster);
 		
 		
 		
 	}
 	
 	
-	public void uncleToCousin(Node child, Node sib, Node sibChild){
+	public void greatUncleToCousin(Node child, Node sib, Node sibChild){
 		
 		//cluster containing child
 		clearVisit();
@@ -826,7 +826,7 @@ public class Pedigree {
 	
 	
 	
-	public void cousinToUncle(Node child, Node sib){
+	public void cousinToGreatUncle(Node child, Node sib){
 		
 		//cluster containing child
 		clearVisit();
@@ -1206,7 +1206,7 @@ public class Pedigree {
 		
 	}
 	
-	//returns number of full siblings child has with the given sex
+	//returns number of full siblings child has with the given sex, excluding itself
 	public List<Node> getFullSibs(Node child, int targetSex){
 		
 		List<Node> toReturn = new ArrayList<Node>();
