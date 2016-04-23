@@ -74,12 +74,13 @@ public class RunPairwiseTest {
 		
 		//files
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String testName = "test2";
+		String testName = "testing";
 		String inPath = dir + "pairwiseLikelihood/"+testName+".pairwise.";
 		String outPath = dir + "results/"+testName+".out";
 		String accPath = dir + "results/"+testName+".kinship.pairwise.acc";
 		String pathToOmegaPath = dir + "pathToOmega.txt";
 		String truePath = dir + "results/" +testName + ".true";
+		//String truePath = dir + "results/test2.true";
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		//open outfiles

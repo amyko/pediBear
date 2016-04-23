@@ -60,16 +60,16 @@ public class RunMCMCMC {
 		
 		//MCMC parameters
 		int nChain = 4;
-		int burnIn = 1000000;
+		int burnIn = 500000;
 		int runLength = 100000;
-		int sampleRate = 100;
+		int sampleRate = 50;
 		double deltaT = .5;
 		int swapInterval = 1;
-		Random rGen = new Random(1068580L);
+		Random rGen = new Random(1064850L);
 		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .05), new Split("split", .05), new Split2("split2", .05), new Swap("swap", .05), new SwitchSex("switchSex", .05), 
 				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .1),
 				new CousinToGreatUncle("cousinToGreatUncle", .1), new GreatUncleToCousin("greatUncleToCousin",.1)};
-		String testName = "test2";
+		String testName = "testing";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
 		//String relAccPath = dir + "results/"+testName+".rel.acc";
@@ -84,10 +84,11 @@ public class RunMCMCMC {
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		//true path
+		truePath = dir + "results/test2.true";
 		Path[][] trueRel = Accuracy.getTruePath(truePath, totalIndiv);
 		
 		
-		for(int t=0; t<1; t++){
+		for(int t=0; t<4; t++){
 
 			System.out.println(t);
 			

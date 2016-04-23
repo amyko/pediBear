@@ -44,7 +44,7 @@ def getMeanError(inPath):
 if __name__ == "__main__":
 
     #file names
-    testName = "test2"
+    testName = "testing"
     mcmcPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".kinship.acc"
     pairwisePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".kinship.pairwise.acc"
     nIndiv = 6

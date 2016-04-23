@@ -200,6 +200,20 @@ public class Node {
 		
 	}
 	
+	
+	public boolean isFounder(){
+		
+		if(this.parents.size()==0) return true;
+		
+		if(this.parents.size()==2) return false;
+		
+		if(parents.get(0).getChildren().size() > 1 || parents.get(0).sampled) return false;
+		
+		return parents.get(0).isFounder();
+		
+		
+	}
+	
 
 	
 

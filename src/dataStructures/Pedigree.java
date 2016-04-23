@@ -1041,6 +1041,121 @@ public class Pedigree {
 	}
 	
 	
+	
+	/*
+	public double likelihoodLocalPedigree(List<Node> connectedSamples){//works
+			
+		
+		int n = connectedSamples.size();
+		
+		if(n==0) return 0d;
+		
+		if(n==1)
+			return core.getMarginal(connectedSamples.get(0));
+		
+		
+		//pairwise
+		int smaller;
+		int bigger;
+		double lkhd = 0d;
+		for(int i=0; i<connectedSamples.size(); i++){
+			Node ind1 = connectedSamples.get(i);
+			
+			for(int j=i+1; j<connectedSamples.size(); j++){
+				Node ind2 = connectedSamples.get(j);
+				
+				if(ind1.getIndex() < ind2.getIndex()){
+					smaller = ind1.getIndex();
+					bigger = ind2.getIndex();
+				}
+				else{
+					smaller = ind2.getIndex();
+					bigger = ind1.getIndex();
+				}
+
+
+				lkhd += core.getLikelihood(ind1, ind2, relationships[curr][smaller][bigger]);
+
+				
+			}
+		}
+
+
+		lkhd /= (n-1);
+
+		return lkhd;
+		
+	}
+	
+	
+	public double likelihoodLocalPedigree(List<Node> connectedSamples){//works
+			
+		double lkhd = 0d;
+		
+		int n = connectedSamples.size();
+		
+		for(Node ind1 : connectedSamples){
+			
+			double innerSum = 0d;
+			
+			if(ind1.isFounder() || n==1){
+				innerSum = core.getMarginal(ind1);
+			}
+			
+			else{
+				int m = 0;
+				for(int j=0; j<numIndiv; j++){
+					
+					Node ind2 = nodes.get(curr).get(j);
+					
+					if(ind1==ind2) continue;
+					
+					int smaller;
+					int bigger;
+					if(ind1.getIndex() < ind2.getIndex()){
+						smaller = ind1.getIndex();
+						bigger = ind2.getIndex();
+					}
+					else{
+						smaller = ind2.getIndex();
+						bigger = ind1.getIndex();
+					}
+
+
+					if(relationships[curr][smaller][bigger].getNumVisit()==0){
+						continue;
+					}
+					
+					
+					double logB = core.getLikelihood(ind1, ind2, relationships[curr][smaller][bigger]) - core.getMarginal(ind2);
+					if(innerSum==0)
+						innerSum = logB;
+					else{
+						double logA = innerSum;
+						innerSum = utility.LogSum.addLogSummand(logA, logB);
+					}
+					
+					m++;
+					
+					
+				}
+				
+				innerSum -= Math.log(m);
+				
+			}
+			
+			
+			lkhd += innerSum;
+			
+			
+		}
+
+		return lkhd;
+		
+	}
+	*/
+	
+	
 	private double ageLikelihood(List<Node> connectedSamples){
 		
 		double toReturn = 0d;

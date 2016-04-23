@@ -301,6 +301,44 @@ public class PairwiseLikelihoodCoreStream2 {
 	}
 	
 	
+	//marginal probability of an individual
+	public double[] computeMarginalIndep(String genoPath, String infoPath, int[] indCols) throws IOException{ //works
+		
+		int numIndiv = indCols.length;
+		double[] toReturn = new double[numIndiv];
+		int numSnp = DataParser.countLines(infoPath)-1;
+		
+		//open files
+		BufferedReader genoFile = DataParser.openReader(genoPath);
+		BufferedReader infoFile = DataParser.openReader(infoPath);
+		//skip headers
+		genoFile.readLine();
+		infoFile.readLine();
+
+		String[] geno;
+		String[] info;
+		
+		for(int locus = 0; locus < numSnp; locus++){ //for every snp
+			
+			//read current
+			info = infoFile.readLine().split("\t");
+			geno = genoFile.readLine().split("\t");
+			
+			
+			//compute all possible genotype probs
+			Map<Genotype, Double> oneLocusGenoProbMap = computePossibleGenotypeProbWithError(info);
+			
+			for (int i=0; i<numIndiv; i++){
+				String g = geno[indCols[i]];
+				toReturn[i] += Math.log(oneLocusGenoProbMap.get(genotypeKey.get(g)));
+			}
+			
+		}
+		
+		return toReturn;
+	}
+	
+	
 	public double[][][] forwardAlgorithmIndep(String genoPath, String infoPath, int[] indCols, List<Relationship> rel) throws IOException{
 		
 		int numIndiv = indCols.length;
@@ -316,10 +354,7 @@ public class PairwiseLikelihoodCoreStream2 {
 		genoFile.readLine(); //skip header
 		infoFile.readLine(); //skip header
 		
-		// data structures
-		Map<Integer,String[]> posToGeno = new HashMap<Integer,String[]>(back); //holds genotypes for the last 50 snps
-		Map<Integer, String[]> posToInfo = new HashMap<Integer, String[]>(back); //holds info line for the last 50 snps
-
+		
 		//previous forward probabilities (only 3 distinct ibd states)
 		double[][][][] alpha = new double[numRel][numIndiv][numIndiv][3];
 		
@@ -376,8 +411,6 @@ public class PairwiseLikelihoodCoreStream2 {
 	
 		//update previous data
 		int prevPos = Integer.parseInt(info[POS]);
-		posToGeno.put(prevPos,geno);
-		posToInfo.put(prevPos, info);
 		
 
 		//recursion:
@@ -388,12 +421,9 @@ public class PairwiseLikelihoodCoreStream2 {
 			
 			//read info
 			info = infoFile.readLine().split("\t");
-			//int ldPos = Integer.parseInt(info[LDPOS]);
-			//String[] ldInfo = posToInfo.get(ldPos);
 			
 			//read geno
 			geno = genoFile.readLine().split("\t");
-			//String[] ldGeno = posToGeno.get(ldPos);
 			
 			//read relevant data
 			int currPos = Integer.parseInt(info[POS]);
@@ -401,7 +431,6 @@ public class PairwiseLikelihoodCoreStream2 {
 
 			
 			//compute all possible emission probs
-			//Map<EmissionKey, Double> conditionalEmissionMap = computePossibleConditionalEmissionWithError(ldInfo, info);
 			emissionMap = computePossibleOneLocusEmissionWithError(info);
 			
 			for (int ibdNew = 0; ibdNew < numIBD; ibdNew++){
@@ -431,7 +460,6 @@ public class PairwiseLikelihoodCoreStream2 {
 					int i1 = indCols[i];
 					for(int j=i+1; j<numIndiv; j++){
 						int i2 = indCols[j];
-						//EmissionKey key = new EmissionKey(new SimplePair<Genotype,Genotype>(new Genotype(ldGeno[i1]), new Genotype(ldGeno[i2])), new SimplePair<Genotype,Genotype>(new Genotype(geno[i1]), new Genotype(geno[i2])), ibdNew);
 						EmissionKey key = new EmissionKey(new SimplePair<Genotype,Genotype>(genotypeKey.get(geno[i1]), genotypeKey.get(geno[i2])), null, ibdNew);
 						double emissionDensity = emissionMap.get(key); //should never be zero
 						
@@ -477,17 +505,6 @@ public class PairwiseLikelihoodCoreStream2 {
 			
 			//add previous info
 			prevPos = currPos;
-			posToGeno.put(prevPos,geno);
-			posToInfo.put(prevPos, info);
-			
-
-			//remove useless
-			int minKey = Collections.min(posToGeno.keySet());
-			while(currPos - minKey > back){
-				posToGeno.remove(minKey);
-				posToInfo.remove(minKey);
-				minKey = Collections.min(posToGeno.keySet());
-			}
 			
 		}
 		
