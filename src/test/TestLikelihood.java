@@ -301,10 +301,10 @@ public class TestLikelihood {
 			int chrStart = 1;
 			int chrEnd = 23;
 			boolean full = true;
-			int nSmallCluster = 1;
+			int nSmallCluster = 3;
 			int nBigCluster = 1;
-			int nChildren = 6;
-			int nGen = 3;
+			int nChildren = 3;
+			int nGen = 4;
 			
 			//initialize simulator
 			SimulatorStream sim = new SimulatorStream(r);
@@ -386,9 +386,9 @@ public class TestLikelihood {
 					//files
 					String unrelated = dataDir+"msprime.geno.pruned."+i;
 					
-					simulateCousins(unrelated, simDir+"sim.test.geno."+i, nGen, full, nChildren, nSmallCluster, 8);	
+					//simulateCousins(unrelated, simDir+"sim.test.geno."+i, nGen, full, nChildren, nSmallCluster, 8);	
 					
-					/*
+					
 					//first gen
 					int start = 8;
 					sim.makeChildren(unrelated, unrelated, unrelated, simDir+"first.out", start, start+1, rgen, nSmallCluster, "children\n");
@@ -412,7 +412,7 @@ public class TestLikelihood {
 					
 					//concatenate families
 					DataParser.concatFiles(fileNames, simDir+"sim.test.geno."+i, cols);
-					*/
+					
 					
 					
 				}
@@ -427,18 +427,19 @@ public class TestLikelihood {
 				}
 				
 				
+				
 
 	
 				
 				//compute marginal probs
 				System.out.println("Computing marginals");
-				computeMarginals(dataDir, simDir + "sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/testing.marginal."+t, indCols, chrStart, chrEnd);
+				computeMarginals(dataDir, simDir + "sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/test6.marginal."+t, indCols, chrStart, chrEnd);
 		
 				
 				//compute pairwise
 				System.out.println("Computing pairwise likelihoods");
 				long startTime = System.nanoTime();		
-				computePairwise(dataDir, simDir+"sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/testing.pairwise."+t, indCols, relationships, chrStart, chrEnd);	
+				computePairwise(dataDir, simDir+"sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/test6.pairwise."+t, indCols, relationships, chrStart, chrEnd);	
 				System.out.println("Total time was " + (System.nanoTime() - startTime) / 1e9 / 60d/ 60d + " hours");
 				
 			

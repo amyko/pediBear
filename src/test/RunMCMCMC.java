@@ -44,7 +44,7 @@ public class RunMCMCMC {
 		//pedigree parameters
 		int depth = 4;
 		int maxDepthForSamples = depth;
-		int numIndiv = 6;
+		int numIndiv = 3;
 		int totalIndiv = 6;
 		double seqError = 0.01;
 		double r = 1.3e-8;
@@ -60,7 +60,7 @@ public class RunMCMCMC {
 		
 		//MCMC parameters
 		int nChain = 4;
-		int burnIn = 500000;
+		int burnIn = 1000000;
 		int runLength = 100000;
 		int sampleRate = 50;
 		double deltaT = .5;
@@ -69,7 +69,7 @@ public class RunMCMCMC {
 		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .05), new Split("split", .05), new Split2("split2", .05), new Swap("swap", .05), new SwitchSex("switchSex", .05), 
 				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .1),
 				new CousinToGreatUncle("cousinToGreatUncle", .1), new GreatUncleToCousin("greatUncleToCousin",.1)};
-		String testName = "testing";
+		String testName = "merlin";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
 		//String relAccPath = dir + "results/"+testName+".rel.acc";
@@ -88,7 +88,7 @@ public class RunMCMCMC {
 		Path[][] trueRel = Accuracy.getTruePath(truePath, totalIndiv);
 		
 		
-		for(int t=0; t<4; t++){
+		for(int t=0; t<1; t++){
 
 			System.out.println(t);
 			
@@ -136,6 +136,7 @@ public class RunMCMCMC {
 
 			}
 			
+
 			
 			
 			//likelihood for true pedigree
