@@ -44,7 +44,7 @@ def getMeanError(inPath):
 if __name__ == "__main__":
 
     #file names
-    testName = "testing"
+    testName = "test7"
     mcmcPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".kinship.acc"
     pairwisePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".kinship.pairwise.acc"
     nIndiv = 6
@@ -56,14 +56,16 @@ if __name__ == "__main__":
     mcmcData, mcmcMeans = getMeanError(mcmcPath)
     pairData, pairwiseMeans = getMeanError(pairwisePath)
 
+    #pdb.set_trace()
+
     
     #plot
     plt.figure()
-    plt.boxplot(mcmcData)
+    #plt.boxplot(mcmcData)
     plt.scatter(xdata, mcmcMeans, color='blue', label='mcmc mean error')
     plt.scatter(xdata, pairwiseMeans, color='red', label='pariwise mean error')
     plt.legend()
-    #plt.ylim([-.1,1.1])
+    plt.ylim([-.1,1.1])
     plt.xlabel("pair")
     plt.ylabel("error rate")
     plt.title("error rate for 100 simulations; " + testName)

@@ -34,7 +34,7 @@ public class CutTwoLinkOne extends Move{
 			return REJECT;
 		
 		int newParentSex = (parent.getSex() + 1) % 2;
-		List<Node> newParentCandidates = currPedigree.getFullSibs(parent, newParentSex);
+		List<Node> newParentCandidates = currPedigree.getFullSibsWithTargetSex(parent, newParentSex);
 		
 		//reject there's no potential new parent
 		int nCandidate = newParentCandidates.size();

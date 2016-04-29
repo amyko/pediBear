@@ -19,6 +19,62 @@ public class Accuracy {
 	final static int NUMVISIT = 4;
 	
 	
+	//best paths based on pairwise test
+	public static Path[][] pairwiseBestPed(String outPath, int totalIndiv, int numIndiv) throws NumberFormatException, IOException{
+		
+		//to return
+		Path[][] bestPath = new Path[numIndiv][numIndiv];
+		double[][] bestLkhd = new double[numIndiv][numIndiv];
+		
+		for(int i=0; i<numIndiv; i++){
+			for(int j=0; j<numIndiv; j++){
+				bestLkhd[i][j] = Double.NEGATIVE_INFINITY;
+			}
+		}
+		
+		
+		//read output
+		BufferedReader reader = DataParser.openReader(outPath);
+		String line;
+		Path rel = null;
+		int i=0;
+		
+		while((line = reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			if(fields[0].equals(">")){
+				rel = new Path(Integer.parseInt(fields[1]) , Integer.parseInt(fields[2]) , Integer.parseInt(fields[3]));
+				i=0;
+				continue;
+			}
+			
+			if(i>=numIndiv) continue;
+			
+			for(int j=0; j<numIndiv; j++){
+				double currLkhd = Double.parseDouble(fields[j]);
+				if(currLkhd > bestLkhd[i][j]){
+					bestLkhd[i][j] = currLkhd;
+					bestPath[i][j] = rel;
+				}
+			}
+			
+			i++;
+			
+			
+		}
+		
+		reader.close();
+		
+		
+		
+		return bestPath;
+		
+		
+		
+	}
+	
+	
+	
 	//ordered = finds the number of samples with the exact path, unordered = exact path + complement
 	public static int numSamplesWithGivenRel(String outPath, int i, int j, Path path, boolean ordered) throws IOException{
 		
@@ -66,7 +122,7 @@ public class Accuracy {
 	
 	
 	//returns path with the highest number of hits
-	public static void mostLikelyPath(String outPath, int i, int j) throws NumberFormatException, IOException{
+	public static Path mostLikelyPath(String outPath, int i, int j) throws NumberFormatException, IOException{
 		
 		Map<Path, Integer> count = new HashMap<Path, Integer>();
 		
@@ -116,9 +172,95 @@ public class Accuracy {
 		//print
 		System.out.println(String.format("(%d, %d) : (%d, %d, %d) %d\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit(), bestCount));
 		
+		return bestPath;
+		
+		
 	}
 	
 	
+	
+	//accuracy based on MAP estimate
+	public static double[][] mapAccuracy(String outPath, String truePath, int totalIndiv, int numIndiv, Map<Path, double[]> pathToOmega) throws NumberFormatException, IOException{
+		
+		double[][] accuracy = new double[numIndiv][numIndiv];
+		Path[][] mapPed = new Path[numIndiv][numIndiv];
+		
+		//read true relationship
+		double[][][] trueOmega = getTrueOmega(truePath, totalIndiv, pathToOmega);
+			
+		//read output
+		BufferedReader reader = DataParser.openReader(outPath);
+		String line;
+		double bestLkhd = Double.NEGATIVE_INFINITY;
+		boolean process = false;
+		
+		while((line = reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			if(fields[0].equals(">")){
+				
+				double currLkhd = Double.parseDouble(fields[1]);
+				
+				if(currLkhd > bestLkhd){
+					bestLkhd = currLkhd;
+					process = true;
+				}
+				else
+					process = false;
+				
+				continue;
+			}
+			
+			
+			if(process){
+				
+				int i = Integer.parseInt(fields[IND1]);
+				int j = Integer.parseInt(fields[IND2]);
+				Path key = new Path(Integer.parseInt(fields[UP]) , Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[NUMVISIT]));
+				
+				int c = 0;
+				for(int k=0; k<3; k++){
+					if(Math.abs(trueOmega[i][j][k] - pathToOmega.get(key)[k]) < 1e-13){
+						c++;
+					}
+				}
+				
+				int add = c==3 ? 1 : 0;
+				
+				accuracy[i][j] = add;
+				
+				//best path
+				mapPed[i][j] = key;
+				
+			}
+
+			
+
+			
+		}
+		
+		reader.close();
+		
+		//print map path
+		System.out.println();
+		System.out.println(String.format("MCMC MAP likelihood: %.2f", bestLkhd));
+				
+		for(int i=0; i<numIndiv; i++){
+			for(int j=i+1; j<numIndiv; j++){
+				Path bestPath = mapPed[i][j];
+				System.out.println(String.format("(%d, %d) : (%d, %d, %d)\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));
+			}
+		}
+		
+		
+		return accuracy;
+		
+		
+	}
+	
+	
+	
+	//acc=1 if inferred ibd coefficeints are the same as truth
 	public static double[][] kinshipAccuracy(String outPath, String truePath, int numIndiv, Map<Path, double[]> pathToOmega) throws NumberFormatException, IOException{
 		
 		double[][] kinshipDist = new double[numIndiv][numIndiv];
@@ -169,6 +311,49 @@ public class Accuracy {
 		
 		
 	}
+	
+	
+	//average r = .25*k1 + .5k2 across posterior samples
+	public static double[][] ibdAccuracy(String outPath, int numIndiv, Map<Path, double[]> pathToOmega) throws NumberFormatException, IOException{
+		
+		double[][] kinshipDist = new double[numIndiv][numIndiv];
+		
+			
+		//read output
+		BufferedReader reader = DataParser.openReader(outPath);
+		String line;
+		int numSample = 0;
+		while((line = reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			if(fields[0].equals(">")){
+				numSample++;
+				continue;
+			}
+			
+			int i = Integer.parseInt(fields[IND1]);
+			int j = Integer.parseInt(fields[IND2]);
+			Path key = new Path(Integer.parseInt(fields[UP]) , Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[NUMVISIT]));
+			
+			kinshipDist[i][j] += .25*pathToOmega.get(key)[1] + .5*pathToOmega.get(key)[2];
+			
+		}
+		
+		reader.close();
+		
+		
+		//normalize by sample size
+		for(int i=0; i<numIndiv; i++){
+			for(int j=i+1; j<numIndiv; j++){
+				kinshipDist[i][j] /= numSample;
+			}
+		}
+		
+		return kinshipDist;
+		
+		
+	}
+	
 	
 	public static double[][] relAccuracy(String outPath, String truePath, int numIndiv) throws NumberFormatException, IOException{
 		

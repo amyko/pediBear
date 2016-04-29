@@ -29,7 +29,7 @@ public class CousinToGreatUncle extends Move{
 		for(Node k : child.getParents()){
 			k.setNumVisit(1);
 		}
-		int maxDepth = getMaxDepth(child);
+		int maxDepth = currPedigree.getMaxDepth(child);
 		if(maxDepth+3 > currPedigree.maxDepth)
 			return REJECT;
 		//reject if child doesn't have exactly 1 parent
@@ -108,29 +108,6 @@ public class CousinToGreatUncle extends Move{
 	}
 
 		
-	private int getMaxDepth(Node node){
-
-		int maxDepth = node.getDepth();
-		node.setNumVisit(1);
-		
-		for(Node c : node.getChildren()){
-			if(c.getNumVisit() > 0) continue;
-			int currDepth = getMaxDepth(c);
-			if(currDepth > maxDepth)
-				maxDepth = currDepth;
-		}
-		for(Node c : node.getParents()){
-			if(c.getNumVisit() > 0) continue;
-			int currDepth = getMaxDepth(c);
-			if(currDepth > maxDepth)
-				maxDepth = currDepth;
-		}
-		
-		
-		return maxDepth;
-		
-		
-	}
 	
 	//returns true if removing this node splits the pedigree into two
 	private boolean isSplitNode(Node node){

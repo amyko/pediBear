@@ -13,7 +13,7 @@ import dataStructures.Path;
 //infers the relationship from pairwise likelihood
 public class RunPairwiseTest {
 
-	
+	//get path with the highest likelihood
 	public static Path getHighestLkhdPath(String lkhdPath, int i, int j) throws NumberFormatException, IOException{
 
 		
@@ -74,24 +74,33 @@ public class RunPairwiseTest {
 		
 		//files
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String testName = "testing";
+		String testName = "test7";
 		String inPath = dir + "pairwiseLikelihood/"+testName+".pairwise.";
 		String outPath = dir + "results/"+testName+".out";
-		String accPath = dir + "results/"+testName+".kinship.pairwise.acc";
+		String ibdAccPath = dir + "results/"+testName+".pairwise.ibd.acc";
+		String mapAccPath = dir + "results/"+testName+".pairwise.map.acc";
+		String meanAccPath = dir + "results/"+testName+".pairwise.mean.acc";
 		String pathToOmegaPath = dir + "pathToOmega.txt";
-		String truePath = dir + "results/" +testName + ".true";
-		//String truePath = dir + "results/test2.true";
+		//String truePath = dir + "results/" +testName + ".true";
+		String truePath = dir + "results/test3.true";
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		//open outfiles
-		Writer writer = DataParser.openWriter(accPath);
+		Writer ibdWriter = DataParser.openWriter(ibdAccPath);
+		Writer mapWriter = DataParser.openWriter(mapAccPath);
+		Writer meanWriter = DataParser.openWriter(meanAccPath);
 		
 		//run pairwise test
 		for(int t=0; t<100; t++){
 			
+			//open writer
 			Writer writer2 = DataParser.openWriter(outPath);
 			writer2.write(String.format(">\t%d\n", t));
-			writer.write(String.format(">\t%d\n", t));
+			
+			//write to acc files
+			ibdWriter.write(String.format(">\t%d\n", t));
+			mapWriter.write(String.format(">\t%d\n", t));
+			meanWriter.write(String.format(">\t%d\n", t));
 			
 			String lkhdPath = inPath + t;
 			
@@ -102,19 +111,21 @@ public class RunPairwiseTest {
 					
 					Path bestPath = getHighestLkhdPath(lkhdPath, i, j);
 					
-					writer2.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));
-					
-					
+					writer2.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));	
 				}
 			}
 			
 			writer2.close();
 			
-			//accuracy
-			double[][] kinshipAcc = Accuracy.kinshipAccuracy(outPath, truePath, numIndiv, pathToKinship);
+			//accuracy based on mcmc
+			double[][] meanAcc = Accuracy.kinshipAccuracy(outPath, truePath, numIndiv, pathToKinship);
+			double[][] mapAcc = Accuracy.kinshipAccuracy(outPath, truePath, numIndiv, pathToKinship);
+			double[][] ibdAcc = Accuracy.ibdAccuracy(outPath, numIndiv, pathToKinship);
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){
-					writer.write(String.format("%d\t%d\t%.3f\n", i, j, kinshipAcc[i][j]));
+					meanWriter.write(String.format("%d\t%d\t%.3f\n", i, j, meanAcc[i][j]));
+					mapWriter.write(String.format("%d\t%d\t%.3f\n", i, j, mapAcc[i][j]));
+					ibdWriter.write(String.format("%d\t%d\t%.3f\n", i, j, ibdAcc[i][j]));
 				}
 			}
 			
@@ -123,8 +134,9 @@ public class RunPairwiseTest {
 		
 		
 		
-		writer.close();
-
+		ibdWriter.close();
+		meanWriter.close();
+		mapWriter.close();
 		
 		
 		

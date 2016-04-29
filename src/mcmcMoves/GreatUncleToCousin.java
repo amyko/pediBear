@@ -46,7 +46,7 @@ public class GreatUncleToCousin extends Move{
 		currPedigree.clearVisit();
 		for(Node k : child.getParents())
 			k.setNumVisit(1);
-		if(getMinDepth(child) - 2 < 0){
+		if(currPedigree.getMinDepth(child) - 2 < 0){
 			return REJECT;
 		}
 		
@@ -117,29 +117,7 @@ public class GreatUncleToCousin extends Move{
 	
 	
 	
-	private int getMinDepth(Node node){
 
-		int minDepth = node.getDepth();
-		node.setNumVisit(1);
-		
-		for(Node c : node.getChildren()){
-			if(c.getNumVisit() > 0) continue;
-			int currDepth = getMinDepth(c);
-			if(currDepth < minDepth)
-				minDepth = currDepth;
-		}
-		for(Node c : node.getParents()){
-			if(c.getNumVisit() > 0) continue;
-			int currDepth = getMinDepth(c);
-			if(currDepth < minDepth)
-				minDepth = currDepth;
-		}
-
-		
-		return minDepth;
-		
-		
-	}
 	
 	
 	

@@ -42,9 +42,9 @@ public class RunMCMCMC {
 		
 
 		//pedigree parameters
-		int depth = 4;
+		int depth = 5;
 		int maxDepthForSamples = depth;
-		int numIndiv = 3;
+		int numIndiv = 6;
 		int totalIndiv = 6;
 		double seqError = 0.01;
 		double r = 1.3e-8;
@@ -60,35 +60,36 @@ public class RunMCMCMC {
 		
 		//MCMC parameters
 		int nChain = 4;
-		int burnIn = 1000000;
+		int burnIn = 500000;
 		int runLength = 100000;
-		int sampleRate = 50;
+		int sampleRate = 20;
 		double deltaT = .5;
 		int swapInterval = 1;
 		Random rGen = new Random(1064850L);
 		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .05), new Split("split", .05), new Split2("split2", .05), new Swap("swap", .05), new SwitchSex("switchSex", .05), 
 				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .1),
 				new CousinToGreatUncle("cousinToGreatUncle", .1), new GreatUncleToCousin("greatUncleToCousin",.1)};
-		String testName = "merlin";
+		String testName = "test7";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
-		//String relAccPath = dir + "results/"+testName+".rel.acc";
-		//String kinshipAccPath = dir + "results/"+testName+".kinship.acc";
-		String relAccPath = dir + "results/testing.rel.acc";
-		String kinshipAccPath = dir + "results/testing.kinship.acc";
+		String meanAccPath = dir + "results/"+testName+".mcmc.mean.acc";
+		String mapAccPath = dir + "results/"+testName+".mcmc.map.acc";
+		String ibdAccPath = dir + "results/"+testName+".mcmc.ibd.acc";
+		//String meanAccPath = dir + "results/testing.kinship.acc";
 		
 		
 		//open accuracy path
-		PrintWriter writer1 = DataParser.openWriter(kinshipAccPath);
-		PrintWriter writer2 = DataParser.openWriter(relAccPath);
+		PrintWriter meanWriter = DataParser.openWriter(meanAccPath);
+		PrintWriter mapWriter = DataParser.openWriter(mapAccPath);
+		PrintWriter ibdWriter = DataParser.openWriter(ibdAccPath);
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		//true path
-		truePath = dir + "results/test2.true";
+		truePath = dir + "results/test3.true";
 		Path[][] trueRel = Accuracy.getTruePath(truePath, totalIndiv);
 		
 		
-		for(int t=0; t<1; t++){
+		for(int t=0; t<100; t++){
 
 			System.out.println(t);
 			
@@ -121,11 +122,12 @@ public class RunMCMCMC {
 			double endTime = System.nanoTime();
 
 			double duration = (endTime - startTime)/1e9; 
-
+			
+			System.out.println(String.format("cold chain index: %d", mcmcmc.coldChain));
 			System.out.println(String.format("final swap rate: %.2f", mcmcmc.nSwapSuccess/((double)(burnIn+runLength)/swapInterval)));
 			System.out.println(String.format("Running time: %.1f seconds", duration));
-			
-			
+
+			/*
 			//Results
 			System.out.println();
 			for(int j=0; j<nChain; j++){
@@ -135,7 +137,7 @@ public class RunMCMCMC {
 				System.out.println();
 
 			}
-			
+			*/
 
 			
 			
@@ -159,49 +161,61 @@ public class RunMCMCMC {
 			
 			System.out.println(String.format("lkhd of true pedigree: %.2f", trueLkhd));
 			
-
-			System.out.println(String.format("cold chain index: %d", mcmcmc.coldChain));
-			System.out.println(String.format("final swap rate: %.2f", mcmcmc.nSwapSuccess/((double)(burnIn+runLength)/swapInterval)));
-			System.out.println(String.format("Running time: %.1f seconds", duration));
 			
 			
-			
-			//Accuracy
+			//likelihood of best pairwise inference
+			Path[][] pairwiseRel = Accuracy.pairwiseBestPed(lkhdPath, totalIndiv, numIndiv);
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){
-					Accuracy.mostLikelyPath(outPath, i, j);
+					
+					Path real = pairwiseRel[i][j];
+					mcmcmcRel[i][j].updatePath(real.getUp(), real.getDown(), real.getNumVisit());
 					
 				}
 			}
+			inds.clear();
+			for(int i=0; i<numIndiv; i++){ //(sampled, index, sex, depth ,age)
+				inds.add(new Node(true, i, i%2, 0, -1));
+			}
+			
+			
+			double pairwiseLkhd = chains.get(mcmcmc.coldChain).likelihoodLocalPedigree(inds);
+			System.out.println();
+			System.out.println(String.format("lkhd of pairwise pedigree: %.2f", pairwiseLkhd));
+			for(int i=0; i<numIndiv; i++){
+				for(int j=i+1; j<numIndiv; j++){
+					Path bestPath = pairwiseRel[i][j];
+					System.out.println(String.format("(%d, %d) : (%d, %d, %d)\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));
+				}
+			}
+			
 			
 			
 			
 			
 			//kinship accuracy
-			double[][] kinshipAcc = Accuracy.kinshipAccuracy(outPath, truePath, totalIndiv, pathToKinship);
-			double[][] relAcc = Accuracy.relAccuracy(outPath, truePath, totalIndiv);
+			double[][] meanAcc = Accuracy.kinshipAccuracy(outPath, truePath, totalIndiv, pathToKinship);
+			double[][] mapAcc = Accuracy.mapAccuracy(outPath, truePath, totalIndiv, numIndiv, pathToKinship);
+			double[][] ibdAcc = Accuracy.ibdAccuracy(outPath, numIndiv, pathToKinship);
+			
 			
 			//write header for output path
-			writer1.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
-			writer2.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
+			meanWriter.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
+			mapWriter.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
+			ibdWriter.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
 			
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){
-					writer1.write(String.format("%d\t%d\t%.3f\n", i, j, kinshipAcc[i][j]));
+					meanWriter.write(String.format("%d\t%d\t%.3f\n", i, j, meanAcc[i][j]));
+					mapWriter.write(String.format("%d\t%d\t%.3f\n", i, j, mapAcc[i][j]));
+					ibdWriter.write(String.format("%d\t%d\t%.3f\n", i, j, ibdAcc[i][j]));
 				}
 			}
-			
-			for(int i=0; i<numIndiv; i++){
-				for(int j=i+1; j<numIndiv; j++){
-					writer2.write(String.format("%d\t%d\t%.3f\n", i, j, relAcc[i][j]));
-				}
-			}
-			
-			
+
 			//flush
-			writer1.flush();
-			writer2.flush();
-			
+			meanWriter.flush();
+			mapWriter.flush();
+			ibdWriter.flush();
 			
 			
 			
@@ -209,9 +223,9 @@ public class RunMCMCMC {
 		}
 		
 		
-		writer1.close();
-		writer2.close();
-		
+		meanWriter.close();
+		mapWriter.close();
+		ibdWriter.close();
 		
 
 		

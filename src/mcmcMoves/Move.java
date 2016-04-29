@@ -12,7 +12,7 @@ import dataStructures.Pedigree;
 //generic MCMC move
 public abstract class Move {
 
-	public final static int maxDepth = 5;
+	public final static int maxDepth = 6;
 	public final static int initSize = 10;
 
 	

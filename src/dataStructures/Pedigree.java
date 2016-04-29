@@ -882,6 +882,128 @@ public class Pedigree {
 	
 	
 	
+	public void POtoFS(Node child, Node parent, boolean goUp){
+		
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+
+		
+		//cut child from parent
+		disconnect(parent, child);
+		
+		
+		//shift cluster
+		int delta = goUp ? 1 : -1;
+		Node shiftNode = goUp ? child : parent;
+
+		clearVisit();
+		List<Node> shiftCluster = shiftNode.getConnectedNodes(new ArrayList<Node>());
+		for(Node i : shiftCluster){
+			i.setDepth(i.getDepth() + delta);
+		}	
+
+		
+		
+		//make sib and parent full siblings
+		List<Node> gp = parent.getParents();
+		for(int i=0; i<2; i++){
+			
+			//make new node
+			if(i >= gp.size()){
+				
+				int targetSex = 0;
+				if(i==1){
+					targetSex = (gp.get(0).getSex()+1) % 2;
+				}
+				
+				Node p1 = makeNewNode(child.getDepth()+1,targetSex);
+				connect(p1, child);
+				connect(p1, parent);
+				gp.add(p1);
+			}
+			
+			else{//connect to existing node
+				Node p1 = gp.get(i);
+				connect(p1, child);
+			}
+			
+		}
+		
+		
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+	}
+	
+	
+	
+	public void FStoPO(Node child, Node parent, boolean goUp){
+		
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+
+		
+		//cut child from parent
+		Node p1 = child.getParents().get(0);
+		Node p2 = child.getParents().get(1);
+		disconnect(p1, child);
+		disconnect(p2, child);
+		
+		
+		//clean grand parents, if necessary
+		for(Node gp : parent.getParents())
+			clean(gp);
+		
+		
+		
+		//shift cluster
+		int delta = goUp ? 1 : -1;
+		Node shiftNode = goUp ? parent : child;
+
+		clearVisit();
+		List<Node> shiftCluster = shiftNode.getConnectedNodes(new ArrayList<Node>());
+		for(Node i : shiftCluster){
+			i.setDepth(i.getDepth() + delta);
+		}			
+
+
+		
+		//connect child and parent
+		connect(parent, child);
+		
+		
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+	}
+	
+	
+	
+	
 	///////// UPDATE ADJACENCY MATRIX ////////
 	public void updateAdjMat(Node node){
 		
@@ -1322,7 +1444,7 @@ public class Pedigree {
 	}
 	
 	//returns number of full siblings child has with the given sex, excluding itself
-	public List<Node> getFullSibs(Node child, int targetSex){
+	public List<Node> getFullSibsWithTargetSex(Node child, int targetSex){
 		
 		List<Node> toReturn = new ArrayList<Node>();
 		
@@ -1332,19 +1454,45 @@ public class Pedigree {
 		
 		clearVisit();
 		
-		for(Node parent : child.getParents()){
+		Node parent = child.getParents().get(0);
 			
-			for(Node sib : parent.getChildren()){
-				
-				if(sib.getNumVisit() > 0) continue;
-				sib.setNumVisit(1);
-				
-				if(sib.getSex()==targetSex && sib.getChildren().size() > 0 && fullSibs(child, sib))
-					toReturn.add(sib);
-					
-			}
+		for(Node sib : parent.getChildren()){
 			
+			if(sib.getNumVisit() > 0) continue;
+			sib.setNumVisit(1);
+			
+			if(sib.getSex()==targetSex && sib.getChildren().size() > 0 && fullSibs(child, sib))
+				toReturn.add(sib);
+				
 		}
+			
+		
+		
+		return toReturn;
+		
+		
+	}
+	
+	
+	//returns number of full siblings child has with the given sex, excluding itself
+	public List<Node> getFullSibs(Node child){
+		
+		List<Node> toReturn = new ArrayList<Node>();
+		
+		if(child.getParents().size() < 2){
+			return toReturn;
+		}
+
+		Node parent = child.getParents().get(0);
+			
+		for(Node sib : parent.getChildren()){
+			
+			if(fullSibs(child, sib))
+				toReturn.add(sib);
+				
+		}
+			
+		
 		
 		return toReturn;
 		
@@ -1525,6 +1673,56 @@ public class Pedigree {
  		return true;
  		
  	}
+ 	
+ 	
+	public int getMaxDepth(Node node){
+
+		int maxDepth = node.getDepth();
+		node.setNumVisit(1);
+		
+		for(Node c : node.getChildren()){
+			if(c.getNumVisit() > 0) continue;
+			int currDepth = getMaxDepth(c);
+			if(currDepth > maxDepth)
+				maxDepth = currDepth;
+		}
+		for(Node c : node.getParents()){
+			if(c.getNumVisit() > 0) continue;
+			int currDepth = getMaxDepth(c);
+			if(currDepth > maxDepth)
+				maxDepth = currDepth;
+		}
+		
+		
+		return maxDepth;
+		
+		
+	}
+	
+	
+	public int getMinDepth(Node node){
+
+		int minDepth = node.getDepth();
+		node.setNumVisit(1);
+		
+		for(Node c : node.getChildren()){
+			if(c.getNumVisit() > 0) continue;
+			int currDepth = getMinDepth(c);
+			if(currDepth < minDepth)
+				minDepth = currDepth;
+		}
+		for(Node c : node.getParents()){
+			if(c.getNumVisit() > 0) continue;
+			int currDepth = getMinDepth(c);
+			if(currDepth < minDepth)
+				minDepth = currDepth;
+		}
+
+		
+		return minDepth;
+		
+		
+	}
 
 
 

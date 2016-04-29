@@ -20,7 +20,7 @@ public class TestLikelihood {
 		public static double seqError = 0.01;
 		public static String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/";
 		public static int back = 30000;
-		public static Random rgen = new Random(192259785);
+		public static Random rgen = new Random(526564L);
 
 
 	
@@ -301,7 +301,7 @@ public class TestLikelihood {
 			int chrStart = 1;
 			int chrEnd = 23;
 			boolean full = true;
-			int nSmallCluster = 3;
+			int nSmallCluster = 2;
 			int nBigCluster = 1;
 			int nChildren = 3;
 			int nGen = 4;
@@ -312,7 +312,7 @@ public class TestLikelihood {
 			//relationships
 			List<Relationship> relationships = new ArrayList<Relationship>();
 
-			relationships.add(new Relationship(11d, new double[] {1-1d/128d, 1d/128d, 0}, new Path[]{new Path(0,0,0)})); //unrelated
+			relationships.add(new Relationship(13d, new double[] {1-1d/512d, 1d/512d, 0}, new Path[]{new Path(0,0,0)})); //unrelated
 			//relationships.add(new Relationship(11d, new double[] {1d, 0, 0}, new Path[]{new Path(0,0,0)})); //unrelated
 			
 			// depth = 1 relationship
@@ -330,22 +330,29 @@ public class TestLikelihood {
 			//depth = 3 relationships
 			//relationships.add(new Relationship(3d, new double[] {.75, .25, 0d}, 3,0,1)); 
 			//relationships.add(new Relationship(4d, new double[] {7d/8d, 1d/8d, 0d}, 3,1,1)); 
-			relationships.add(new Relationship(5d, new double[] {15d/16d, 1d/16d, 0d}, new Path[]{new Path(3,2,1), new Path(4,1,1)})); 
-			relationships.add(new Relationship(6d, new double[] {31d/32d, 1d/32d, 0d}, new Path[]{new Path(3,3,1), new Path(4,2,1)}));
+			relationships.add(new Relationship(5d, new double[] {15d/16d, 1d/16d, 0d}, new Path[]{new Path(3,2,1), new Path(4,1,1), new Path(5,0,1)})); 
+			relationships.add(new Relationship(6d, new double[] {31d/32d, 1d/32d, 0d}, new Path[]{new Path(3,3,1), new Path(4,2,1), new Path(5,1,1)}));
 			//relationships.add(new Relationship(6d, new double[] {.75, .25, 0d}, 3,1,2));
 			relationships.add(new Relationship(7d, new double[] {7d/8d, 1d/8d, 0d}, new Path[]{new Path(3,2,2), new Path(4,1,2)})); 
-			relationships.add(new Relationship(8d, new double[] {15d/16d, 1d/16d, 0d}, new Path[]{new Path(3,3,2), new Path(4,2,2)})); 
+			relationships.add(new Relationship(8d, new double[] {15d/16d, 1d/16d, 0d}, new Path[]{new Path(3,3,2), new Path(4,2,2), new Path(5,1,2)})); 
 			
 			//depth = 4 relationships
 			//relationships.add(new Relationship(4d, new double[] {7d/8d, 1d/8d, 0d}, 4,0,1)); 
 			//relationships.add(new Relationship(5d, new double[] {15d/16d, 1d/16d, 0d}, 4,1,1)); 
 			//relationships.add(new Relationship(6d, new double[] {31d/32d, 1d/32d, 0d}, 4,2,1)); 
-			relationships.add(new Relationship(7d, new double[] {63d/64d, 1d/64d, 0d}, new Path[]{new Path(4,3,1)}));
-			relationships.add(new Relationship(8d, new double[] {127d/128d, 1d/128d, 0d}, new Path[]{new Path(4,4,1)}));
+			relationships.add(new Relationship(7d, new double[] {63d/64d, 1d/64d, 0d}, new Path[]{new Path(4,3,1), new Path(5,2,1)}));
+			relationships.add(new Relationship(8d, new double[] {127d/128d, 1d/128d, 0d}, new Path[]{new Path(4,4,1), new Path(5,3,1)}));
 			//relationships.add(new Relationship(7d, new double[] {7d/8d, 1d/8d, 0d}, 4,1,2)); 
 			//relationships.add(new Relationship(8d, new double[] {15d/16d, 1d/16d, 0d}, 4,2,2)); 
-			relationships.add(new Relationship(9d, new double[] {31d/32d, 1d/32d, 0d}, new Path[]{new Path(4,3,2)}));
-			relationships.add(new Relationship(10d, new double[] {63d/64d, 1d/64d, 0d}, new Path[]{new Path(4,4,2)}));
+			relationships.add(new Relationship(9d, new double[] {31d/32d, 1d/32d, 0d}, new Path[]{new Path(4,3,2), new Path(5,2,2)}));
+			relationships.add(new Relationship(10d, new double[] {63d/64d, 1d/64d, 0d}, new Path[]{new Path(4,4,2), new Path(5,3,2)}));
+			
+			
+			//depth = 5 relationships
+			relationships.add(new Relationship(9d, new double[] {255d/256d, 1d/256d, 0d}, new Path[]{new Path(5,4,1)}));
+			relationships.add(new Relationship(10d, new double[] {511d/512d, 1d/512d, 0d}, new Path[]{new Path(5,5,1)}));
+			relationships.add(new Relationship(11d, new double[] {127d/128d, 1d/128d, 0d}, new Path[]{new Path(5,4,2)}));
+			relationships.add(new Relationship(12d, new double[] {255d/256d, 1d/256d, 0d}, new Path[]{new Path(5,5,2)}));
 			
 
 			//depth = distantly related
@@ -357,7 +364,7 @@ public class TestLikelihood {
 			//prune ld
 			System.out.println("Pruning LD");
 			for(int i=1; i<23; i++){
-				LDStream.thin(dataDir+"msprime.geno."+i, dataDir+"msprime.geno.pruned."+i, .3, rgen);
+				LDStream.thin(dataDir+"msprime.geno."+i, dataDir+"msprime.geno.pruned."+i, .2, rgen);
 			}
 			
 	
@@ -369,6 +376,7 @@ public class TestLikelihood {
 				String outPath = dataDir+"msprime.info.pruned."+i;
 				LDStream.writeLdOutfile(inPath, outPath, back);
 			}
+			
 			
 			
 
@@ -433,13 +441,13 @@ public class TestLikelihood {
 				
 				//compute marginal probs
 				System.out.println("Computing marginals");
-				computeMarginals(dataDir, simDir + "sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/test6.marginal."+t, indCols, chrStart, chrEnd);
+				computeMarginals(dataDir, simDir + "sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/test7.marginal."+t, indCols, chrStart, chrEnd);
 		
 				
 				//compute pairwise
 				System.out.println("Computing pairwise likelihoods");
 				long startTime = System.nanoTime();		
-				computePairwise(dataDir, simDir+"sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/test6.pairwise."+t, indCols, relationships, chrStart, chrEnd);	
+				computePairwise(dataDir, simDir+"sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/test7.pairwise."+t, indCols, relationships, chrStart, chrEnd);	
 				System.out.println("Total time was " + (System.nanoTime() - startTime) / 1e9 / 60d/ 60d + " hours");
 				
 			

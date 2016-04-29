@@ -1356,6 +1356,7 @@ public class PairwiseLikelihoodCoreStream2 {
 	
 	
 	
+	
 	private double transitionDensityFullSibs(int ibdNew, int ibdOld, double rhoBetween, Relationship rel){
 		
 		if((ibdOld==0 && ibdNew==2) || (ibdOld==2 && ibdNew==0)) return 0;
@@ -1579,8 +1580,8 @@ public class PairwiseLikelihoodCoreStream2 {
 		
 		return toReturn;
 	}
-	*/
 	
+	*/
 	
 
 

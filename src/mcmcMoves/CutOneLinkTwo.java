@@ -44,7 +44,7 @@ public class CutOneLinkTwo extends Move{
 		
 		
 		//new to old
-		int nCandidate = currPedigree.getFullSibs(parent, parent.getSex()).size() + 1;
+		int nCandidate = currPedigree.getFullSibsWithTargetSex(parent, parent.getSex()).size() + 1;
 		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nCandidate) + Math.log(moveProbs.get("cutTwoLinkOne"));
 		
 

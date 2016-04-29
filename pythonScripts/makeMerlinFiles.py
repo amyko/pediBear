@@ -57,7 +57,7 @@ def makeFreqFile(inPath, outPath):
             
             #write
             outfile.write('M\tm%d\n' %marker)
-            outfile.write('%f\t%f\t%f\t%f\n' %(f1,0,0,f2))
+            outfile.write('F\t%f\t%f\t%f\t%f\n' %(f1,0,0,f2))
             
             marker+=1
             
@@ -97,26 +97,28 @@ def makeDatFile(inPath, outPath):
     
 
 
-def makePedFile(inPath, outPath, numSnp):
+def makePedFile(inPath, outPath, numSnp, nUnrelated, nSampled):
     
     #open file
     outfile = open(outPath, "wb")
     
     # missing individuals
-    for indiv in range(1,6):
+    for indiv in range(1,nUnrelated+1):
     
         #write info
-        outfile.write("%d\t%d\t%d\t%d\t%d\t" %(1,indiv,parents[indiv][0],parents[indiv][1],indiv%2))
+        sex = 0
+        #sex = indiv%2
+        outfile.write("%d\t%d\t%d\t%d\t%d\t" %(1,indiv,parents[indiv][0],parents[indiv][1],sex))
     
         #write geno
-        for i in range(0,numSnp):
+        for i in range(1,numSnp):
             outfile.write("%d/%d\t" %(0,0))
         outfile.write("\n")
         
     
     # typed individuals
     indivIndex = 0
-    for indiv in range(6,9):
+    for indiv in range(nUnrelated+1,nUnrelated+nSampled+1):
         
         #write info
         outfile.write("%d\t%d\t%d\t%d\t%d\t" %(1,indiv,parents[indiv][0],parents[indiv][1],indiv%2))
@@ -148,10 +150,27 @@ def makePedFile(inPath, outPath, numSnp):
         indivIndex+=1
             
     outfile.close()
-                    
-                
-        
 
+
+
+def getLkhd(inPath):                    
+                
+    #open file
+    infile = open(inPath)
+    
+    lkhd = 0
+    
+    for line in infile:
+        
+        fields = line.split()
+        
+        if(len(fields)==0): continue
+        
+        if(fields[0]=='lnLikelihood'):
+            lkhd += float(fields[-1])
+
+
+    return lkhd
 
 if __name__ == "__main__":
 
@@ -161,11 +180,15 @@ if __name__ == "__main__":
     outPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/merlin/test2"
 
         
-    makeMapFile(infoPath, outPath+str(".map"))
-    makeFreqFile(infoPath, outPath+str(".freq"))
-    numSnp = makeDatFile(infoPath, outPath+str(".dat"))
+    #makeMapFile(infoPath, outPath+str(".map"))
+    #makeFreqFile(infoPath, outPath+str(".freq"))
+    #numSnp = makeDatFile(infoPath, outPath+str(".dat"))
     
-    #parents = {1:[0,0], 2:[0,0], 3:[1,2], 4:[1,2], 5:[1,2], 6:[0,3], 7:[0,4], 8:[0,5], 9:[0,6], 10:[0,7], 11:[0,8]}
-    parents = {1:[0,0], 2:[0,1], 3:[0,1], 4:[0,1], 5:[0,2], 6:[0,3], 7:[0,4], 8:[0,5]}
-    makePedFile(genoPath, outPath+str(".2.ped"), numSnp)
+    #parents = {1:[0,0], 2:[0,0], 3:[0,0], 4:[1,2], 5:[0,0], 6:[1,2], 7:[0,0], 8:[1,2], 9:[0,0], 10:[3,4], 11:[0,0], 12:[5,6], 13:[0,0], 14:[7,8], 15:[9,10], 16:[11,12], 17:[13,14]}
+    parents = {1:[0,0], 2:[0,0], 3:[0,0], 4:[0,0], 5:[0,0], 6:[1,2], 7:[0,0], 8:[1,3], 9:[0,0], 10:[1,4], 11:[0,0], 12:[9,10], 13:[5,6], 14:[7,8], 15:[11,12]}
+    #parents = {1:[0,0], 2:[0,0], 3:[0,0], 4:[1,2], 5:[0,0], 6:[1,2], 7:[0,0], 8:[3,4], 9:[0,0], 10:[5,6], 11:[7,8], 12:[9,10]}
+    #makePedFile(genoPath, outPath+str(".ped"), numSnp, 12, 3)
 
+
+    inPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/merlin/ped2.lkhd"
+    print(getLkhd(inPath))
