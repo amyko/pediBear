@@ -1,6 +1,9 @@
 package dataStructures;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -8,6 +11,7 @@ import java.util.Random;
 import org.apache.commons.math3.distribution.NormalDistribution;
 
 import utility.ArrayUtility;
+import utility.DataParser;
 import likelihood.PairwiseLikelihoodCoreStream2;
 
 //This is the data structure that stores information about all of the individuals in the sample
@@ -41,6 +45,85 @@ public class Pedigree {
 	
 
 	////// CONSTRUCTOR ///////
+	public Pedigree(String inPath, String outPath, int numIndiv, int[] cols) throws IOException{
+		
+		//relationship
+		this.relationships = new Path[2][184][184];
+
+		for(int i=0; i<relationships[0][0].length; i++){
+			for(int j=i+1; j<relationships[0][0].length; j++){
+				this.relationships[0][i][j] = new Path(0,0,0);
+			}
+		}
+
+	 
+		
+		this.numIndiv = numIndiv;
+		this.maxDepth = 5;
+		this.maxDepthForSamples = 5;
+		this.genTime = 29;
+		this.core = null;
+		this.rGen = null;
+		this.curr = 0;
+		this.copy = 1;
+		
+		//set up pedigree
+
+		//initialize list
+		nodes.add(new ArrayList<Node>(200));
+		
+		//fill up nodes
+		for(int i=0; i<200; i++){
+			nodes.get(0).add(new Node(true, i));
+		}
+		
+		
+		BufferedReader reader = DataParser.openReader(inPath);
+		String line;
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			
+			int childIdx = Integer.parseInt(fields[0]);
+			int momIdx = Integer.parseInt(fields[1]);
+			int dadIdx = Integer.parseInt(fields[2]);
+			
+			Node child = nodes.get(0).get(childIdx);
+			Node mom = nodes.get(0).get(momIdx);
+			Node dad = nodes.get(0).get(dadIdx);
+			
+			child.addParent(mom);
+			child.addParent(dad);
+			mom.addChild(child);
+			dad.addChild(child);
+			
+		}
+		
+		
+		//record paths
+		for(int i=0; i<cols.length; i++){
+			
+			updateAdjMat(nodes.get(0).get(cols[i]));
+			
+		}
+		
+		
+		//write to path
+		PrintWriter writer = DataParser.openWriter(outPath);
+		
+		for(int i=0; i<cols.length; i++){
+			for(int j=i+1; j<cols.length; j++){
+				Path rel =  relationships[0][cols[i]][cols[j]];
+				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+			}
+		}
+
+		writer.close();
+		
+	}
+	
+	
+	
 	//TODO handle known relationships
 	public Pedigree(int maxDepth, int maxDepthForSamples, Node[] inds, PairwiseLikelihoodCoreStream2 core, String marginalPath, String lkhdPath, Random rGen, int maxNumNodes, double genTime) throws IOException{
 		
@@ -924,7 +1007,6 @@ public class Pedigree {
 				Node p1 = makeNewNode(child.getDepth()+1,targetSex);
 				connect(p1, child);
 				connect(p1, parent);
-				gp.add(p1);
 			}
 			
 			else{//connect to existing node
@@ -968,8 +1050,12 @@ public class Pedigree {
 		
 		
 		//clean grand parents, if necessary
-		for(Node gp : parent.getParents())
-			clean(gp);
+		List<Node> grandParents = new ArrayList<Node>();
+		grandParents.addAll(parent.getParents());
+		for(Node gp : grandParents){
+			if(!gp.sampled && gp.getNumEdges() < 2)
+				deleteNode(gp);
+		}
 		
 		
 		
@@ -1163,119 +1249,7 @@ public class Pedigree {
 	}
 	
 	
-	
-	/*
-	public double likelihoodLocalPedigree(List<Node> connectedSamples){//works
-			
-		
-		int n = connectedSamples.size();
-		
-		if(n==0) return 0d;
-		
-		if(n==1)
-			return core.getMarginal(connectedSamples.get(0));
-		
-		
-		//pairwise
-		int smaller;
-		int bigger;
-		double lkhd = 0d;
-		for(int i=0; i<connectedSamples.size(); i++){
-			Node ind1 = connectedSamples.get(i);
-			
-			for(int j=i+1; j<connectedSamples.size(); j++){
-				Node ind2 = connectedSamples.get(j);
-				
-				if(ind1.getIndex() < ind2.getIndex()){
-					smaller = ind1.getIndex();
-					bigger = ind2.getIndex();
-				}
-				else{
-					smaller = ind2.getIndex();
-					bigger = ind1.getIndex();
-				}
 
-
-				lkhd += core.getLikelihood(ind1, ind2, relationships[curr][smaller][bigger]);
-
-				
-			}
-		}
-
-
-		lkhd /= (n-1);
-
-		return lkhd;
-		
-	}
-	
-	
-	public double likelihoodLocalPedigree(List<Node> connectedSamples){//works
-			
-		double lkhd = 0d;
-		
-		int n = connectedSamples.size();
-		
-		for(Node ind1 : connectedSamples){
-			
-			double innerSum = 0d;
-			
-			if(ind1.isFounder() || n==1){
-				innerSum = core.getMarginal(ind1);
-			}
-			
-			else{
-				int m = 0;
-				for(int j=0; j<numIndiv; j++){
-					
-					Node ind2 = nodes.get(curr).get(j);
-					
-					if(ind1==ind2) continue;
-					
-					int smaller;
-					int bigger;
-					if(ind1.getIndex() < ind2.getIndex()){
-						smaller = ind1.getIndex();
-						bigger = ind2.getIndex();
-					}
-					else{
-						smaller = ind2.getIndex();
-						bigger = ind1.getIndex();
-					}
-
-
-					if(relationships[curr][smaller][bigger].getNumVisit()==0){
-						continue;
-					}
-					
-					
-					double logB = core.getLikelihood(ind1, ind2, relationships[curr][smaller][bigger]) - core.getMarginal(ind2);
-					if(innerSum==0)
-						innerSum = logB;
-					else{
-						double logA = innerSum;
-						innerSum = utility.LogSum.addLogSummand(logA, logB);
-					}
-					
-					m++;
-					
-					
-				}
-				
-				innerSum -= Math.log(m);
-				
-			}
-			
-			
-			lkhd += innerSum;
-			
-			
-		}
-
-		return lkhd;
-		
-	}
-	*/
 	
 	
 	private double ageLikelihood(List<Node> connectedSamples){

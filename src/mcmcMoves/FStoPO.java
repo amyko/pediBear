@@ -40,7 +40,7 @@ public class FStoPO extends Move{
 
 			//don't count parents if they are going to be deleted
 			for(Node p : parent.getParents()){
-				if(p.getNumEdges()<3)
+				if(!p.sampled && p.getNumEdges()<3)
 					p.setNumVisit(1);
 			}
 			

@@ -287,24 +287,6 @@ public class TestLikelihood {
 		public static void main(String[] args) throws IOException{
 			
 			////////////////////////////
-			//dir
-			String dataDir = dir + "unrelated/";
-			String simDir = dir + "simulations/";
-
-			
-			//individuals
-			int numIndiv = 6;
-			int[] indCols = new int[numIndiv];
-			for(int i=0; i<numIndiv; i++) indCols[i] = i;			
-			
-			
-			int chrStart = 1;
-			int chrEnd = 23;
-			boolean full = true;
-			int nSmallCluster = 2;
-			int nBigCluster = 1;
-			int nChildren = 3;
-			int nGen = 4;
 			
 			//initialize simulator
 			SimulatorStream sim = new SimulatorStream(r);
@@ -361,10 +343,31 @@ public class TestLikelihood {
 			//////////////////////////////
 	
 			
+			//dir
+			String dataDir = dir + "unrelated/";
+			String simDir = dir + "simulations/";
+
+			
+			//individuals
+			int numIndiv = 10;
+			int[] indCols = new int[numIndiv];
+			for(int i=0; i<numIndiv; i++) indCols[i] = i;			
+			
+			
+			int chrStart = 1;
+			int chrEnd = 2;
+			boolean full = true;
+			int nSmallCluster = 2;
+			int nBigCluster = 1;
+			int nChildren = 5;
+			int nGen = 4;
+			String testName = "test9";
+			
+			
 			//prune ld
 			System.out.println("Pruning LD");
 			for(int i=1; i<23; i++){
-				LDStream.thin(dataDir+"msprime.geno."+i, dataDir+"msprime.geno.pruned."+i, .2, rgen);
+				LDStream.thin(dataDir+"msprime.geno."+i, dataDir+"msprime.geno.pruned."+i, .01, rgen);
 			}
 			
 	
@@ -379,14 +382,16 @@ public class TestLikelihood {
 			
 			
 			
-
+	
+			int[] cols = new int[]{28, 43, 56, 65, 79, 83, 98, 110, 125, 134};	
 			
-			
-			for(int t=0; t<100; t++){
+			for(int t=0; t<1; t++){
 				
 				System.out.println(t);
+		
+				sim.simulatePopulation(dataDir+"msprime.geno.pruned.", simDir+"sim.test.geno.", simDir+"pairwiseLikelihood/"+testName+".ped", 4, rgen, chrStart, chrEnd, cols);
 				
-				
+				/*
 				// simulation
 				System.out.println("Simulating pedigrees");
 				for(int i=chrStart; i<chrEnd; i++){
@@ -394,7 +399,7 @@ public class TestLikelihood {
 					//files
 					String unrelated = dataDir+"msprime.geno.pruned."+i;
 					
-					//simulateCousins(unrelated, simDir+"sim.test.geno."+i, nGen, full, nChildren, nSmallCluster, 8);	
+					simulateCousins(unrelated, simDir+"sim.test.geno."+i, nGen, full, nChildren, nSmallCluster, 8);	
 					
 					
 					//first gen
@@ -421,9 +426,11 @@ public class TestLikelihood {
 					//concatenate families
 					DataParser.concatFiles(fileNames, simDir+"sim.test.geno."+i, cols);
 					
+										
 					
 					
 				}
+				*/
 				
 				
 				
@@ -435,23 +442,28 @@ public class TestLikelihood {
 				}
 				
 				
-				
 
-	
 				
 				//compute marginal probs
 				System.out.println("Computing marginals");
-				computeMarginals(dataDir, simDir + "sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/test7.marginal."+t, indCols, chrStart, chrEnd);
+				computeMarginals(dataDir, simDir + "sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/"+testName+".marginal."+t, indCols, chrStart, chrEnd);
 		
 				
 				//compute pairwise
 				System.out.println("Computing pairwise likelihoods");
 				long startTime = System.nanoTime();		
-				computePairwise(dataDir, simDir+"sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/test7.pairwise."+t, indCols, relationships, chrStart, chrEnd);	
+				computePairwise(dataDir, simDir+"sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/"+testName+".pairwise."+t, indCols, relationships, chrStart, chrEnd);	
 				System.out.println("Total time was " + (System.nanoTime() - startTime) / 1e9 / 60d/ 60d + " hours");
 				
 			
 			}
+			
+			
+			//true path
+			sim.writeTruePathFile(simDir+"pairwiseLikelihood/"+testName+".ped", simDir+"results/"+testName+".true", cols);
+			
+			
+			
 
 		}
 		

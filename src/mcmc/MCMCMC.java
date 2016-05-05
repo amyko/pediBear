@@ -140,9 +140,9 @@ public class MCMCMC {
 			
 		}
 		
-		System.out.println(String.format("swap rate: %.2f", currSwapRate));
-		if(t==maxTuneTrialTune && !tuned)
-			System.out.println("Tuning failed inside tune()");
+		//System.out.println(String.format("swap rate: %.2f", currSwapRate));
+		//if(t==maxTuneTrialTune && !tuned)
+			//System.out.println("Tuning failed inside tune()");
 		
 		
 		
@@ -170,7 +170,7 @@ public class MCMCMC {
 				
 				/*
 				//TESTING			
-				if(!chains.get(j).sanityCheck() ||i==24181){
+				if(!chains.get(j).sanityCheck() || i==140903){
 					System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
 				
 					for(int k=0; k< chains.get(j).getNActiveNodes(); k++){
@@ -186,6 +186,8 @@ public class MCMCMC {
 						
 				}
 				*/
+				
+				
 				
 				move.mcmcMove(chains.get(j), heat[j]);
 				

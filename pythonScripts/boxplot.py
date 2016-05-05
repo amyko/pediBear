@@ -45,8 +45,8 @@ if __name__ == "__main__":
 
     #file names
     testName = "test7"
-    mcmcPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".kinship.acc"
-    pairwisePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".kinship.pairwise.acc"
+    mcmcPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".mcmc.map.acc"
+    pairwisePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".pairwise.map.acc"
     nIndiv = 6
     nPairs = nIndiv*(nIndiv-1)/2
 
@@ -61,11 +61,12 @@ if __name__ == "__main__":
     
     #plot
     plt.figure()
-    #plt.boxplot(mcmcData)
+    plt.boxplot(mcmcData)
     plt.scatter(xdata, mcmcMeans, color='blue', label='mcmc mean error')
-    plt.scatter(xdata, pairwiseMeans, color='red', label='pariwise mean error')
+    plt.scatter(xdata, pairwiseMeans, color='red', label='pairwise mean error')
     plt.legend()
-    plt.ylim([-.1,1.1])
+    #plt.ylim([-.1,1.1])
+    plt.xlim([-1,len(xdata)+1])
     plt.xlabel("pair")
     plt.ylabel("error rate")
     plt.title("error rate for 100 simulations; " + testName)

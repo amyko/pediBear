@@ -19,8 +19,10 @@ import mcmcMoves.Cut;
 import mcmcMoves.CutLink;
 import mcmcMoves.CutOneLinkTwo;
 import mcmcMoves.CutTwoLinkOne;
+import mcmcMoves.FStoPO;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
+import mcmcMoves.POtoFS;
 import mcmcMoves.Split;
 import mcmcMoves.Split2;
 import mcmcMoves.SplitLink;
@@ -44,8 +46,8 @@ public class RunMCMCMC {
 		//pedigree parameters
 		int depth = 5;
 		int maxDepthForSamples = depth;
-		int numIndiv = 6;
-		int totalIndiv = 6;
+		int numIndiv = 10;
+		int totalIndiv = 10;
 		double seqError = 0.01;
 		double r = 1.3e-8;
 		int back = 30000;
@@ -68,24 +70,26 @@ public class RunMCMCMC {
 		Random rGen = new Random(1064850L);
 		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .05), new Split("split", .05), new Split2("split2", .05), new Swap("swap", .05), new SwitchSex("switchSex", .05), 
 				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .1),
-				new CousinToGreatUncle("cousinToGreatUncle", .1), new GreatUncleToCousin("greatUncleToCousin",.1)};
-		String testName = "test7";
+				new CousinToGreatUncle("cousinToGreatUncle", .05), new GreatUncleToCousin("greatUncleToCousin",.05), new FStoPO("FStoPO", .05), new POtoFS("POtoFS",.05)};
+		String testName = "test8";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
 		String meanAccPath = dir + "results/"+testName+".mcmc.mean.acc";
 		String mapAccPath = dir + "results/"+testName+".mcmc.map.acc";
-		String ibdAccPath = dir + "results/"+testName+".mcmc.ibd.acc";
-		//String meanAccPath = dir + "results/testing.kinship.acc";
+		//String ibdAccPath = dir + "results/"+testName+".mcmc.ibd.acc";
+		//String meanAccPath = dir + "results/testing.mcmc.mean.acc";
+		//String mapAccPath = dir + "results/testing.mcmc.map.acc";
+		//String ibdAccPath = dir + "results/testing.mcmc.ibd.acc";
 		
 		
 		//open accuracy path
 		PrintWriter meanWriter = DataParser.openWriter(meanAccPath);
 		PrintWriter mapWriter = DataParser.openWriter(mapAccPath);
-		PrintWriter ibdWriter = DataParser.openWriter(ibdAccPath);
+		//PrintWriter ibdWriter = DataParser.openWriter(ibdAccPath);
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		//true path
-		truePath = dir + "results/test3.true";
+		//truePath = dir + "results/test3.true";
 		Path[][] trueRel = Accuracy.getTruePath(truePath, totalIndiv);
 		
 		
@@ -202,20 +206,20 @@ public class RunMCMCMC {
 			//write header for output path
 			meanWriter.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
 			mapWriter.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
-			ibdWriter.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
+			//ibdWriter.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - mcmcmc.bestLkhd));
 			
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){
 					meanWriter.write(String.format("%d\t%d\t%.3f\n", i, j, meanAcc[i][j]));
 					mapWriter.write(String.format("%d\t%d\t%.3f\n", i, j, mapAcc[i][j]));
-					ibdWriter.write(String.format("%d\t%d\t%.3f\n", i, j, ibdAcc[i][j]));
+					//ibdWriter.write(String.format("%d\t%d\t%.5f\n", i, j, ibdAcc[i][j]));
 				}
 			}
 
 			//flush
 			meanWriter.flush();
 			mapWriter.flush();
-			ibdWriter.flush();
+			//ibdWriter.flush();
 			
 			
 			
@@ -225,7 +229,7 @@ public class RunMCMCMC {
 		
 		meanWriter.close();
 		mapWriter.close();
-		ibdWriter.close();
+		//ibdWriter.close();
 		
 
 		

@@ -70,25 +70,23 @@ public class RunPairwiseTest {
 	public static void main(String[] args) throws IOException{
 		
 		//param
-		int numIndiv = 6;
+		int numIndiv = 10;
 		
 		//files
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String testName = "test7";
+		String testName = "test8";
 		String inPath = dir + "pairwiseLikelihood/"+testName+".pairwise.";
 		String outPath = dir + "results/"+testName+".out";
 		String ibdAccPath = dir + "results/"+testName+".pairwise.ibd.acc";
 		String mapAccPath = dir + "results/"+testName+".pairwise.map.acc";
-		String meanAccPath = dir + "results/"+testName+".pairwise.mean.acc";
 		String pathToOmegaPath = dir + "pathToOmega.txt";
-		//String truePath = dir + "results/" +testName + ".true";
-		String truePath = dir + "results/test3.true";
+		String truePath = dir + "results/" +testName + ".true";
+		//String truePath = dir + "results/test3.true";
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		//open outfiles
 		Writer ibdWriter = DataParser.openWriter(ibdAccPath);
 		Writer mapWriter = DataParser.openWriter(mapAccPath);
-		Writer meanWriter = DataParser.openWriter(meanAccPath);
 		
 		//run pairwise test
 		for(int t=0; t<100; t++){
@@ -100,7 +98,6 @@ public class RunPairwiseTest {
 			//write to acc files
 			ibdWriter.write(String.format(">\t%d\n", t));
 			mapWriter.write(String.format(">\t%d\n", t));
-			meanWriter.write(String.format(">\t%d\n", t));
 			
 			String lkhdPath = inPath + t;
 			
@@ -118,14 +115,12 @@ public class RunPairwiseTest {
 			writer2.close();
 			
 			//accuracy based on mcmc
-			double[][] meanAcc = Accuracy.kinshipAccuracy(outPath, truePath, numIndiv, pathToKinship);
 			double[][] mapAcc = Accuracy.kinshipAccuracy(outPath, truePath, numIndiv, pathToKinship);
 			double[][] ibdAcc = Accuracy.ibdAccuracy(outPath, numIndiv, pathToKinship);
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){
-					meanWriter.write(String.format("%d\t%d\t%.3f\n", i, j, meanAcc[i][j]));
 					mapWriter.write(String.format("%d\t%d\t%.3f\n", i, j, mapAcc[i][j]));
-					ibdWriter.write(String.format("%d\t%d\t%.3f\n", i, j, ibdAcc[i][j]));
+					ibdWriter.write(String.format("%d\t%d\t%.5f\n", i, j, ibdAcc[i][j]));
 				}
 			}
 			
@@ -135,7 +130,6 @@ public class RunPairwiseTest {
 		
 		
 		ibdWriter.close();
-		meanWriter.close();
 		mapWriter.close();
 		
 		
