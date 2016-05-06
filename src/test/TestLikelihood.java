@@ -355,7 +355,7 @@ public class TestLikelihood {
 			
 			
 			int chrStart = 1;
-			int chrEnd = 2;
+			int chrEnd = 23;
 			boolean full = true;
 			int nSmallCluster = 2;
 			int nBigCluster = 1;
@@ -367,7 +367,7 @@ public class TestLikelihood {
 			//prune ld
 			System.out.println("Pruning LD");
 			for(int i=1; i<23; i++){
-				LDStream.thin(dataDir+"msprime.geno."+i, dataDir+"msprime.geno.pruned."+i, .01, rgen);
+				LDStream.thin(dataDir+"msprime.geno."+i, dataDir+"msprime.geno.pruned."+i, .2, rgen);
 			}
 			
 	
@@ -383,9 +383,10 @@ public class TestLikelihood {
 			
 			
 	
-			int[] cols = new int[]{28, 43, 56, 65, 79, 83, 98, 110, 125, 134};	
+			int[] cols = new int[]{8, 15, 28, 37, 46, 56, 65, 79, 83, 93};	
+			int[] ids = new int[]{10,19,37,49,61,75,87,106,111,124};
 			
-			for(int t=0; t<1; t++){
+			for(int t=0; t<100; t++){
 				
 				System.out.println(t);
 		
@@ -460,7 +461,7 @@ public class TestLikelihood {
 			
 			
 			//true path
-			sim.writeTruePathFile(simDir+"pairwiseLikelihood/"+testName+".ped", simDir+"results/"+testName+".true", cols);
+			sim.writeTruePathFile(simDir+"pairwiseLikelihood/"+testName+".ped", simDir+"results/"+testName+".true", ids);
 			
 			
 			

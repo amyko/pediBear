@@ -45,7 +45,8 @@ public class Pedigree {
 	
 
 	////// CONSTRUCTOR ///////
-	public Pedigree(String inPath, String outPath, int numIndiv, int[] cols) throws IOException{
+	//this is for simulation only
+	public Pedigree(String inPath, String outPath, int numIndiv, int[] ids) throws IOException{
 		
 		//relationship
 		this.relationships = new Path[2][184][184];
@@ -66,6 +67,7 @@ public class Pedigree {
 		this.rGen = null;
 		this.curr = 0;
 		this.copy = 1;
+		nActiveNodes[0] = 200;
 		
 		//set up pedigree
 
@@ -92,18 +94,20 @@ public class Pedigree {
 			Node mom = nodes.get(0).get(momIdx);
 			Node dad = nodes.get(0).get(dadIdx);
 			
-			child.addParent(mom);
+			
 			child.addParent(dad);
+			child.addParent(mom);
 			mom.addChild(child);
 			dad.addChild(child);
+			
 			
 		}
 		
 		
 		//record paths
-		for(int i=0; i<cols.length; i++){
+		for(int i=0; i<ids.length; i++){
 			
-			updateAdjMat(nodes.get(0).get(cols[i]));
+			updateAdjMat(nodes.get(0).get(ids[i]));
 			
 		}
 		
@@ -111,9 +115,9 @@ public class Pedigree {
 		//write to path
 		PrintWriter writer = DataParser.openWriter(outPath);
 		
-		for(int i=0; i<cols.length; i++){
-			for(int j=i+1; j<cols.length; j++){
-				Path rel =  relationships[0][cols[i]][cols[j]];
+		for(int i=0; i<ids.length; i++){
+			for(int j=i+1; j<ids.length; j++){
+				Path rel =  relationships[0][ids[i]][ids[j]];
 				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 			}
 		}
@@ -1088,6 +1092,116 @@ public class Pedigree {
 	}
 	
 	
+	public void halfUncleToCousin(Node child, Node halfSib){
+		
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		
+		
+		//cut from parent
+		disconnect(child.getParents().get(0), child);
+		
+		
+		//shift child cluster down
+		clearVisit();
+		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
+		for(Node i : childCluster){
+			i.setDepth(i.getDepth() - 1);
+		}
+		
+		//make a ghost parent node for child
+		Node newParent = makeNewNode(child.getDepth() + 1 , child.getSex());
+		connect(newParent, child);
+		
+		
+		//connect new parent to grand parents
+		List<Node> gp = halfSib.getParents();
+		for(int i=0; i<2; i++){
+			
+
+			if(i < gp.size()){
+				connect(gp.get(i), newParent);
+			}
+			else{
+				Node newGP = makeNewNode(gp.get(0).getDepth(), (gp.get(0).getSex()+1)%2);
+				connect(newGP, halfSib);
+				connect(newGP, newParent);
+			}
+			
+		}
+		
+		
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+	}
+	
+	
+	
+	public void cousinToHalfUncle(Node child){
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+
+		
+		//how many parents; choose sib
+		Node parent = child.getParents().get(0);
+		List<Node> gp = new ArrayList<Node>();
+		gp.addAll(parent.getParents());
+
+
+		//disconnect parent
+		deleteNode(parent);
+			
+		//shift child cluster up
+		clearVisit();
+		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
+		for(Node i : childCluster){
+			i.setDepth(i.getDepth() + 1);
+		}
+		
+		//choose a new parent
+		Node newParent = gp.get(rGen.nextInt(gp.size()));
+				
+		//connect new parent to child
+		connect(newParent, child);
+		
+
+		//clean
+		for(Node i : gp){
+			clean(i);
+		}
+		
+		
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+		
+	}
 	
 	
 	///////// UPDATE ADJACENCY MATRIX ////////
@@ -1107,7 +1221,7 @@ public class Pedigree {
 		
 		int i = node.getIndex();
 		
-		for(int j=0; j<numIndiv; j++){
+		for(int j=0; j<relationships[0][0].length; j++){
 		
 			//int j = ind.getIndex();
 			

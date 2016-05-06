@@ -195,25 +195,25 @@ import utility.DataParser;
 				String genoPath = inPath + chr;
 				
 				//first generation
-				makeChildren(genoPath, genoPath, genoPath, outPaths[curr][chr-1], unrelatedIdx , unrelatedIdx+1, rGen, 3, String.format("%d\t%d\t%d\n", currIdx, currIdx+1, currIdx+2));
+				makeChildren(genoPath, genoPath, genoPath, outPaths[curr][chr-1], unrelatedIdx , unrelatedIdx+1, rGen, 2, String.format("%d\t%d\n", currIdx, currIdx+1));
 				//concatenate parents with children
-				DataParser.concatFiles(new String[]{genoPath, outPaths[curr][chr-1]}, outPaths[prev][chr-1], new int[][]{new int[]{unrelatedIdx, unrelatedIdx+1}, new int[]{0,1,2}});
+				DataParser.concatFiles(new String[]{genoPath, outPaths[curr][chr-1]}, outPaths[prev][chr-1], new int[][]{new int[]{unrelatedIdx, unrelatedIdx+1}, new int[]{0,1}});
 			}
 
 			//write relationship
-			writePedFile(pedfile, currIdx-2, currIdx-1, new int[]{currIdx, currIdx+1, currIdx+2});
+			writePedFile(pedfile, currIdx-2, currIdx-1, new int[]{currIdx, currIdx+1});
 			
 			//add moms to breeder list
-			for(int i : new int[]{currCol, currCol+1, currCol+2})
+			for(int i : new int[]{currCol, currCol+1})
 				breeders.add(i);
-			for(int i : new int[]{currIdx, currIdx+1, currIdx+2})
+			for(int i : new int[]{currIdx, currIdx+1})
 				breedersRealCol.add(i);
 			
 			
 			//increment
 			unrelatedIdx += 2; //for mom and dad
-			currIdx += 3; //3 children
-			currCol +=3; //3 breeders
+			currIdx += 2; //2 children
+			currCol += 2; //2 breeders
 			prev = curr;
 			curr = (curr+1) % 2;
 			marriageNum++;
@@ -355,7 +355,7 @@ import utility.DataParser;
 				
 				//write header
 				outfile.write(header);
-				
+				System.out.println(header);
 				
 			
 				//copy sampled individuals to outfile
@@ -379,6 +379,7 @@ import utility.DataParser;
 				
 				
 			}
+
 			
 			
 			

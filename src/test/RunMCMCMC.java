@@ -15,11 +15,13 @@ import dataStructures.Pedigree;
 import likelihood.PairwiseLikelihoodCoreStream2;
 import mcmc.MCMCMC;
 import mcmcMoves.CousinToGreatUncle;
+import mcmcMoves.CousinToHalfUncle;
 import mcmcMoves.Cut;
 import mcmcMoves.CutLink;
 import mcmcMoves.CutOneLinkTwo;
 import mcmcMoves.CutTwoLinkOne;
 import mcmcMoves.FStoPO;
+import mcmcMoves.HalfUncleToCousin;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
 import mcmcMoves.POtoFS;
@@ -69,23 +71,22 @@ public class RunMCMCMC {
 		int swapInterval = 1;
 		Random rGen = new Random(1064850L);
 		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .05), new Split("split", .05), new Split2("split2", .05), new Swap("swap", .05), new SwitchSex("switchSex", .05), 
-				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .1),
-				new CousinToGreatUncle("cousinToGreatUncle", .05), new GreatUncleToCousin("greatUncleToCousin",.05), new FStoPO("FStoPO", .05), new POtoFS("POtoFS",.05)};
-		String testName = "test8";
+				new CutLink("cutLink", .1), new SplitLink("splitLink", .05), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .05),
+				new CousinToGreatUncle("cousinToGreatUncle", .05), new GreatUncleToCousin("greatUncleToCousin",.05), new FStoPO("FStoPO", .05), new POtoFS("POtoFS",.05), 
+				new HalfUncleToCousin("halfUncleToCousin", .05), new CousinToHalfUncle("cousinToHalfUncle", .05)};
+		String testName = "test9";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
 		String meanAccPath = dir + "results/"+testName+".mcmc.mean.acc";
 		String mapAccPath = dir + "results/"+testName+".mcmc.map.acc";
-		//String ibdAccPath = dir + "results/"+testName+".mcmc.ibd.acc";
 		//String meanAccPath = dir + "results/testing.mcmc.mean.acc";
 		//String mapAccPath = dir + "results/testing.mcmc.map.acc";
-		//String ibdAccPath = dir + "results/testing.mcmc.ibd.acc";
+
 		
 		
 		//open accuracy path
 		PrintWriter meanWriter = DataParser.openWriter(meanAccPath);
 		PrintWriter mapWriter = DataParser.openWriter(mapAccPath);
-		//PrintWriter ibdWriter = DataParser.openWriter(ibdAccPath);
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		//true path

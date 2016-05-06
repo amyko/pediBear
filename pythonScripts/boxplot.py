@@ -44,10 +44,10 @@ def getMeanError(inPath):
 if __name__ == "__main__":
 
     #file names
-    testName = "test7"
+    testName = "test9"
     mcmcPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".mcmc.map.acc"
     pairwisePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".pairwise.map.acc"
-    nIndiv = 6
+    nIndiv = 10
     nPairs = nIndiv*(nIndiv-1)/2
 
     
