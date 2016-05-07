@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 
 import statistic.Accuracy;
+import statistic.Convergence;
 import utility.DataParser;
 import dataStructures.Node;
 import dataStructures.Path;
@@ -48,7 +49,7 @@ public class RunMCMCMC {
 		//pedigree parameters
 		int depth = 5;
 		int maxDepthForSamples = depth;
-		int numIndiv = 10;
+		int numIndiv = 2;
 		int totalIndiv = 10;
 		double seqError = 0.01;
 		double r = 1.3e-8;
@@ -63,24 +64,24 @@ public class RunMCMCMC {
 		//String lkhdPath = dir + ".pairwise";
 		
 		//MCMC parameters
-		int nChain = 4;
+		int nChain = 1;
 		int burnIn = 500000;
 		int runLength = 100000;
-		int sampleRate = 20;
+		int sampleRate = 10;
 		double deltaT = .5;
 		int swapInterval = 1;
 		Random rGen = new Random(1064850L);
-		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .05), new Split("split", .05), new Split2("split2", .05), new Swap("swap", .05), new SwitchSex("switchSex", .05), 
-				new CutLink("cutLink", .1), new SplitLink("splitLink", .05), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", .1), new CutTwoLinkOne("cutTwoLinkOne", .05),
-				new CousinToGreatUncle("cousinToGreatUncle", .05), new GreatUncleToCousin("greatUncleToCousin",.05), new FStoPO("FStoPO", .05), new POtoFS("POtoFS",.05), 
-				new HalfUncleToCousin("halfUncleToCousin", .05), new CousinToHalfUncle("cousinToHalfUncle", .05)};
+		Move[] moves = new Move[]{new Link("link", .5), new Cut("cut", .2), new Split("split", .05), new Split2("split2", .05), new Swap("swap", 0), new SwitchSex("switchSex", 0), 
+				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", 0), new CutOneLinkTwo("cutOneLinkTwo", 0), new CutTwoLinkOne("cutTwoLinkOne", 0),
+				new CousinToGreatUncle("cousinToGreatUncle", 0), new GreatUncleToCousin("greatUncleToCousin",0), new FStoPO("FStoPO", 0), new POtoFS("POtoFS",0), 
+				new HalfUncleToCousin("halfUncleToCousin", 0), new CousinToHalfUncle("cousinToHalfUncle", 0)};
 		String testName = "test9";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
-		String meanAccPath = dir + "results/"+testName+".mcmc.mean.acc";
-		String mapAccPath = dir + "results/"+testName+".mcmc.map.acc";
-		//String meanAccPath = dir + "results/testing.mcmc.mean.acc";
-		//String mapAccPath = dir + "results/testing.mcmc.map.acc";
+		//String meanAccPath = dir + "results/"+testName+".mcmc.mean.acc";
+		//String mapAccPath = dir + "results/"+testName+".mcmc.map.acc";
+		String meanAccPath = dir + "results/testing.mcmc.mean.acc";
+		String mapAccPath = dir + "results/testing.mcmc.map.acc";
 
 		
 		
@@ -94,7 +95,7 @@ public class RunMCMCMC {
 		Path[][] trueRel = Accuracy.getTruePath(truePath, totalIndiv);
 		
 		
-		for(int t=0; t<100; t++){
+		for(int t=0; t<1; t++){
 
 			System.out.println(t);
 			
@@ -201,7 +202,6 @@ public class RunMCMCMC {
 			//kinship accuracy
 			double[][] meanAcc = Accuracy.kinshipAccuracy(outPath, truePath, totalIndiv, pathToKinship);
 			double[][] mapAcc = Accuracy.mapAccuracy(outPath, truePath, totalIndiv, numIndiv, pathToKinship);
-			double[][] ibdAcc = Accuracy.ibdAccuracy(outPath, numIndiv, pathToKinship);
 			
 			
 			//write header for output path
@@ -232,6 +232,10 @@ public class RunMCMCMC {
 		mapWriter.close();
 		//ibdWriter.close();
 		
+		//test convergence
+		double[] lkhds = Convergence.getTwoHighestLikelihoods(outPath);
+		Convergence.getSampleProportion(outPath, dir + "results/test.conv", lkhds[0], lkhds[1], sampleRate);
+		System.out.println(Math.exp(lkhds[0]-lkhds[1]));
 
 		
 		

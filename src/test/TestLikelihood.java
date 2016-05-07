@@ -361,7 +361,7 @@ public class TestLikelihood {
 			int nBigCluster = 1;
 			int nChildren = 5;
 			int nGen = 4;
-			String testName = "test9";
+			String testName = "test10";
 			
 			
 			//prune ld
@@ -383,8 +383,8 @@ public class TestLikelihood {
 			
 			
 	
-			int[] cols = new int[]{8, 15, 28, 37, 46, 56, 65, 79, 83, 93};	
-			int[] ids = new int[]{10,19,37,49,61,75,87,106,111,124};
+			int[] cols = new int[]{8, 15, 37, 46, 56, 65, 83, 93, 114, 130};	
+			int[] ids = new int[]{10,19,49,61,74,86,111,124,152,174};
 			
 			for(int t=0; t<100; t++){
 				
