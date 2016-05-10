@@ -44,31 +44,20 @@ def getMeanError(inPath):
 if __name__ == "__main__":
 
     #file names
-    testName = "test9"
-    mcmcPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".mcmc.map.acc"
-    pairwisePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".pairwise.map.acc"
-    nIndiv = 10
-    nPairs = nIndiv*(nIndiv-1)/2
+    testName = "test10"
+    inPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/test.conv."
 
     
-    #get means
-    xdata = [i for i in range(1,nPairs+1)]
-    mcmcData, mcmcMeans = getMeanError(mcmcPath)
-    pairData, pairwiseMeans = getMeanError(pairwisePath)
-
+    #get data
+    x = np.loadtxt(inPath+str(0),usecols=[0], dtype=int)
+    y0 = np.loadtxt(inPath+str(0),usecols=[1], dtype=float)
+    y1 = np.loadtxt(inPath+str(1),usecols=[1], dtype=float)
+    
     #pdb.set_trace()
-
     
     #plot
     plt.figure()
-    plt.boxplot(mcmcData)
-    plt.scatter(xdata, mcmcMeans, color='blue', label='mcmc mean error')
-    plt.scatter(xdata, pairwiseMeans, color='red', label='pairwise mean error')
-    plt.legend()
-    #plt.ylim([-.1,1.1])
-    plt.xlim([-1,len(xdata)+1])
-    plt.xlabel("pair")
-    plt.ylabel("error rate")
-    plt.title("error rate for 100 simulations; " + testName)
-    plt.show()    
-    
+    plt.plot(x[0::50],y0[0::50])
+    plt.plot(x[0::50],y1[0::50])
+    #plt.plot(x,y1)
+    plt.show()

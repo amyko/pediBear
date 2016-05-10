@@ -163,7 +163,7 @@ import utility.DataParser;
 		
 
 		
-		public void simulatePopulation(String inPath, String outPath, String pedPath, int oldestGen, Random rGen, int chrStart, int chrEnd, int[] cols) throws IOException{
+		public void simulatePopulation(String inPath, String outPath, String pedPath, int oldestGen, Random rGen, int chrStart, int chrEnd, int[] cols, int howManyUnrelated) throws IOException{
 			
 			
 			//variables
@@ -311,8 +311,10 @@ import utility.DataParser;
 			//close files
 			pedfile.close();
 			
+			System.out.println(unrelatedIdx);
+			
 			//sample
-			sampleIndiv(outPath, curr, rGen, chrStart, chrEnd, cols);
+			sampleIndiv(outPath, curr, rGen, chrStart, chrEnd, cols, howManyUnrelated, unrelatedIdx, inPath);
 		
 			
 			
@@ -332,7 +334,7 @@ import utility.DataParser;
 		
 		
 		
-		public void sampleIndiv(String filePath, int curr, Random rGen, int chrStart, int chrEnd, int[] cols) throws IOException{
+		public void sampleIndiv(String filePath, int curr, Random rGen, int chrStart, int chrEnd, int[] cols, int howManyUnrelated, int unrelatedIdx, String unrelatedGenoPath) throws IOException{
 			
 			
 			
@@ -340,15 +342,20 @@ import utility.DataParser;
 			
 				//open files
 				BufferedReader infile = DataParser.openReader(String.format("%stemp.%d.%d", filePath, chr, curr));
+				BufferedReader unrelFile = DataParser.openReader(unrelatedGenoPath + chr);
 				PrintWriter outfile = DataParser.openWriter(filePath + chr);
 			
 				//skip header
 				String[] headerFields = infile.readLine().split("\t");
+				String[] headerFields2 = unrelFile.readLine().split("\t");
 				
 				String header = "";
 				
 				for(int i=0; i<cols.length; i++){
 					header += headerFields[cols[i]] + "\t";
+				}
+				for(int i=0; i<howManyUnrelated; i++){
+					header += headerFields2[unrelatedIdx + i] + "\t";
 				}
 				header += "\n";
 				
@@ -359,14 +366,24 @@ import utility.DataParser;
 				
 			
 				//copy sampled individuals to outfile
-				String line;
-				while((line = infile.readLine()) != null){
+				String line1;
+				String line2;
+				while((line1 = infile.readLine()) != null && (line2 = unrelFile.readLine()) != null){
 					
-					String[] fields = line.split("\t");
-					
+					//simulated individuals
+					String[] fields = line1.split("\t");
 					for(int i : cols){
 						outfile.write(String.format("%s\t", fields[i]));
 					}
+					
+					//append unrelated
+					fields = line2.split("\\s");
+					for(int i=0; i<howManyUnrelated; i++){
+						outfile.write(String.format("%s\t", fields[unrelatedIdx+i]));
+					}
+					
+					
+					
 					outfile.write("\n");
 					
 					
@@ -380,9 +397,6 @@ import utility.DataParser;
 				
 			}
 
-			
-			
-			
 			
 		}
 		

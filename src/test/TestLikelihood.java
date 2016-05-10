@@ -349,7 +349,7 @@ public class TestLikelihood {
 
 			
 			//individuals
-			int numIndiv = 10;
+			int numIndiv = 20;
 			int[] indCols = new int[numIndiv];
 			for(int i=0; i<numIndiv; i++) indCols[i] = i;			
 			
@@ -361,7 +361,8 @@ public class TestLikelihood {
 			int nBigCluster = 1;
 			int nChildren = 5;
 			int nGen = 4;
-			String testName = "test10";
+			int howManyUnrelated = 10;
+			String testName = "test11";
 			
 			
 			//prune ld
@@ -390,7 +391,7 @@ public class TestLikelihood {
 				
 				System.out.println(t);
 		
-				sim.simulatePopulation(dataDir+"msprime.geno.pruned.", simDir+"sim.test.geno.", simDir+"pairwiseLikelihood/"+testName+".ped", 4, rgen, chrStart, chrEnd, cols);
+				sim.simulatePopulation(dataDir+"msprime.geno.pruned.", simDir+"sim.test.geno.", simDir+"pairwiseLikelihood/"+testName+".ped", 4, rgen, chrStart, chrEnd, cols, howManyUnrelated);
 				
 				/*
 				// simulation

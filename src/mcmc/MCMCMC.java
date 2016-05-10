@@ -63,8 +63,8 @@ public class MCMCMC {
 		
 		this.heat = new double[nChain];
 		for(int i=0; i<nChain; i++) 
-			//heat[i] = 0;
-			heat[i] = 1 / (1 + deltaT*i);
+			heat[i] = 0;
+			//heat[i] = 1 / (1 + deltaT*i);
 		
 		
 	}
@@ -357,7 +357,7 @@ public class MCMCMC {
 	private void sample(Pedigree currPedigree){
 		
 		//header for this sample
-		writer.write(String.format(">\t%.2f\n", currPedigree.getLogLikelihood()));
+		writer.write(String.format(">\t%.5f\n", currPedigree.getLogLikelihood()));
 		
 		for(int i=0; i<currPedigree.numIndiv; i++){
 			for(int j=i+1; j<currPedigree.numIndiv; j++){

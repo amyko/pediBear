@@ -47,7 +47,7 @@ public class RunMCMCMC {
 		
 
 		//pedigree parameters
-		int depth = 5;
+		int depth = 3;
 		int maxDepthForSamples = depth;
 		int numIndiv = 2;
 		int totalIndiv = 10;
@@ -65,23 +65,23 @@ public class RunMCMCMC {
 		
 		//MCMC parameters
 		int nChain = 1;
-		int burnIn = 500000;
-		int runLength = 100000;
-		int sampleRate = 10;
+		int burnIn = 100000;
+		int runLength = 5000000;
+		int sampleRate = 50;
 		double deltaT = .5;
 		int swapInterval = 1;
-		Random rGen = new Random(1064850L);
-		Move[] moves = new Move[]{new Link("link", .5), new Cut("cut", .2), new Split("split", .05), new Split2("split2", .05), new Swap("swap", 0), new SwitchSex("switchSex", 0), 
-				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", 0), new CutOneLinkTwo("cutOneLinkTwo", 0), new CutTwoLinkOne("cutTwoLinkOne", 0),
+		Random rGen = new Random(1085L);
+		Move[] moves = new Move[]{new Link("link", .3), new Cut("cut", .05), new Split("split", 0.05), new Split2("split2", 0.05), new Swap("swap", 0.05), new SwitchSex("switchSex", 0.05), 
+				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", 0.05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
 				new CousinToGreatUncle("cousinToGreatUncle", 0), new GreatUncleToCousin("greatUncleToCousin",0), new FStoPO("FStoPO", 0), new POtoFS("POtoFS",0), 
-				new HalfUncleToCousin("halfUncleToCousin", 0), new CousinToHalfUncle("cousinToHalfUncle", 0)};
-		String testName = "test9";
+				new HalfUncleToCousin("halfUncleToCousin", 0.05), new CousinToHalfUncle("cousinToHalfUncle", 0.05)};
+		String testName = "test10";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";
-		//String meanAccPath = dir + "results/"+testName+".mcmc.mean.acc";
-		//String mapAccPath = dir + "results/"+testName+".mcmc.map.acc";
-		String meanAccPath = dir + "results/testing.mcmc.mean.acc";
-		String mapAccPath = dir + "results/testing.mcmc.map.acc";
+		String meanAccPath = dir + "results/"+testName+".mcmc.mean.acc";
+		String mapAccPath = dir + "results/"+testName+".mcmc.map.acc";
+		//String meanAccPath = dir + "results/testing.mcmc.mean.acc";
+		//String mapAccPath = dir + "results/testing.mcmc.map.acc";
 
 		
 		
@@ -236,12 +236,13 @@ public class RunMCMCMC {
 		double[] lkhds = Convergence.getTwoHighestLikelihoods(outPath);
 		Convergence.getSampleProportion(outPath, dir + "results/test.conv", lkhds[0], lkhds[1], sampleRate);
 		System.out.println(Math.exp(lkhds[0]-lkhds[1]));
-
+		
+		//Convergence.likelihoodConvergence(outPath, dir +"results/test.conv.1", sampleRate);
 		
 		
 		
 		
-		/*
+		
 		///////TESTING
 		//counts of each relationship
 		List<Path> relationships = new ArrayList<Path>();
@@ -275,7 +276,7 @@ public class RunMCMCMC {
 			int count = Accuracy.numSamplesWithGivenRel(outPath, 0,1,rel, false);
 			System.out.println(String.format("(%d,%d,%d) %d", rel.getUp(), rel.getDown(), rel.getNumVisit(), count));
 		}
-		*/
+		
 		
 		
 		

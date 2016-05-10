@@ -29,14 +29,22 @@ public class HalfUncleToCousin extends Move{
 		//reject if child doesn't have exactly 1 parent
 		if(child.getParents().size()!=1)
 			return REJECT;
+
 		
-		//reject if child doesn't have any siblings
+		//reject if child doesn't have any nephews
 		Node parent = child.getParents().get(0);
-		if(parent.getChildren().size() < 2)
+		children.clear();
+		for(Node c : parent.getChildren()){
+			if(c!=child && c.getChildren().size() > 0) 
+				children.add(c);
+		}
+		
+		if(children.size()==0)
 			return REJECT;
 		
 		
-		//reject if moving down child two levels goes below depth=0
+		
+		//reject if moving down child a level goes below depth=0
 		currPedigree.clearVisit();
 		for(Node k : child.getParents())
 			k.setNumVisit(1);
@@ -44,12 +52,7 @@ public class HalfUncleToCousin extends Move{
 			return REJECT;
 		}
 		
-		
-		//get sibs
-		children.clear();
-		for(Node c : parent.getChildren()){
-			if(c!=child) children.add(c);
-		}
+
 		
 		Node sib = children.get(currPedigree.rGen.nextInt(children.size()));
 		
@@ -58,7 +61,7 @@ public class HalfUncleToCousin extends Move{
 		currPedigree.copyCurrPedigree();
 		
 		//old to new
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(children.size()) + Math.log(moveProbs.get("halfUncleToCousin"));
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(children.size()) +  getLogChooseOne(2) + Math.log(moveProbs.get("halfUncleToCousin"));
 
 		
 		//cut and link
@@ -67,7 +70,7 @@ public class HalfUncleToCousin extends Move{
 		
 		
 		//new to old
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + lnTwo + Math.log(moveProbs.get("cousinToHalfUncle"));
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(2) + Math.log(moveProbs.get("cousinToHalfUncle"));
 		
 
 		

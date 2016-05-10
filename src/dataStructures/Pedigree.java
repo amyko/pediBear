@@ -1116,7 +1116,8 @@ public class Pedigree {
 		}
 		
 		//make a ghost parent node for child
-		Node newParent = makeNewNode(child.getDepth() + 1 , child.getSex());
+		int parentSex = rGen.nextDouble() < .5 ? 0 : 1;
+		Node newParent = makeNewNode(child.getDepth() + 1 , parentSex);
 		connect(newParent, child);
 		
 		
@@ -1161,7 +1162,7 @@ public class Pedigree {
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
 
 		
-		//how many parents; choose sib
+		//choose sib
 		Node parent = child.getParents().get(0);
 		List<Node> gp = new ArrayList<Node>();
 		gp.addAll(parent.getParents());

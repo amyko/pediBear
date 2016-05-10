@@ -40,6 +40,9 @@ public class CutTwoLinkOne extends Move{
 		int nCandidate = newParentCandidates.size();
 		if(nCandidate==0)
 			return REJECT;
+		
+		
+		
 
 		
 		//copy pedigree

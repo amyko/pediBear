@@ -68,6 +68,9 @@ public class Split2 extends Move {//TODO make this move more efficient (can we c
 	    }
 	    
 	    
+	    System.out.println("IN SPLIT2");
+	    
+	    
 
 		//split
 	    double prevLogLikelihood = currPedigree.getLogLikelihood();

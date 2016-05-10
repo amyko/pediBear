@@ -50,7 +50,7 @@ public class POtoFS extends Move{
 				return REJECT;
 			
 		}
-	
+		
 
 		
 		//copy pedigree
