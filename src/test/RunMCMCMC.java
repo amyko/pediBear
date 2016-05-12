@@ -22,6 +22,8 @@ import mcmcMoves.CutLink;
 import mcmcMoves.CutOneLinkTwo;
 import mcmcMoves.CutTwoLinkOne;
 import mcmcMoves.FStoPO;
+import mcmcMoves.HalfCousinToHalfGreatUncle;
+import mcmcMoves.HalfGreatUncleToHalfCousin;
 import mcmcMoves.HalfUncleToCousin;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
@@ -70,10 +72,10 @@ public class RunMCMCMC {
 		int sampleRate = 50;
 		double deltaT = .5;
 		int swapInterval = 1;
-		Random rGen = new Random(1085L);
-		Move[] moves = new Move[]{new Link("link", .3), new Cut("cut", .05), new Split("split", 0.05), new Split2("split2", 0.05), new Swap("swap", 0.05), new SwitchSex("switchSex", 0.05), 
+		Random rGen = new Random(102495L);
+		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .05), new Split("split", 0.05), new Split2("split2", 0.05), new Swap("swap", 0.05), new SwitchSex("switchSex", 0.05), 
 				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", 0.05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
-				new CousinToGreatUncle("cousinToGreatUncle", 0), new GreatUncleToCousin("greatUncleToCousin",0), new FStoPO("FStoPO", 0), new POtoFS("POtoFS",0), 
+				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.05), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.05), new FStoPO("FStoPO", 0.05), new POtoFS("POtoFS",0.05), 
 				new HalfUncleToCousin("halfUncleToCousin", 0.05), new CousinToHalfUncle("cousinToHalfUncle", 0.05)};
 		String testName = "test10";
 		String outPath = dir + "results/test.out";

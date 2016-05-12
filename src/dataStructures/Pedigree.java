@@ -1205,6 +1205,111 @@ public class Pedigree {
 	}
 	
 	
+	
+	public void halfGreatUncleToHalfCousin(Node child, Node newGP){
+		
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		
+		
+		//cut from parent
+		Node oldParent = child.getParents().get(0);
+		disconnect(oldParent, child);
+		
+		
+		//shift child cluster down
+		clearVisit();
+		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
+		for(Node i : childCluster){
+			i.setDepth(i.getDepth() - 2);
+		}
+		
+		//make a ghost parent node for child
+		int parentSex = rGen.nextDouble() < .5 ? 0 : 1;
+		Node newParent = makeNewNode(child.getDepth() + 1 , parentSex);
+		connect(newParent, child);
+		
+		
+		//connect new parent to grand parents
+		connect(newGP, newParent);
+		
+		
+		//clean old parent
+		clean(oldParent);
+		
+		
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+	}
+	
+	
+	public void halfCousinToHalfGreatUncle(Node child, Node newSib){
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+
+
+		//disconnect parent
+		Node parent = child.getParents().get(0);
+		deleteNode(parent);
+			
+		//shift child cluster up
+		clearVisit();
+		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
+		for(Node i : childCluster){
+			i.setDepth(i.getDepth() + 2);
+		}
+		
+		
+		//choose new parent's sex
+		int newParentSex = rGen.nextDouble() < .5 ? 0 : 1;
+		
+		
+		//get new parent with target sex
+		Node newParent = newSib.getParentWithSex(newParentSex);
+		if(newParent==null){
+			newParent = makeNewNode(child.getDepth()+1, newParentSex);
+			connect(newParent, newSib);
+		}
+		
+		
+		//connect new parent to child
+		connect(newParent, child);
+		
+
+		
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+		
+	}
+	
+	
 	///////// UPDATE ADJACENCY MATRIX ////////
 	public void updateAdjMat(Node node){
 		

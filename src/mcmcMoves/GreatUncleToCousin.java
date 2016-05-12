@@ -27,9 +27,10 @@ public class GreatUncleToCousin extends Move{
 		//choose a child to cut
 		Node child = currPedigree.getRandomNode();
 		
-		//reject if child has no parent
-		if(child.getParents().size()==0)
+		//reject if child doesn't have 2 parents
+		if(child.getParents().size()!=2)
 			return REJECT;
+		/*
 		//reject if not in cherry configuration
 		children.clear();
 		for(Node parent : child.getParents()){
@@ -41,6 +42,11 @@ public class GreatUncleToCousin extends Move{
 		}
 		if(children.size()!=2) 
 			return REJECT;
+			*/
+		
+		//TODO reject if no nephew
+		
+		
 		
 		//reject if moving down child two levels goes below depth=0
 		currPedigree.clearVisit();
@@ -62,6 +68,7 @@ public class GreatUncleToCousin extends Move{
 			return REJECT;
 		
 		
+
 		
 		
 		//copy pedigree

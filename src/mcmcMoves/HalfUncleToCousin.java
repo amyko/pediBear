@@ -35,7 +35,7 @@ public class HalfUncleToCousin extends Move{
 		Node parent = child.getParents().get(0);
 		children.clear();
 		for(Node c : parent.getChildren()){
-			if(c!=child && c.getChildren().size() > 0) 
+			if(c!=child && c.getChildren().size() > 0)
 				children.add(c);
 		}
 		
