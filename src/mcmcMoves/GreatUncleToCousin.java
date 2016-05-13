@@ -1,9 +1,8 @@
 
 package mcmcMoves;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import dataStructures.Pedigree;
 import dataStructures.Node;
@@ -13,7 +12,7 @@ import dataStructures.Node;
 public class GreatUncleToCousin extends Move{
 
 	
-	private Set<Node> children  = new HashSet<Node>();
+	private List<Node> goodFS  = new ArrayList<Node>();
 	
 	
 	public GreatUncleToCousin(String name, double moveProb) {
@@ -30,24 +29,18 @@ public class GreatUncleToCousin extends Move{
 		//reject if child doesn't have 2 parents
 		if(child.getParents().size()!=2)
 			return REJECT;
-		/*
-		//reject if not in cherry configuration
-		children.clear();
-		for(Node parent : child.getParents()){
-			
-			if(parent.sampled || parent.getParents().size()!=0 || parent.getChildren().size()!=2)
-				return REJECT;
-			
-			children.addAll(parent.getChildren());
+
+		//reject if no full sibs
+		List<Node> fullSibs = currPedigree.getFullSibs(child);
+		goodFS.clear();
+		for(Node i : fullSibs){
+			if(i.getChildren().size() > 0)
+				goodFS.add(i);
 		}
-		if(children.size()!=2) 
+		if(goodFS.size()==0)
 			return REJECT;
-			*/
 		
-		//TODO reject if no nephew
-		
-		
-		
+
 		//reject if moving down child two levels goes below depth=0
 		currPedigree.clearVisit();
 		for(Node k : child.getParents())
@@ -59,35 +52,49 @@ public class GreatUncleToCousin extends Move{
 		
 		
 		//get sib
-		Node parent = child.getParents().get(0);
-		Node sib = parent.getChildren().get(0) == child ? parent.getChildren().get(1) : parent.getChildren().get(0);
+		Node sib = goodFS.get(currPedigree.rGen.nextInt(goodFS.size()));
 		List<Node> sibChildren = sib.getChildren();
-		
-		//reject if there is no sibChild 
-		if(sibChildren.size()==0)
-			return REJECT;
-		
-		
+		Node sibChild = sibChildren.get(currPedigree.rGen.nextInt(sibChildren.size()));
 
+		//get number of equivalent choices of sib child
+		int nSibChoice = 1;
+		int nParents1 = sibChild.getParents().size();
+		for(Node i : sibChildren){
+			
+			int nParents2 = i.getParents().size();
+			
+			if(i==sibChild || nParents2 != nParents1) continue;
+			
+			if(nParents1==1){//1 parent scenario
+				if(sibChild.getParents().get(0) == i.getParents().get(0))
+					nSibChoice++;
+			}
+			
+			else{//two parent scenario
+				if(sibChild.getParents().get(0)==i.getParents().get(0) && sibChild.getParents().get(1)==i.getParents().get(1))
+					nSibChoice++;
+				else if(sibChild.getParents().get(0)==i.getParents().get(1) && sibChild.getParents().get(1)==i.getParents().get(0))
+					nSibChoice++;
+			}
+			
+		}
+		
 		
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
 		//old to new
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(sibChildren.size()) + Math.log(moveProbs.get("greatUncleToCousin"));
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(goodFS.size()) + getLogChooseOne(sibChildren.size()) + getLogChooseOne(2) + Math.log(nSibChoice * moveProbs.get("greatUncleToCousin"));
 
 		
 		//cut and link
 		double prevLogLikelihood = currPedigree.getLogLikelihood();
-		Node sibChild = sibChildren.get(currPedigree.rGen.nextInt(sibChildren.size()));
-		
-		currPedigree.greatUncleToCousin(child, sib, sibChild);
+		currPedigree.greatUncleToCousin(child, sibChild);
 		
 		
 		//new to old
-		int nGrandParents = child.getParents().get(0).getParents().size();
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nGrandParents) + Math.log(moveProbs.get("cousinToGreatUncle"));
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(2) + Math.log(moveProbs.get("cousinToGreatUncle"));
 		
 
 		

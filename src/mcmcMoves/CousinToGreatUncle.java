@@ -22,7 +22,21 @@ public class CousinToGreatUncle extends Move{
 
 		//choose a child to cut
 		Node child = currPedigree.getRandomNode();
-		int nParents = child.getParents().size();
+		
+		//reject if child doesn't have exactly 1 parent
+		if(child.getParents().size()!=1)
+			return REJECT;
+		
+		//reject if parent doesn't have exactly 1 child
+		Node parent = child.getParents().get(0);
+		if(parent.sampled || parent.getChildren().size()!=1 || parent.getParents().size()!=2)
+			return REJECT;
+		
+		//reject if parent doesn't have full siblings
+		int nSibChoice = currPedigree.getFullSibs(parent).size();
+		if(nSibChoice==0)
+			return REJECT;
+		
 		
 		//depth constraint
 		currPedigree.clearVisit();
@@ -32,27 +46,6 @@ public class CousinToGreatUncle extends Move{
 		int maxDepth = currPedigree.getMaxDepth(child);
 		if(maxDepth+3 > currPedigree.maxDepth)
 			return REJECT;
-		//reject if child doesn't have exactly 1 parent
-		if(nParents!=1)
-			return REJECT;
-		//reject if parent doesn't have exactly 1 child
-		Node parent = child.getParents().get(0);
-		if(parent.sampled || parent.getChildren().size()!=1 || parent.getParents().size()==0)
-			return REJECT;
-
-		
-		//reject if gp has parents, or it would be deleted by removing parent
-		for(Node gp : parent.getParents()){
-			
-			if(gp.getParents().size()!=0 || gp.getChildren().size() < 2)
-				return REJECT;
-
-		}
-		
-		//reject if split pedigree
-		if(isSplitNode(parent)){
-			return REJECT;
-		}
 
 		
 					
@@ -60,19 +53,20 @@ public class CousinToGreatUncle extends Move{
 		currPedigree.copyCurrPedigree();
 		
 		//old to new
-		List<Node> gp = parent.getParents();
-		int nParent = gp.size();
-		Node sib = gp.get(currPedigree.rGen.nextInt(nParent));
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nParent) + Math.log(moveProbs.get("cousinToGreatUncle"));
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(2) + Math.log(moveProbs.get("cousinToGreatUncle"));
 
 		
 		//cut and link
 		double prevLogLikelihood = currPedigree.getLogLikelihood();
-		currPedigree.cousinToGreatUncle(child, sib);
+		Node newSib = currPedigree.rGen.nextDouble() < .5 ? parent.getParents().get(0) : parent.getParents().get(1);
+		currPedigree.cousinToGreatUncle(child, newSib);
 		
 		
 		//new to old
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(sib.getChildren().size()) + Math.log(moveProbs.get("greatUncleToCousin"));
+		int nFS = currPedigree.getFullSibs(child).size();
+		int nFSChild = newSib.getChildren().size();
+		
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nFS) + getLogChooseOne(nFSChild) + getLogChooseOne(2) + Math.log(nSibChoice * moveProbs.get("greatUncleToCousin"));
 		
 
 		
@@ -106,19 +100,6 @@ public class CousinToGreatUncle extends Move{
 		return;
 		
 	}
-
-		
 	
-	//returns true if removing this node splits the pedigree into two
-	private boolean isSplitNode(Node node){
-		
-		if(node.sampled || node.getParents().size()==0 || node.getChildren().size() > 1) return false;
-		if(node.getParents().size()==2) return true;
-		
-		//ghost and has 1 parent; recurse on parent
-		return isSplitNode(node.getParents().get(0));
-		
-	}
-		
 
-	}
+}

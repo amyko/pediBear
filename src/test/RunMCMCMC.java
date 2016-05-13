@@ -72,11 +72,11 @@ public class RunMCMCMC {
 		int sampleRate = 50;
 		double deltaT = .5;
 		int swapInterval = 1;
-		Random rGen = new Random(102495L);
+		Random rGen = new Random(102375L);
 		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .05), new Split("split", 0.05), new Split2("split2", 0.05), new Swap("swap", 0.05), new SwitchSex("switchSex", 0.05), 
-				new CutLink("cutLink", .1), new SplitLink("splitLink", .1), new ShiftClusterLevel("shiftClusterLevel", 0.05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
+				new CutLink("cutLink", .05), new SplitLink("splitLink", .05), new ShiftClusterLevel("shiftClusterLevel", 0.05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.05), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.05), new FStoPO("FStoPO", 0.05), new POtoFS("POtoFS",0.05), 
-				new HalfUncleToCousin("halfUncleToCousin", 0.05), new CousinToHalfUncle("cousinToHalfUncle", 0.05)};
+				new HalfUncleToCousin("halfUncleToCousin", 0.05), new CousinToHalfUncle("cousinToHalfUncle", 0.05), new CousinToGreatUncle("cousinToGreatUncle", 0.05), new GreatUncleToCousin("greatUncleToCousin", 0.05)};
 		String testName = "test10";
 		String outPath = dir + "results/test.out";
 		String truePath = dir + "results/" +testName + ".true";

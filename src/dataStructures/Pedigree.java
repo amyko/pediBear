@@ -556,8 +556,7 @@ public class Pedigree {
 			List<Node> parentPed = parent.getConnectedSampledNodes(new ArrayList<Node>());
 			clearVisit();
 			List<Node> stayPed = stayParent.getConnectedSampledNodes(new ArrayList<Node>());
-			
-			//setUnrelated(parentPed, stayPed);
+
 			
 			this.logLikelihood[curr] += likelihoodLocalPedigree(stayPed);
 			this.logLikelihood[curr] += likelihoodLocalPedigree(parentPed);
@@ -601,12 +600,6 @@ public class Pedigree {
 		}
 		donor.getParents().clear();
 
-		/*
-		// update relationship matrix 
-		for(Node i : inds){
-			updateAdjMat(i);
-		}
-		*/
 		
 		
 		//add new likelihood 
@@ -638,7 +631,6 @@ public class Pedigree {
 
 	
 	//at least one of them has to be sampled
-	
 	public void swap(Node child, Node parent){//works
 		
 		//get cluster
@@ -845,7 +837,7 @@ public class Pedigree {
 	}
 	
 	
-	public void greatUncleToCousin(Node child, Node sib, Node sibChild){
+	public void greatUncleToCousin(Node child, Node sibChild){
 		
 		//cluster containing child
 		clearVisit();
@@ -857,13 +849,11 @@ public class Pedigree {
 		
 
 
-		//cut from parent(s)
-		int nParents = child.getParents().size();
-		List<Node> oldParents = new ArrayList<Node>();
-		oldParents.addAll(child.getParents());
-		for(Node p : oldParents){
-			deleteNode(p);
-		}
+		//cut from parents
+		Node p1 = child.getParents().get(0);
+		Node p2 = child.getParents().get(1);
+		disconnect(p1, child);
+		disconnect(p2, child);
 		
 		
 		//shift child cluster down
@@ -874,15 +864,15 @@ public class Pedigree {
 		}
 		
 		//make a ghost node for child
-		Node newParent = makeNewNode(child.getDepth() + 1 , child.getSex());
+		int parentSex = rGen.nextDouble() < .5 ? 0 : 1;
+		Node newParent = makeNewNode(child.getDepth() + 1 , parentSex);
 		connect(newParent, child);
 		
 		
 		//connect new parent to grand parents
 		List<Node> gp = sibChild.getParents();
-		for(int i=0; i<nParents; i++){
+		for(int i=0; i<2; i++){
 			
-
 			if(i < gp.size()){
 				connect(gp.get(i), newParent);
 			}
@@ -901,19 +891,20 @@ public class Pedigree {
 		}
 		
 		
+		//clean
+		clean(p1);
+		clean(p2);
+		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		
-		
-		clean(sib);
-		
+
 		
 		
 	}
 	
 	
 	
-	public void cousinToGreatUncle(Node child, Node sib){
+	public void cousinToGreatUncle(Node child, Node newSib){
 		
 		//cluster containing child
 		clearVisit();
@@ -923,14 +914,12 @@ public class Pedigree {
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
 
 		
-		//how many parents; choose sib
-		Node parent = child.getParents().get(0);
-		List<Node> gp = new ArrayList<Node>();
-		gp.addAll(parent.getParents());
-		int nParent = gp.size();
-
 		//disconnect parent
+		Node parent = child.getParents().get(0);
+		Node gp1 = parent.getParents().get(0);
+		Node gp2 = parent.getParents().get(1);
 		deleteNode(parent);
+		
 			
 		//shift child cluster up
 		clearVisit();
@@ -939,19 +928,31 @@ public class Pedigree {
 			i.setDepth(i.getDepth() + 2);
 		}
 		
-		
-		
+				
 		//make sib and child siblings
-		for(int i=0; i<nParent; i++){
-			Node newParent = makeNewNode(child.getDepth()+1, i);
-			connect(newParent, child);
-			connect(newParent, sib);
+		List<Node> newParents = newSib.getParents();
+		for(int i=0; i<2; i++){
+			
+			if(i < newParents.size()){
+				connect(newParents.get(i), child);
+			}
+			else{
+				
+				int parentSex = 0;
+				if(i==1){
+					parentSex = (newParents.get(0).getSex()+1)%2;
+				}
+				
+				Node newParent = makeNewNode(child.getDepth()+1, parentSex);
+				connect(newParent, newSib);
+				connect(newParent, child);
+			}
+			
 		}
 		
 		//clean
-		for(Node i : gp){
-			clean(i);
-		}
+		clean(gp1);
+		clean(gp2);
 		
 		
 		//update adj matrix

@@ -190,6 +190,7 @@ public class MCMCMC {
 				
 				
 				
+				
 				move.mcmcMove(chains.get(j), heat[j]);
 				
 				
