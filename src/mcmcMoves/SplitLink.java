@@ -213,7 +213,7 @@ public class SplitLink extends Move {//WORKS
 		l1 = iPrime.getDepth();
 		for(int l2=0; l2 <jPrime.getDepth()+1; l2++){
 			if(l1==targetDepth && l2==targetDepth) continue;
-			innerSum += jDepthToCount[l2] * getPowersOfHalf(k + 2*targetDepth - iPrime.getDepth() - l2 - 1);
+			innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth - Math.max(iPrime.getDepth(),l2) - 1);
 		}
 
 		oldToNewLink = getLogChooseOne(nBefore-1) + Math.log(innerSum);

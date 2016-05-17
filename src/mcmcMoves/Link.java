@@ -128,7 +128,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 				
 				//if(l1==targetDepth && l2==targetDepth) continue;
 				
-				innerSum += jDepthToCount[l2] * getPowersOfHalf(k + 2*targetDepth - l1 - l2 - 1);
+				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
 			}
 			outerSum += iDepthToCount[l1] * innerSum;
 		}

@@ -1,8 +1,10 @@
+/.DS_Store
 /Unused/
 /dataStructures/
+/likelihood/
 /mcmc/
 /mcmcMoves/
-/test/
-/statistic/
-/likelihood/
 /simulator/
+/statistic/
+/test/
+/utility/

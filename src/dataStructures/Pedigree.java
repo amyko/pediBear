@@ -652,6 +652,10 @@ public class Pedigree {
 
 		//add new terms
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+
+		clean(parent);
+		clean(child);
 	
 		
 	}

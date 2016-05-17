@@ -168,9 +168,9 @@ public class MCMCMC {
 
 				Move move = chooseMove();
 				
-				/*
+				
 				//TESTING			
-				if(!chains.get(j).sanityCheck()){
+				if(!chains.get(j).sanityCheck() || false){
 					System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
 				
 					for(int k=0; k< chains.get(j).getNActiveNodes(); k++){
@@ -185,7 +185,9 @@ public class MCMCMC {
 
 						
 				}
-				*/
+				
+				
+				
 				
 				
 				

@@ -121,6 +121,46 @@ public class Accuracy {
 	}
 	
 	
+	//ordered = finds the number of samples with the exact path, unordered = exact path + complement
+	public static int numSamplesWithGivenRel(String outPath, Path path) throws IOException{
+		
+		BufferedReader reader = DataParser.openReader(outPath);
+		
+		int n = 0;
+		String line;
+		int c = 0;
+		while((line = reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			if(fields[0].equals(">")){
+				if(c==3) n++;
+				c = 0;
+				continue;
+			}
+			
+			
+			if(Integer.parseInt(fields[NUMVISIT])==path.getNumVisit()){
+				if(Integer.parseInt(fields[UP])==path.getUp() && Integer.parseInt(fields[DOWN])==path.getDown()){
+					c++;				
+				}
+				
+				else if(Integer.parseInt(fields[UP])==path.getDown() && Integer.parseInt(fields[DOWN])==path.getUp()){
+					c++;	
+				}
+			}
+			
+			
+
+			
+		}
+		
+		reader.close();
+		
+		return n;
+		
+	}
+	
+	
 	//returns path with the highest number of hits
 	public static Path mostLikelyPath(String outPath, int i, int j) throws NumberFormatException, IOException{
 		

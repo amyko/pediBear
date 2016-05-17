@@ -14,7 +14,6 @@ import mcmcMoves.Link;
 import mcmcMoves.Move;
 import mcmcMoves.Split;
 import mcmcMoves.Split2;
-import mcmcMoves.Swap;
 import mcmcMoves.SwitchSex;
 
 public class TestMCMC {

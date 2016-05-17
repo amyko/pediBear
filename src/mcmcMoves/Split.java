@@ -35,7 +35,7 @@ public class Split extends Move {
 			return REJECT;
 		
 	
-		//randomly assign children to a clone (1 to 2^n-2); choose between [0,2^n - 2] and add 1
+		//randomly assign children to a clone (1 to 2^n-1); choose between [0,2^n - 2] and add 1
 		int powerSetInd = currPedigree.rGen.nextInt((int) getPowersOfTwo(nChildren)-1) + 1;
 		
 		//no change if all children are assigned to clone

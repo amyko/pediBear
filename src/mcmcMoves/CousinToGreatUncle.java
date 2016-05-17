@@ -1,8 +1,6 @@
 
 package mcmcMoves;
 
-import java.util.List;
-
 import dataStructures.Pedigree;
 import dataStructures.Node;
 

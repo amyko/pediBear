@@ -31,7 +31,8 @@ import mcmcMoves.POtoFS;
 import mcmcMoves.Split;
 import mcmcMoves.Split2;
 import mcmcMoves.SplitLink;
-import mcmcMoves.Swap;
+import mcmcMoves.SwapDown;
+import mcmcMoves.SwapUp;
 import mcmcMoves.SwitchSex;
 import mcmcMoves.ShiftClusterLevel;
 import mcmcMoves.GreatUncleToCousin;
@@ -51,7 +52,7 @@ public class RunMCMCMC {
 		//pedigree parameters
 		int depth = 3;
 		int maxDepthForSamples = depth;
-		int numIndiv = 2;
+		int numIndiv = 3;
 		int totalIndiv = 10;
 		double seqError = 0.01;
 		double r = 1.3e-8;
@@ -72,9 +73,9 @@ public class RunMCMCMC {
 		int sampleRate = 50;
 		double deltaT = .5;
 		int swapInterval = 1;
-		Random rGen = new Random(102375L);
-		Move[] moves = new Move[]{new Link("link", .1), new Cut("cut", .05), new Split("split", 0.05), new Split2("split2", 0.05), new Swap("swap", 0.05), new SwitchSex("switchSex", 0.05), 
-				new CutLink("cutLink", .05), new SplitLink("splitLink", .05), new ShiftClusterLevel("shiftClusterLevel", 0.05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
+		Random rGen = new Random(194205L);
+		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .05), new Split2("split2", 0.05), new SwapUp("swapUp", 0.05), new SwapDown("swapDown", 0.05), new SwitchSex("switchSex", 0.05), 
+				new CutLink("cutLink", 0.05), new SplitLink("splitLink", 0.05), new ShiftClusterLevel("shiftClusterLevel", 0.05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.05), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.05), new FStoPO("FStoPO", 0.05), new POtoFS("POtoFS",0.05), 
 				new HalfUncleToCousin("halfUncleToCousin", 0.05), new CousinToHalfUncle("cousinToHalfUncle", 0.05), new CousinToGreatUncle("cousinToGreatUncle", 0.05), new GreatUncleToCousin("greatUncleToCousin", 0.05)};
 		String testName = "test10";
@@ -252,11 +253,11 @@ public class RunMCMCMC {
 		relationships.add(new Path(0,0,0)); //unrelated
 
 		// depth = 1 relationship
-		relationships.add(new Path(1,0,1)); //parent
-		relationships.add(new Path(1,1,1)); //half-sib
+		//relationships.add(new Path(1,0,1)); //parent
+		//relationships.add(new Path(1,1,1)); //half-sib
 		relationships.add(new Path(1,1,2)); //full-sib
 		
-		
+		/*
 		//depth = 2 relationships
 		relationships.add(new Path(2,0,1)); //grand parents
 		relationships.add(new Path(2,1,1)); //half uncle
@@ -272,12 +273,15 @@ public class RunMCMCMC {
 		relationships.add(new Path(3,1,2));
 		relationships.add(new Path(3,2,2)); 
 		relationships.add(new Path(3,3,2)); 
+		*/
 		
-		
+
 		for(Path rel : relationships){
-			int count = Accuracy.numSamplesWithGivenRel(outPath, 0,1,rel, false);
+			int count = Accuracy.numSamplesWithGivenRel(outPath, rel);
+			//int count = Accuracy.numSamplesWithGivenRel(outPath, 0,1,rel, false);
 			System.out.println(String.format("(%d,%d,%d) %d", rel.getUp(), rel.getDown(), rel.getNumVisit(), count));
 		}
+		
 		
 		
 		

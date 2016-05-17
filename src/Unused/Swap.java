@@ -1,9 +1,10 @@
 
 
-package mcmcMoves;
+package Unused;
 
 import java.util.List;
 
+import mcmcMoves.Move;
 import dataStructures.Node;
 import dataStructures.Pedigree;
 
@@ -69,8 +70,8 @@ public class Swap extends Move {//works for 3 sampled nodes (2 parents, 1 child)
 		
 		
 		//TODO reject fs to po swap
-		//if(FStoPOswap)
-			//return REJECT;
+		if(FStoPOswap)
+			return REJECT;
 
 
 		int nBefore = currPedigree.getNActiveNodes();
@@ -178,7 +179,7 @@ public class Swap extends Move {//works for 3 sampled nodes (2 parents, 1 child)
 		
 		newToOld = Math.log(newToOld);
 		
-
+		/*
 		//link probability for FStoPOswap
 		if(FStoPOswap && parent.getChildren().size()==0 && !parent.sampled){
 			
@@ -210,6 +211,7 @@ public class Swap extends Move {//works for 3 sampled nodes (2 parents, 1 child)
 			newToOld += linkProb;
 			
 		}
+		*/
 		
 	
 

@@ -63,7 +63,6 @@ public class FStoPO extends Move{
 		}
 
 		
-		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		

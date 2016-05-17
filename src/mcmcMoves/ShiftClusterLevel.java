@@ -24,8 +24,8 @@ public class ShiftClusterLevel extends Move {
 	protected double tryMove(Pedigree currPedigree, double heat) {
 		
 		//pick a random node
-		Node node = currPedigree.getRandomSampledNode();
-		
+		Node node = currPedigree.getRandomNode();
+
 		//get the cluster the node belongs to
 		cluster.clear();
 		currPedigree.clearVisit();
@@ -41,12 +41,12 @@ public class ShiftClusterLevel extends Move {
 		int newLowestLevel = k - 1;
 		offset = newLowestLevel - oldLowestLevel;
 		
-		//reject if highest node goes over max depth
+		//reject if highest node goes over max depth or no change
 		int highestLevel = getHighestLevel(currPedigree);
 		if(highestLevel + offset > currPedigree.maxDepth)
 			return REJECT;
 		
-		
+
 		
 		//shift cluster
 		double prevLkhd = currPedigree.getLogLikelihood();

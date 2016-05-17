@@ -42,11 +42,6 @@ public class CutLink extends Move {//WORKS
 			return REJECT;
 		
 
-		
-		//reject if parent is a split node
-		if(isSplitNode(parent))
-			return REJECT;
-
 
 		//determine if the child has full siblings; if so, cutting doens't split the pedigree
 		boolean hasFullSib = hasFullSib(currPedigree, child);
@@ -189,7 +184,7 @@ public class CutLink extends Move {//WORKS
 		l1 = iPrime.getDepth();
 		for(int l2=0; l2 <jPrime.getDepth()+1; l2++){
 			if(l1==targetDepth && l2==targetDepth) continue;
-			innerSum += jDepthToCount[l2] * getPowersOfHalf(k + 2*targetDepth - l1 - l2 - 1);
+			innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth - Math.max(l1,l2) - 1);
 		}
 
 		oldToNewLink = getLogChooseOne(nBefore-1) + Math.log(innerSum);
