@@ -123,7 +123,7 @@ public abstract class Move {
 	protected double getPowersOfHalf(int idx){
 		
 		//grow list
-		if(idx > powersOfHalf.size()-1){
+		while(idx > powersOfHalf.size()-1){
 			int oldCapacity = powersOfHalf.size();
 			int newCapacity = (3*oldCapacity)/2 + 2;
 			
@@ -139,7 +139,7 @@ public abstract class Move {
 	protected double getPowersOfHalf2(int idx){
 		
 		//grow list
-		if(idx > powersOfHalf2.size()-1){
+		while(idx > powersOfHalf2.size()-1){
 			int oldCapacity = powersOfHalf2.size();
 			int newCapacity = (3*oldCapacity)/2 + 2;
 			
@@ -155,7 +155,7 @@ public abstract class Move {
 	protected double getPowersOfTwo(int idx){
 		
 		//grow list
-		if(idx > powersOfTwo.size()-1){
+		while(idx > powersOfTwo.size()-1){
 			int oldCapacity = powersOfTwo.size();
 			int newCapacity = (3*oldCapacity)/2 + 2;
 			
@@ -171,7 +171,7 @@ public abstract class Move {
 	protected double getLogChooseOne(int idx){
 		
 		//grow list
-		if(idx > logChooseOne.size()-1){
+		while(idx > logChooseOne.size()-1){
 			int oldCapacity = logChooseOne.size();
 			int newCapacity = (3*oldCapacity)/2 + 2;
 			
@@ -187,7 +187,7 @@ public abstract class Move {
 	protected double getLogChooseTwo(int idx){
 		
 		//grow list
-		if(idx >= logChooseTwo.size()){
+		while(idx >= logChooseTwo.size()){
 			int oldCapacity = logChooseTwo.size();
 			int newCapacity = (3*oldCapacity)/2 + 2;
 			

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Random;
 
 import mcmcMoves.Move;
+import dataStructures.Node;
 import dataStructures.Path;
 import dataStructures.Pedigree;
 import utility.ArrayUtility;
@@ -27,6 +28,7 @@ public class MCMCMC {
 	final int sampleRate;
 	final Move[] moves; 
 	final PrintWriter writer;
+	final PrintWriter writer2;
 	final Random rGen;
 	final int nChain;
 	public int nSwapSuccess;
@@ -53,6 +55,7 @@ public class MCMCMC {
 		this.sampleRate = sampleRate;
 		this.moves = moves;		
 		this.writer = DataParser.openWriter(outPath);
+		this.writer2 = DataParser.openWriter(outPath+".2");
 		this.rGen = rGen;
 		this.nChain = chains.size();
 		this.nSwapAttempt = 0;
@@ -63,8 +66,8 @@ public class MCMCMC {
 		
 		this.heat = new double[nChain];
 		for(int i=0; i<nChain; i++) 
-			heat[i] = 0;
-			//heat[i] = 1 / (1 + deltaT*i);
+			//heat[i] = 0;
+			heat[i] = 1 / (1 + deltaT*i);
 		
 		
 	}
@@ -168,7 +171,7 @@ public class MCMCMC {
 
 				Move move = chooseMove();
 				
-				
+				/*
 				//TESTING			
 				if(!chains.get(j).sanityCheck() || false){
 					System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
@@ -185,12 +188,7 @@ public class MCMCMC {
 
 						
 				}
-				
-				
-				
-				
-				
-				
+				*/
 				
 				
 				move.mcmcMove(chains.get(j), heat[j]);
@@ -261,6 +259,7 @@ public class MCMCMC {
 			//sample from cold chain
 			if(i % sampleRate == 0){
 				sample(chains.get(this.coldChain));
+				sample2(chains.get(this.coldChain));
 			}
 			
 			
@@ -373,6 +372,36 @@ public class MCMCMC {
 				
 			}
 		}
+		
+	}
+	
+	
+	
+	private void sample2(Pedigree currPedigree){
+		
+		//header for this sample
+		writer2.write(String.format(">\t%.5f\t%d\n", currPedigree.getLogLikelihood(), currPedigree.getNActiveNodes()));
+		
+		for(int i=0; i<currPedigree.getNActiveNodes(); i++){
+
+			Node node = currPedigree.getNode(i);
+			List<Node> parents = node.getParents();
+			int p1 = -1;
+			int p2 = -1;
+			if(parents.size()==1){
+				p1 = parents.get(0).getIndex();
+			}
+			else if(parents.size()==2){
+				p1 = parents.get(0).getIndex();
+				p2 = parents.get(1).getIndex();
+			}
+			
+			int sampled = node.sampled ? 1 : 0;
+			
+			writer2.write(String.format("%d\t%d\t%d\t%d\t%d\n", node.getIndex(), p1, p2, node.getDepth(), sampled));
+
+		}
+		
 		
 	}
 	

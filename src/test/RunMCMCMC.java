@@ -50,14 +50,14 @@ public class RunMCMCMC {
 		
 
 		//pedigree parameters
-		int depth = 3;
+		int depth = 5;
 		int maxDepthForSamples = depth;
-		int numIndiv = 3;
-		int totalIndiv = 10;
+		int numIndiv = 20;
+		int totalIndiv = 20;
 		double seqError = 0.01;
 		double r = 1.3e-8;
 		int back = 30000;
-		int maxNumNodes = 10;
+		int maxNumNodes = 200;
 		int genTime = 16;
 		PairwiseLikelihoodCoreStream2 core = new PairwiseLikelihoodCoreStream2(seqError, r, back, numIndiv);
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
@@ -69,7 +69,7 @@ public class RunMCMCMC {
 		//MCMC parameters
 		int nChain = 1;
 		int burnIn = 100000;
-		int runLength = 5000000;
+		int runLength = 10000000;
 		int sampleRate = 50;
 		double deltaT = .5;
 		int swapInterval = 1;
@@ -78,13 +78,13 @@ public class RunMCMCMC {
 				new CutLink("cutLink", 0.05), new SplitLink("splitLink", 0.05), new ShiftClusterLevel("shiftClusterLevel", 0.05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.05), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.05), new FStoPO("FStoPO", 0.05), new POtoFS("POtoFS",0.05), 
 				new HalfUncleToCousin("halfUncleToCousin", 0.05), new CousinToHalfUncle("cousinToHalfUncle", 0.05), new CousinToGreatUncle("cousinToGreatUncle", 0.05), new GreatUncleToCousin("greatUncleToCousin", 0.05)};
-		String testName = "test10";
-		String outPath = dir + "results/test.out";
+		String testName = "test11";
+		String outPath = dir + "results/mcmc.sample";
 		String truePath = dir + "results/" +testName + ".true";
-		String meanAccPath = dir + "results/"+testName+".mcmc.mean.acc";
-		String mapAccPath = dir + "results/"+testName+".mcmc.map.acc";
-		//String meanAccPath = dir + "results/testing.mcmc.mean.acc";
-		//String mapAccPath = dir + "results/testing.mcmc.map.acc";
+		//String meanAccPath = dir + "results/"+testName+".mcmc.mean.acc";
+		//String mapAccPath = dir + "results/"+testName+".mcmc.map.acc";
+		String meanAccPath = dir + "results/testing.mcmc.mean.acc";
+		String mapAccPath = dir + "results/testing.mcmc.map.acc";
 
 		
 		
@@ -94,7 +94,7 @@ public class RunMCMCMC {
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
 		//true path
-		//truePath = dir + "results/test3.true";
+		//truePath = dir + "results/test11.true";
 		Path[][] trueRel = Accuracy.getTruePath(truePath, totalIndiv);
 		
 		
@@ -135,18 +135,6 @@ public class RunMCMCMC {
 			System.out.println(String.format("cold chain index: %d", mcmcmc.coldChain));
 			System.out.println(String.format("final swap rate: %.2f", mcmcmc.nSwapSuccess/((double)(burnIn+runLength)/swapInterval)));
 			System.out.println(String.format("Running time: %.1f seconds", duration));
-
-			/*
-			//Results
-			System.out.println();
-			for(int j=0; j<nChain; j++){
-				//System.out.println(chains.get(j).getNActiveNodes());
-				System.out.println(chains.get(j).getLogLikelihood());
-				chains.get(j).printAdjMat();
-				System.out.println();
-
-			}
-			*/
 
 			
 			
@@ -233,18 +221,21 @@ public class RunMCMCMC {
 		
 		meanWriter.close();
 		mapWriter.close();
-		//ibdWriter.close();
+
+		
 		
 		//test convergence
 		double[] lkhds = Convergence.getTwoHighestLikelihoods(outPath);
-		Convergence.getSampleProportion(outPath, dir + "results/test.conv", lkhds[0], lkhds[1], sampleRate);
+		double lnPrior1 = Convergence.computePrior(outPath+".2", lkhds[0], numIndiv);
+		double lnPrior2 = Convergence.computePrior(outPath+".2", lkhds[1], numIndiv);
 		System.out.println(Math.exp(lkhds[0]-lkhds[1]));
 		
-		//Convergence.likelihoodConvergence(outPath, dir +"results/test.conv.1", sampleRate);
+		
+		//Convergence.getSampleProportion(outPath, outPath+".conv", lkhds[0], lkhds[1], sampleRate);
 		
 		
 		
-		
+		/*
 		
 		///////TESTING
 		//counts of each relationship
@@ -257,7 +248,7 @@ public class RunMCMCMC {
 		//relationships.add(new Path(1,1,1)); //half-sib
 		relationships.add(new Path(1,1,2)); //full-sib
 		
-		/*
+		
 		//depth = 2 relationships
 		relationships.add(new Path(2,0,1)); //grand parents
 		relationships.add(new Path(2,1,1)); //half uncle
@@ -273,7 +264,7 @@ public class RunMCMCMC {
 		relationships.add(new Path(3,1,2));
 		relationships.add(new Path(3,2,2)); 
 		relationships.add(new Path(3,3,2)); 
-		*/
+		
 		
 
 		for(Path rel : relationships){
@@ -283,7 +274,7 @@ public class RunMCMCMC {
 		}
 		
 		
-		
+		*/
 		
 		
 		
