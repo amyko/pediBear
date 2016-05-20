@@ -60,9 +60,67 @@ public class Convergence {
 	}
 	
 	
+	//
+	public static Path[][] getTargetPed(String inPath, double targetLkhd, int numIndiv) throws NumberFormatException, IOException{
+		
+		
+		Path[][] toReturn = new Path[numIndiv][numIndiv];
+		
+		//open files
+		BufferedReader reader = DataParser.openReader(inPath);
+		
+		String line;
+		boolean process = false;
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			
+			if(fields[0].equals(">")){
+				
+				if(process) break;
+				
+				double currLkhd = Double.parseDouble(fields[1]);
+				
+				if(currLkhd==targetLkhd){
+					process = true;
+				}
+				
+				continue;
+				
+			}
+			
+			
+			if(process){
+				
+				int i = Integer.parseInt(fields[0]);
+				int j = Integer.parseInt(fields[1]);
+				int up = Integer.parseInt(fields[2]);
+				int down = Integer.parseInt(fields[3]);
+				int nVisit = Integer.parseInt(fields[4]);
+				
+				toReturn[i][j] = new Path(up, down, nVisit);
+				
+			}
+			
+			
+		}
+		
+		reader.close();
+		
+		
+		
+		
+		
+		return toReturn;
+		
+		
+	}
+	
+	
 	// get #Ha/#Hb
-	public static void getSampleProportion(String inPath, String outPath, double h1, double h2, int sampleRate) throws IOException{
+	public static void getSampleProportion(String inPath, String outPath, Path[][] h1, Path[][] h2, int sampleRate, int numIndiv) throws IOException{
 
+		int nPairs = numIndiv*(numIndiv-1)/2;
 		
 		//open files
 		BufferedReader reader = DataParser.openReader(inPath);
@@ -72,33 +130,47 @@ public class Convergence {
 		//posterior ratio (#h1/#h2)
 		double n1 = 0;
 		int n2 = 0;
+		int n1Correct = 0;
+		int n2Correct = 0;
 		int n = 0;
+
+		
 		String line;
 		while((line=reader.readLine())!=null){
 			
 			String[] fields = line.split("\t");
 			
-			if(!fields[0].equals(">")) 
-				continue;
-			
-			double currLkhd = Double.parseDouble(fields[1]);
-
-			//count
-			if(currLkhd==h1) 
-				n1++;
-			else if(currLkhd==h2) 
-				n2++;
-			n++;
-			
-			//if(n%100000==0){
+			if(fields[0].equals(">")){ 
+				
+				if(n1Correct==nPairs) n1++;
+				if(n2Correct==nPairs) n2++;
+				
 				if(n2!=0)
 					writer.write(String.format("%d\t%.2f\n", n*sampleRate, n1/n2));
-			
-				//n1 = 0;
-				//n2 = 0;
 				
+				
+				n1Correct = 0;
+				n2Correct = 0;
+				n++;
+
+				continue;
+			}
+
 			
-			//}
+			
+			//count
+			int i = Integer.parseInt(fields[0]);
+			int j = Integer.parseInt(fields[1]);
+			int up = Integer.parseInt(fields[2]);
+			int down = Integer.parseInt(fields[3]);
+			int nVisit = Integer.parseInt(fields[4]);
+			
+			if(h1[i][j].getUp()==up && h1[i][j].getDown()==down && h1[i][j].getNumVisit()==nVisit)
+				n1Correct++;
+			if(h2[i][j].getUp()==up && h2[i][j].getDown()==down && h2[i][j].getNumVisit()==nVisit)
+				n2Correct++;
+			
+
 			
 			
 			
@@ -210,7 +282,7 @@ public class Convergence {
 	
 	
 	
-	public static double computePrior(String inPath, double lkhd, int nIndiv) throws NumberFormatException, IOException{
+	public static double computePrior(String inPath, double lkhd, int nIndiv, int maxDepth) throws NumberFormatException, IOException{
 		
 		Node[] nodes = getPedigree(inPath, lkhd, nIndiv);
 		
@@ -220,15 +292,17 @@ public class Convergence {
 		for(Node i : nodes){
 			
 			if(i.sampled || i.getNumVisit() > 0) continue;
-						
-			if(hasSpouse(i)){
 				
+			locked = false; 
+			
+			//check if sex is locked
+			if(hasSpouse(i)){
 				locked = true;
 				markNodesInChain(i);
-				
-				if(!locked)
-					fact += lnTwo;
 			}
+	
+			if(!locked)
+				fact += lnTwo;
 			
 			i.setNumVisit(1);
 			
@@ -255,7 +329,7 @@ public class Convergence {
 			
 			//get highest and lowest depth
 			int highest = 0;
-			int lowest = 5;
+			int lowest = maxDepth;
 			int curr;
 			for(Node j : cluster){
 				
@@ -267,7 +341,7 @@ public class Convergence {
 			}
 			
 			//factor
-			fact *= 6 - (highest-lowest);
+			fact += Math.log((maxDepth+1) - (highest-lowest));
 			
 			
 			

@@ -15,6 +15,7 @@ public class CutLink extends Move {//WORKS
 	}
 
 	//for cut
+	private int[] iDepthToCount = new int[maxDepth];
 	private int[] jDepthToCount = new int[maxDepth];
 
 	
@@ -33,7 +34,6 @@ public class CutLink extends Move {//WORKS
 		
 		//get a random child
 		Node child = currPedigree.getRandomNode();
-
 		
 		//choose mom or dad to cut from
 		int parentSex = currPedigree.rGen.nextDouble() < .5 ? 0 : 1;
@@ -74,19 +74,25 @@ public class CutLink extends Move {//WORKS
 		oldToNewCut = getLogChooseOne(nBefore) + Math.log(oldToNewCut);
 		
 
-		
 		//new to old
-		currPedigree.getDepthToCount(jPrime, jDepthToCount);
+		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
+		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
 		
+	
+		double outerSum = 0d;
 		double innerSum = 0d;
-		int l1 = iPrime.getDepth();
-		for(int l2=0; l2 <= jPrime.getDepth(); l2++){
-			if(l1==targetDepth && l2==targetDepth) continue;
-			innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth-Math.max(l1,l2)-l1-l2);
-		}	
-		
-		double newToOldCut =  getLogChooseOne(nAfter-1) + Math.log(innerSum);
-		
+		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			innerSum = 0d;
+			for(int l2=0; l2<=jPrime.getDepth(); l2++){
+				
+				//if(l1==targetDepth && l2==targetDepth) continue;
+				
+				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
+			}
+			outerSum += iDepthToCount[l1] * innerSum;
+		}
+		double newToOldCut =  getLogChooseTwo(nAfter) + Math.log(outerSum);
+
 
 		
 		
@@ -94,13 +100,11 @@ public class CutLink extends Move {//WORKS
 		////////////////////// LINK /////////////////////
 		//choose nodes i and j
 		nBefore = currPedigree.getNActiveNodes();
-		Node i = iPrime; 
-		int offset = currPedigree.rGen.nextInt(currPedigree.getNActiveNodes()-1) + 1;
-		Node j = currPedigree.getNode((i.getIndex() + offset) % currPedigree.getNActiveNodes());
+		Node[] nodes = currPedigree.getNRandomNodes(2);
+		Node i = nodes[0];
+		Node j = nodes[1];
 		
-		
-		if(i==j) throw new RuntimeException("Same node chosen");
-		
+
 		//choose target depth
 		int k = geometricDist(currPedigree.rGen);
 		
@@ -177,24 +181,30 @@ public class CutLink extends Move {//WORKS
 		
 
 		//old to new via link
+		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
 		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
 		
-		double oldToNewLink = 0d;
+		outerSum = 0d;
 		innerSum = 0d;
-		l1 = iPrime.getDepth();
-		for(int l2=0; l2 <jPrime.getDepth()+1; l2++){
-			if(l1==targetDepth && l2==targetDepth) continue;
-			innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth - Math.max(l1,l2) - 1);
+		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			innerSum = 0d;
+			for(int l2=0; l2<=jPrime.getDepth(); l2++){
+				
+				//if(l1==targetDepth && l2==targetDepth) continue;
+				
+				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
+			}
+			outerSum += iDepthToCount[l1] * innerSum;
 		}
 
-		oldToNewLink = getLogChooseOne(nBefore-1) + Math.log(innerSum);
+		double oldToNewLink = getLogChooseTwo(nBefore) + Math.log(outerSum);
 		
 		
 		//merge
 		currPedigree.merge(donor, recipient, mergingFormsFullSibs);
 		currPedigree.clean(donor);
 		nAfter = currPedigree.getNActiveNodes(); //add number of nodes created; subtract donor node (which will be deleted)
-		
+	
 
 		//new to old via cut/split
 		double newToOldLink = 0d;
@@ -202,6 +212,7 @@ public class CutLink extends Move {//WORKS
 		double splitProb = 0d;
 		
 		cutProb += nCuttableNode * .5 * moveProbs.get("cutLink");
+
 		
 		if(recipient.getChildren().size()>=2){ //split
 			int symm = !recipient.sampled && recipient.getParents().size()==0 ? 1 : 0;

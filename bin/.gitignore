@@ -3,5 +3,7 @@
 /likelihood/
 /mcmc/
 /mcmcMoves/
-/test/
+/simulator/
 /statistic/
+/test/
+/utility/

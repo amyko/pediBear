@@ -17,6 +17,7 @@ public class SplitLink extends Move {//WORKS
 
 	//for split
 	private boolean hasFullSib;
+	private int[] iDepthToCount = new int[maxDepth];
 	private int[] jDepthToCount = new int[maxDepth];
 	private List<Node> splitChildren = new ArrayList<Node>();
 	private List<Node> stayChildren = new ArrayList<Node>();
@@ -105,30 +106,34 @@ public class SplitLink extends Move {//WORKS
 		
 		
 		//new to old	
-		double newToOldSplit = 0d;
-
-		currPedigree.getDepthToCount(jPrime, jDepthToCount);
+		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
+		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
 		
-		int l1 = iPrime.getDepth();
+		double outerSum = 0d;
 		double innerSum = 0d;
-		for(int l2=0; l2 <= jPrime.getDepth(); l2++){
-			if(l1==targetDepth && l2==targetDepth) continue;
-			innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth - Math.max(l1,l2)-l1-l2); 
+		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			innerSum = 0d;
+			for(int l2=0; l2<=jPrime.getDepth(); l2++){
+				
+				//if(l1==targetDepth && l2==targetDepth) continue;
+				
+				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
+			}
+			outerSum += iDepthToCount[l1] * innerSum;
 		}
+		double newToOldSplit =  getLogChooseTwo(nAfter) + Math.log(outerSum);
 
-		newToOldSplit = getLogChooseOne(nAfter-1) + Math.log(innerSum);
 		
 		
 		
 		////////////////////// LINK /////////////////////
 		//choose nodes i and j
 		nBefore = currPedigree.getNActiveNodes();
-		Node i = iPrime;
-		int offset = currPedigree.rGen.nextInt(currPedigree.getNActiveNodes()-1) + 1;
-		Node j = currPedigree.getNode((iPrime.getIndex() + offset) % currPedigree.getNActiveNodes());
+		Node[] nodes = currPedigree.getNRandomNodes(2);
+		Node i = nodes[0];
+		Node j = nodes[1];
+		//int offset = currPedigree.rGen.nextInt(currPedigree.getNActiveNodes()-1) + 1;
 
-		
-		if(i==j) throw new RuntimeException("Same node chosen");
 		
 		//choose target depth
 		int k = geometricDist(currPedigree.rGen);
@@ -206,18 +211,24 @@ public class SplitLink extends Move {//WORKS
 		
 		
 		//old to new via link
+		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
 		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
 		
-		double oldToNewLink = 0d;
+		outerSum = 0d;
 		innerSum = 0d;
-		l1 = iPrime.getDepth();
-		for(int l2=0; l2 <jPrime.getDepth()+1; l2++){
-			if(l1==targetDepth && l2==targetDepth) continue;
-			innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth - Math.max(iPrime.getDepth(),l2) - 1);
+		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			innerSum = 0d;
+			for(int l2=0; l2<=jPrime.getDepth(); l2++){
+				
+				//if(l1==targetDepth && l2==targetDepth) continue;
+				
+				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
+			}
+			outerSum += iDepthToCount[l1] * innerSum;
 		}
 
-		oldToNewLink = getLogChooseOne(nBefore-1) + Math.log(innerSum);
-		
+		double oldToNewLink = getLogChooseTwo(nBefore) + Math.log(outerSum);
+
 		
 		//merge
 		currPedigree.merge(donor, recipient, mergingFormsFullSibs);

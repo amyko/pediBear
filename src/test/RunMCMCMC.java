@@ -50,9 +50,9 @@ public class RunMCMCMC {
 		
 
 		//pedigree parameters
-		int depth = 5;
+		int depth = 3;
 		int maxDepthForSamples = depth;
-		int numIndiv = 20;
+		int numIndiv = 3;
 		int totalIndiv = 20;
 		double seqError = 0.01;
 		double r = 1.3e-8;
@@ -69,13 +69,13 @@ public class RunMCMCMC {
 		//MCMC parameters
 		int nChain = 1;
 		int burnIn = 100000;
-		int runLength = 10000000;
+		int runLength = 4000000;
 		int sampleRate = 50;
 		double deltaT = .5;
 		int swapInterval = 1;
 		Random rGen = new Random(194205L);
 		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .05), new Split2("split2", 0.05), new SwapUp("swapUp", 0.05), new SwapDown("swapDown", 0.05), new SwitchSex("switchSex", 0.05), 
-				new CutLink("cutLink", 0.05), new SplitLink("splitLink", 0.05), new ShiftClusterLevel("shiftClusterLevel", 0.05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
+				new CutLink("cutLink", 0.05), new SplitLink("splitLink", 0.05), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.05), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.05), new FStoPO("FStoPO", 0.05), new POtoFS("POtoFS",0.05), 
 				new HalfUncleToCousin("halfUncleToCousin", 0.05), new CousinToHalfUncle("cousinToHalfUncle", 0.05), new CousinToGreatUncle("cousinToGreatUncle", 0.05), new GreatUncleToCousin("greatUncleToCousin", 0.05)};
 		String testName = "test11";
@@ -100,7 +100,7 @@ public class RunMCMCMC {
 		
 		for(int t=0; t<1; t++){
 
-			System.out.println(t);
+			System.out.println(t);         
 			
 			
 			String marginalPath = dir + "pairwiseLikelihood/"+testName+".marginal."+t;
@@ -223,19 +223,22 @@ public class RunMCMCMC {
 		mapWriter.close();
 
 		
-		
+		/*
 		//test convergence
 		double[] lkhds = Convergence.getTwoHighestLikelihoods(outPath);
-		double lnPrior1 = Convergence.computePrior(outPath+".2", lkhds[0], numIndiv);
-		double lnPrior2 = Convergence.computePrior(outPath+".2", lkhds[1], numIndiv);
-		System.out.println(Math.exp(lkhds[0]-lkhds[1]));
+		Path[][] targetPed1 = Convergence.getTargetPed(outPath, lkhds[0], numIndiv);
+		Path[][] targetPed2 = Convergence.getTargetPed(outPath, lkhds[1], numIndiv);
+		
+		double lnPrior1 = Convergence.computePrior(outPath+".2", lkhds[0], numIndiv, depth);
+		double lnPrior2 = Convergence.computePrior(outPath+".2", lkhds[1], numIndiv, depth);
+		System.out.println(Math.exp(lkhds[0]-lkhds[1] + lnPrior1 - lnPrior2));
 		
 		
-		//Convergence.getSampleProportion(outPath, outPath+".conv", lkhds[0], lkhds[1], sampleRate);
+		Convergence.getSampleProportion(outPath, outPath+".conv", targetPed1, targetPed2, sampleRate, numIndiv);
+		*/
 		
 		
 		
-		/*
 		
 		///////TESTING
 		//counts of each relationship
@@ -246,23 +249,23 @@ public class RunMCMCMC {
 		// depth = 1 relationship
 		//relationships.add(new Path(1,0,1)); //parent
 		//relationships.add(new Path(1,1,1)); //half-sib
-		relationships.add(new Path(1,1,2)); //full-sib
+		//relationships.add(new Path(1,1,2)); //full-sib
 		
 		
 		//depth = 2 relationships
-		relationships.add(new Path(2,0,1)); //grand parents
-		relationships.add(new Path(2,1,1)); //half uncle
-		relationships.add(new Path(2,2,1)); //half cousins
-		relationships.add(new Path(2,1,2)); //uncle
-		relationships.add(new Path(2,2,2)); //first cousins
+		//relationships.add(new Path(2,0,1)); //grand parents
+		//relationships.add(new Path(2,1,1)); //half uncle
+		//relationships.add(new Path(2,2,1)); //half cousins
+		//relationships.add(new Path(2,1,2)); //uncle
+		//relationships.add(new Path(2,2,2)); //first cousins
 		
 		//depth = 3 relationships
-		relationships.add(new Path(3,0,1)); 
-		relationships.add(new Path(3,1,1)); 
-		relationships.add(new Path(3,2,1)); 
-		relationships.add(new Path(3,3,1));
-		relationships.add(new Path(3,1,2));
-		relationships.add(new Path(3,2,2)); 
+		//relationships.add(new Path(3,0,1)); 
+		//relationships.add(new Path(3,1,1)); 
+		//relationships.add(new Path(3,2,1)); 
+		//relationships.add(new Path(3,3,1));
+		//relationships.add(new Path(3,1,2));
+		//relationships.add(new Path(3,2,2)); 
 		relationships.add(new Path(3,3,2)); 
 		
 		
@@ -274,7 +277,7 @@ public class RunMCMCMC {
 		}
 		
 		
-		*/
+		
 		
 		
 		

@@ -66,8 +66,8 @@ public class MCMCMC {
 		
 		this.heat = new double[nChain];
 		for(int i=0; i<nChain; i++) 
-			//heat[i] = 0;
-			heat[i] = 1 / (1 + deltaT*i);
+			heat[i] = 0;
+			//heat[i] = 1 / (1 + deltaT*i);
 		
 		
 	}
@@ -173,7 +173,7 @@ public class MCMCMC {
 				
 				/*
 				//TESTING			
-				if(!chains.get(j).sanityCheck() || false){
+				if(!chains.get(j).sanityCheck() || true){
 					System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
 				
 					for(int k=0; k< chains.get(j).getNActiveNodes(); k++){
@@ -189,6 +189,7 @@ public class MCMCMC {
 						
 				}
 				*/
+				
 				
 				
 				move.mcmcMove(chains.get(j), heat[j]);
