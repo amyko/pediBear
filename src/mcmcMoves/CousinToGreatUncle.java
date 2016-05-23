@@ -34,6 +34,7 @@ public class CousinToGreatUncle extends Move{
 		int nSibChoice = currPedigree.getFullSibs(parent).size();
 		if(nSibChoice==0)
 			return REJECT;
+
 		
 		
 		//depth constraint
@@ -61,10 +62,15 @@ public class CousinToGreatUncle extends Move{
 		
 		
 		//new to old
-		int nFS = currPedigree.getFullSibs(child).size();
+		int nFS = 0;
+		for(Node i : currPedigree.getFullSibs(child)){
+			if(i.getChildren().size() > 0) nFS++;
+		}
 		int nFSChild = newSib.getChildren().size();
 		
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nFS) + getLogChooseOne(nFSChild) + getLogChooseOne(2) + Math.log(nSibChoice * moveProbs.get("greatUncleToCousin"));
+
+		
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nFS) + getLogChooseOne(nFSChild) + getLogChooseOne(2) + Math.log(nSibChoice* moveProbs.get("greatUncleToCousin"));
 		
 
 		

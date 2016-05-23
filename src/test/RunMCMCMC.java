@@ -69,11 +69,11 @@ public class RunMCMCMC {
 		//MCMC parameters
 		int nChain = 1;
 		int burnIn = 100000;
-		int runLength = 4000000;
+		int runLength = 8000000;
 		int sampleRate = 50;
 		double deltaT = .5;
 		int swapInterval = 1;
-		Random rGen = new Random(194205L);
+		Random rGen = new Random(1942075L);
 		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .05), new Split2("split2", 0.05), new SwapUp("swapUp", 0.05), new SwapDown("swapDown", 0.05), new SwitchSex("switchSex", 0.05), 
 				new CutLink("cutLink", 0.05), new SplitLink("splitLink", 0.05), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.05), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.05), new FStoPO("FStoPO", 0.05), new POtoFS("POtoFS",0.05), 

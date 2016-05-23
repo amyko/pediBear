@@ -30,7 +30,7 @@ public class GreatUncleToCousin extends Move{
 		if(child.getParents().size()!=2)
 			return REJECT;
 
-		//reject if no full sibs
+		//reject if no full sibs with children
 		List<Node> fullSibs = currPedigree.getFullSibs(child);
 		goodFS.clear();
 		for(Node i : fullSibs){
@@ -51,35 +51,17 @@ public class GreatUncleToCousin extends Move{
 		
 		
 		
-		//get sib
+		//choose sib
 		Node sib = goodFS.get(currPedigree.rGen.nextInt(goodFS.size()));
+		
+		//chose sib child
 		List<Node> sibChildren = sib.getChildren();
 		Node sibChild = sibChildren.get(currPedigree.rGen.nextInt(sibChildren.size()));
 
 		//get number of equivalent choices of sib child
-		int nSibChoice = 1;
-		int nParents1 = sibChild.getParents().size();
-		for(Node i : sibChildren){
-			
-			int nParents2 = i.getParents().size();
-			
-			if(i==sibChild || nParents2 != nParents1) continue;
-			
-			if(nParents1==1){//1 parent scenario
-				if(sibChild.getParents().get(0) == i.getParents().get(0))
-					nSibChoice++;
-			}
-			
-			else{//two parent scenario
-				if(sibChild.getParents().get(0)==i.getParents().get(0) && sibChild.getParents().get(1)==i.getParents().get(1))
-					nSibChoice++;
-				else if(sibChild.getParents().get(0)==i.getParents().get(1) && sibChild.getParents().get(1)==i.getParents().get(0))
-					nSibChoice++;
-			}
-			
-		}
+		int nSibChoice = 1 + currPedigree.getFullSibs(sibChild).size();
 		
-		
+
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();

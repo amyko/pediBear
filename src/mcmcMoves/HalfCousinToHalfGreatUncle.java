@@ -61,7 +61,7 @@ public class HalfCousinToHalfGreatUncle extends Move{
 		//new to old
 		int nSibs = 0;
 		for(Node i : child.getParents().get(0).getChildren()){
-			if(i!=child) nSibs++;
+			if(i!=child && i.getChildren().size() > 0) nSibs++;
 		}
 		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nSibs) + +getLogChooseOne(2) + Math.log(moveProbs.get("halfGreatUncleToHalfCousin"));
 		

@@ -1,7 +1,6 @@
 
 package mcmcMoves;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import dataStructures.Pedigree;
@@ -11,7 +10,6 @@ import dataStructures.Node;
 
 public class CousinToHalfUncle extends Move{
 
-	List<Node> cousinParents = new ArrayList<Node>();
 	
 	public CousinToHalfUncle(String name, double moveProb) {
 		super(name, moveProb);
@@ -36,11 +34,11 @@ public class CousinToHalfUncle extends Move{
 		
 		//reject if child doesn't have any full cousins
 		List<Node> sibs = currPedigree.getFullSibs(parent);
-		cousinParents.clear();
+		int nCousinParents = 0;
 		for(Node s : sibs){
-			if(s.getChildren().size() > 0) cousinParents.add(s);
+			if(s.getChildren().size() > 0) nCousinParents++;
 		}
-		if(cousinParents.size()==0)
+		if(nCousinParents==0)
 			return REJECT;
 			
 		
@@ -66,10 +64,11 @@ public class CousinToHalfUncle extends Move{
 		
 		
 		//new to old
-		int nHalfSibs = 0;
-		for(Node i : child.getParents().get(0).getChildren())
-			if(i!=child && i.getChildren().size() > 0) nHalfSibs++;
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nHalfSibs) + getLogChooseOne(2) + Math.log(moveProbs.get("halfUncleToCousin"));
+		int nSibs = 0;
+		for(Node i : child.getParents().get(0).getChildren()){
+			if(i!=child && i.getChildren().size() > 0) nSibs++;
+		}
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nSibs) + getLogChooseOne(2) + Math.log(nCousinParents * moveProbs.get("halfUncleToCousin"));
 		
 
 		

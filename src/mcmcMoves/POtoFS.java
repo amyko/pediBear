@@ -58,7 +58,7 @@ public class POtoFS extends Move{
 		
 		
 		//old to new
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("POtoFS"));
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) +  Math.log(moveProbs.get("POtoFS"));
 		
 		//modify pedigree
 		double prevLogLikelihood = currPedigree.getLogLikelihood();
@@ -66,7 +66,8 @@ public class POtoFS extends Move{
 		
 		
 		//new to old
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("FStoPO"));
+		int nSibs = currPedigree.getFullSibs(child).size();
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nSibs) +Math.log(moveProbs.get("FStoPO"));
 		
 
 		

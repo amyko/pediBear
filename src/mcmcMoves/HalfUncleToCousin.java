@@ -59,14 +59,21 @@ public class HalfUncleToCousin extends Move{
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
-		
-		//old to new
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(children.size()) +  getLogChooseOne(2) + Math.log(moveProbs.get("halfUncleToCousin"));
+		int nBefore = currPedigree.getNActiveNodes();
 
 		
 		//cut and link
 		double prevLogLikelihood = currPedigree.getLogLikelihood();
 		currPedigree.halfUncleToCousin(child, sib);
+		
+		//old to new
+		//count number of equivalent sibs
+		int nSibs = 0;
+		for(Node i : currPedigree.getFullSibs(child.getParents().get(0))){
+			if(i.getChildren().size()>0) nSibs++;
+		}
+		
+		double oldToNew = getLogChooseOne(nBefore) + getLogChooseOne(children.size()) +  getLogChooseOne(2) + Math.log(nSibs * moveProbs.get("halfUncleToCousin"));
 		
 		
 		//new to old

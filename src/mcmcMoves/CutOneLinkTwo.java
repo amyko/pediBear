@@ -25,7 +25,7 @@ public class CutOneLinkTwo extends Move{
 		//reject if child doesn't have exactly 1 parent
 		if(child.getParents().size()!=1)
 			return REJECT;
-		//reject if the child doesn't have any half/full siblings
+		//reject if the child doesn't have any half siblings
 		if(child.getParents().get(0).getChildren().size() < 2)
 			return REJECT;
 
@@ -36,7 +36,6 @@ public class CutOneLinkTwo extends Move{
 		
 		//old to new
 		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("cutOneLinkTwo"));
-		Node parent = child.getParents().get(0);
 		
 		//cut and link
 		double prevLogLikelihood = currPedigree.getLogLikelihood();
@@ -44,7 +43,8 @@ public class CutOneLinkTwo extends Move{
 		
 		
 		//new to old
-		int nCandidate = currPedigree.getFullSibsWithTargetSex(parent, parent.getSex()).size() + 1;
+		Node parent = child.getParents().get(0);
+		int nCandidate = currPedigree.getFullSibsWithTargetSex(parent, (parent.getSex()+1)%2).size();
 		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nCandidate) + Math.log(moveProbs.get("cutTwoLinkOne"));
 		
 

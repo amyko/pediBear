@@ -760,7 +760,7 @@ public class Pedigree {
 		}
 		
 		//sanity check
-		if(grandParents.get(0).getSex()==grandParents.get(1).getSex()) throw new RuntimeException("Same sex parents");
+		//if(grandParents.get(0).getSex()==grandParents.get(1).getSex()) throw new RuntimeException("Same sex parents");
 		
 		
 		//adjust adj matrix
@@ -1184,7 +1184,7 @@ public class Pedigree {
 		}
 		
 		//choose a new parent
-		Node newParent = gp.get(rGen.nextInt(gp.size()));
+		Node newParent = gp.get(rGen.nextInt(2));
 				
 		//connect new parent to child
 		connect(newParent, child);

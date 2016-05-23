@@ -68,7 +68,7 @@ public class FStoPO extends Move{
 		
 		
 		//old to new
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("FStoPO"));
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(sibs.size()) + Math.log(moveProbs.get("FStoPO"));
 		
 		//modify pedigree
 		double prevLogLikelihood = currPedigree.getLogLikelihood();

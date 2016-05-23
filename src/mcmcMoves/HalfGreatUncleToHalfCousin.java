@@ -29,7 +29,7 @@ public class HalfGreatUncleToHalfCousin extends Move{
 			return REJECT;
 
 		
-		//reject if child does not have any half siblings
+		//reject if child does not have any half siblings with children
 		Node parent = child.getParents().get(0);
 		sibs.clear();
 		for(Node sib : parent.getChildren()){
