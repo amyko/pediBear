@@ -202,15 +202,14 @@ public class Convergence {
 			
 			String[] fields = line.split("\t");
 			
-			if(!fields[0].equals(">")){ 
+			if(fields[0].equals(">")){
+			
+				double currLkhd = Double.parseDouble(fields[1]);
+				
+				writer.write(String.format("%d\t%.2f\n", n*sampleRate, currLkhd));
+				
 				n++;
-				continue;
 			}
-			
-			double currLkhd = Double.parseDouble(fields[1]);
-			
-			writer.write(String.format("%d\t%.2f\n", n*sampleRate, currLkhd));
-			
 			
 			
 		}
@@ -236,8 +235,8 @@ public class Convergence {
 		double[][][] trueOmega = Accuracy.getTrueOmega(truePath, totalIndiv, pathToOmega);
 			
 		//read output
-		BufferedReader reader = DataParser.openReader(outPath);
-		PrintWriter writer = DataParser.openWriter(inPath);
+		BufferedReader reader = DataParser.openReader(inPath);
+		PrintWriter writer = DataParser.openWriter(outPath);
 		String line;
 		double error = 0;
 		
@@ -246,7 +245,9 @@ public class Convergence {
 			
 			String[] fields = line.split("\t");
 			if(fields[0].equals(">")){
-				writer.write(String.format("%.5f", error/nPairs));
+				if(error==0) continue;
+				writer.write(String.format("%.5f\n", error/nPairs));
+				error = 0;
 				continue;
 			}
 			
@@ -256,19 +257,7 @@ public class Convergence {
 			int j = Integer.parseInt(fields[1]);
 			Path key = new Path(Integer.parseInt(fields[2]) , Integer.parseInt(fields[3]) , Integer.parseInt(fields[4]));
 			
-			int c = 0;
-			for(int k=0; k<3; k++){
-				if(Math.abs(trueOmega[i][j][k] - pathToOmega.get(key)[k]) < 1e-13){
-					c++;
-				}
-			}
-			
-			int add = c==3 ? 1 : 0;
-			
-			error += add;
-
-
-			
+			error += Math.pow(trueOmega[i][j][1] - pathToOmega.get(key)[1], 2);			
 
 			
 		}
@@ -336,7 +325,7 @@ public class Convergence {
 				curr = j.getDepth();
 				
 				if(curr > highest) highest = curr;
-				else if(curr < lowest) lowest = curr;
+				if(curr < lowest) lowest = curr;
 				
 			}
 			

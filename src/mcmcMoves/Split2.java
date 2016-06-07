@@ -3,6 +3,7 @@ package mcmcMoves;
 import java.util.ArrayList;
 import java.util.List;
 
+import mcmc.SimulatedAnnealing;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -106,10 +107,7 @@ public class Split2 extends Move {//TODO make this move more efficient (can we c
 		int nAfter = currPedigree.getNActiveNodes();
 		newToOld = getLogChooseTwo(nAfter) + Math.log(newToOld*moveProbs.get("link"));
 
-		double acceptRatio = heat * (currPedigree.getLogLikelihood() - prevLogLikelihood) + newToOld - oldToNew;
-		
-		
-		return Math.exp(acceptRatio);
+		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
 	}
 	
 	

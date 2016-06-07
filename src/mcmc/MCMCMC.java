@@ -66,8 +66,8 @@ public class MCMCMC {
 		
 		this.heat = new double[nChain];
 		for(int i=0; i<nChain; i++) 
-			heat[i] = 0;
-			//heat[i] = 1 / (1 + deltaT*i);
+			//heat[i] = 0;
+			heat[i] = 1 / (1 + deltaT*i);
 		
 		
 	}
@@ -173,7 +173,7 @@ public class MCMCMC {
 				
 				/*
 				//TESTING			
-				if(i==93182 || !chains.get(j).sanityCheck()){
+				if(!chains.get(j).sanityCheck()){
 					System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
 				
 					for(int k=0; k< chains.get(j).getNActiveNodes(); k++){
@@ -189,6 +189,7 @@ public class MCMCMC {
 						
 				}
 				*/
+				
 				
 				
 				
@@ -406,6 +407,21 @@ public class MCMCMC {
 		}
 		
 		
+	}
+	
+	
+	public double acceptanceRatio(double proposalLkhd, double currLkhd, double oldToNew, double newToOld, double heat){
+		
+		double acceptRatio = heat * (proposalLkhd - currLkhd) + newToOld - oldToNew;
+
+		
+		if(acceptRatio > 0){
+			return 1;
+		}
+		else{
+			return Math.exp(acceptRatio);
+		}
+
 	}
 	
 	

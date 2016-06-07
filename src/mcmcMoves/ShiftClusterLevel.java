@@ -3,6 +3,7 @@ package mcmcMoves;
 import java.util.ArrayList;
 import java.util.List;
 
+import mcmc.SimulatedAnnealing;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -59,14 +60,7 @@ public class ShiftClusterLevel extends Move {
 		
 		
 		//accept ratio
-		double acceptRatio = heat * (currPedigree.getLogLikelihood() - prevLkhd) + newToOld - oldToNew;
-
-		if(acceptRatio > 0){
-			return 1;
-		}
-		else{
-			return Math.exp(acceptRatio);
-		}
+		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, heat);
 		
 	}
 	

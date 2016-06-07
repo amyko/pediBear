@@ -3,6 +3,7 @@ package mcmcMoves;
 
 import dataStructures.Pedigree;
 import dataStructures.Node;
+import mcmc.SimulatedAnnealing;
 
 //cut child from parent and link to two grand parents
 
@@ -75,15 +76,7 @@ public class CousinToGreatUncle extends Move{
 
 		
 		//accept ratio
-		double acceptRatio = heat * (currPedigree.getLogLikelihood() - prevLogLikelihood) + newToOld - oldToNew;
-
-		
-		if(acceptRatio > 0){
-			return 1;
-		}
-		else{
-			return Math.exp(acceptRatio);
-		}
+		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
 		
 
 		

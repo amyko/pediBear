@@ -1,5 +1,6 @@
 package mcmcMoves;
 
+import mcmc.SimulatedAnnealing;
 import dataStructures.Node;
 import dataStructures.Pedigree;
 
@@ -100,15 +101,7 @@ public class SwapUp extends Move {
 
 		
 		//likelihood
-		double acceptRatio = heat * (currPedigree.getLogLikelihood() - prevLogLikelihood) + newToOld - oldToNew;
-
-		
-		if(acceptRatio > 0){
-			return 1;
-		}
-		else{
-			return Math.exp(acceptRatio);
-		}
+		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
 		
 		
 	}

@@ -180,13 +180,13 @@ public class TestLikelihood {
 		}
 		
 		
-		public static void computeMarginals(String dataDir, String simDir, String infoDir, String outPath, int[] indCols, int chrStart, int chrEnd) throws IOException{
+		public static void computeMarginals(String simDir, String infoDir, String outPath, int[] indCols, int chrStart, int chrEnd) throws IOException{
 			
 			//compute
 			PairwiseLikelihoodCoreStream2 pwStream = new PairwiseLikelihoodCoreStream2(seqError, r, back, indCols.length);
 			double[] marginals = new double[indCols.length];
 			for (int chr=chrStart; chr<chrEnd; chr++){
-				
+
 				String genoPath = simDir + chr;
 				String infoPath = infoDir + chr;
 				
@@ -212,7 +212,7 @@ public class TestLikelihood {
 		}
 		
 		
-		public static void computePairwise(String dataDir, String simDir, String infoDir, String outPath, int[] indCols, List<Relationship> relationships, int chrStart, int chrEnd) throws IOException{
+		public static void computePairwise(String simDir, String infoDir, String outPath, int[] indCols, List<Relationship> relationships, int chrStart, int chrEnd) throws IOException{
 			
 			int numIndiv = indCols.length;
 			int numRel = relationships.size();
@@ -349,13 +349,13 @@ public class TestLikelihood {
 
 			
 			//individuals
-			int numIndiv = 20;
+			int numIndiv = 4;
 			int[] indCols = new int[numIndiv];
 			for(int i=0; i<numIndiv; i++) indCols[i] = i;			
 			
 			
 			int chrStart = 1;
-			int chrEnd = 23;
+			int chrEnd = 2;
 			boolean full = true;
 			int nSmallCluster = 2;
 			int nBigCluster = 1;
@@ -386,6 +386,7 @@ public class TestLikelihood {
 	
 			int[] cols = new int[]{8, 15, 37, 46, 56, 65, 83, 93, 114, 130};	
 			int[] ids = new int[]{10,19,49,61,74,86,111,124,152,174};
+			
 			
 			for(int t=0; t<100; t++){
 				
@@ -435,8 +436,6 @@ public class TestLikelihood {
 				*/
 				
 				
-				
-				
 				//add error
 				System.out.println("Adding error");
 				for(int i=chrStart; i<chrEnd; i++){
@@ -448,21 +447,22 @@ public class TestLikelihood {
 				
 				//compute marginal probs
 				System.out.println("Computing marginals");
-				computeMarginals(dataDir, simDir + "sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/"+testName+".marginal."+t, indCols, chrStart, chrEnd);
+				computeMarginals(simDir + "sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/"+testName+".marginal."+t, indCols, chrStart, chrEnd);
 		
 				
 				//compute pairwise
 				System.out.println("Computing pairwise likelihoods");
 				long startTime = System.nanoTime();		
-				computePairwise(dataDir, simDir+"sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/"+testName+".pairwise."+t, indCols, relationships, chrStart, chrEnd);	
+				computePairwise(simDir+"sim.test.geno.error.", dataDir+"msprime.info.pruned.", simDir+"pairwiseLikelihood/"+testName+".pairwise."+t, indCols, relationships, chrStart, chrEnd);	
 				System.out.println("Total time was " + (System.nanoTime() - startTime) / 1e9 / 60d/ 60d + " hours");
+
 				
 			
 			}
 			
 			
 			//true path
-			sim.writeTruePathFile(simDir+"pairwiseLikelihood/"+testName+".ped", simDir+"results/"+testName+".true", ids);
+			//sim.writeTruePathFile(simDir+"pairwiseLikelihood/"+testName+".ped", simDir+"results/"+testName+".true", ids);
 			
 			
 			

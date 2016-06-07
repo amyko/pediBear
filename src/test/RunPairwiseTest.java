@@ -70,11 +70,11 @@ public class RunPairwiseTest {
 	public static void main(String[] args) throws IOException{
 		
 		//param
-		int numIndiv = 20;
+		int numIndiv = 6;
 		
 		//files
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String testName = "test11";
+		String testName = "test";
 		String inPath = dir + "pairwiseLikelihood/"+testName+".pairwise.";
 		String outPath = dir + "results/"+testName+".out";
 		String ibdAccPath = dir + "results/"+testName+".pairwise.ibd.acc";

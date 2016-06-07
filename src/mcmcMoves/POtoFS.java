@@ -1,5 +1,6 @@
 package mcmcMoves;
 
+import mcmc.SimulatedAnnealing;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -72,15 +73,7 @@ public class POtoFS extends Move{
 
 		
 		//accept ratio
-		double acceptRatio = heat * (currPedigree.getLogLikelihood() - prevLogLikelihood) + newToOld - oldToNew;
-
-		
-		if(acceptRatio > 0){
-			return 1;
-		}
-		else{
-			return Math.exp(acceptRatio);
-		}
+		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
 		
 
 		

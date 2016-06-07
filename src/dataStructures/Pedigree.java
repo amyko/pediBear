@@ -1860,7 +1860,7 @@ public class Pedigree {
  		}
  		
  		
-
+ 		//likelihood consistency
  		if(Math.abs(totalLikelihood() - logLikelihood[curr]) > 1e-1){
  			System.out.println("lkhd error!");
  			System.out.println(Math.abs(totalLikelihood() - logLikelihood[curr]));

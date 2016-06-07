@@ -1,6 +1,7 @@
 package statistic;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -296,6 +297,67 @@ public class Accuracy {
 		return accuracy;
 		
 		
+	}
+	
+	
+	public static void printMAP(String outPath, int numIndiv) throws NumberFormatException, IOException{
+		
+
+		Path[][] mapPed = new Path[numIndiv][numIndiv];
+
+		//read output
+		BufferedReader reader = DataParser.openReader(outPath);
+		String line;
+		double bestLkhd = Double.NEGATIVE_INFINITY;
+		boolean process = false;
+		
+		while((line = reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			if(fields[0].equals(">")){
+				
+				double currLkhd = Double.parseDouble(fields[1]);
+				
+				if(currLkhd > bestLkhd){
+					bestLkhd = currLkhd;
+					process = true;
+				}
+				else
+					process = false;
+				
+				continue;
+			}
+			
+			
+			if(process){
+				
+				int i = Integer.parseInt(fields[IND1]);
+				int j = Integer.parseInt(fields[IND2]);
+				Path key = new Path(Integer.parseInt(fields[UP]) , Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[NUMVISIT]));
+				
+				//best path
+				mapPed[i][j] = key;
+				
+			}
+
+			
+
+			
+		}
+		
+		reader.close();
+		
+		//print map path
+		System.out.println();
+		System.out.println(String.format("MCMC MAP likelihood: %.2f", bestLkhd));
+				
+		for(int i=0; i<numIndiv; i++){
+			for(int j=i+1; j<numIndiv; j++){
+				Path bestPath = mapPed[i][j];
+				System.out.println(String.format("(%d, %d) : (%d, %d, %d)\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));
+			}
+		}
+
 	}
 	
 	

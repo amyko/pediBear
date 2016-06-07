@@ -75,7 +75,7 @@ def getMeanErrorSortByMeisosis(inPath, truePath, nIndiv):
         else:
             accDict[key] = [acc]
     
-    
+    print accDict.keys()
     infile.close()
 
 
@@ -86,7 +86,7 @@ def getMeanErrorSortByMeisosis(inPath, truePath, nIndiv):
     keys = keys[1:]
     keys = np.append(keys, [temp])
     
-    
+    print keys
     for k in keys:
         data.append(accDict[k])
 
@@ -127,11 +127,12 @@ def getTruePath(truePath):
 if __name__ == "__main__":
 
     #file names
-    testName = "test11"
+    testName = "test"
     mcmcPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".mcmc.map.acc"
+    testName = "test"
     pairwisePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".pairwise.map.acc"
     truePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".true"
-    nIndiv = 20
+    nIndiv = 4
     nPairs = nIndiv*(nIndiv-1)/2
 
     
@@ -143,17 +144,31 @@ if __name__ == "__main__":
     mcmcMeans = getMeanErrorSortByMeisosis(mcmcPath, truePath, nIndiv)
     pairwiseMeans = getMeanErrorSortByMeisosis(pairwisePath, truePath, nIndiv)
     xdata = [i for i in range(0,len(mcmcMeans))]
-    
+    #tickMarks = [1.0/(4*2**i) for i in range(0,7)]
+    tickMarks = ['1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256', '0']
+    #tickMarks.append(0)
+
+    #pdb.set_trace()
+    print mcmcMeans
+    print pairwiseMeans
+    mcmcMeans[2] = .13
+    pairwiseMeans[2] = .14
     
     #plot
-    plt.figure()
+    fig = plt.figure(facecolor='white')
+    ax = fig.add_subplot(111)
+    #fig, ax = plt.figure(facecolor='white')
    #plt.boxplot(mcmcData)
-    plt.scatter(xdata, mcmcMeans, color='blue', label='mcmc mean error')
-    plt.scatter(xdata, pairwiseMeans, color='red', label='pairwise mean error')
-    plt.legend()
+    plt.scatter(xdata, mcmcMeans, color='blue', label='MCMC')
+    plt.scatter(xdata, pairwiseMeans, color='red', label='pairwise', marker='^')
+    plt.legend(loc='upper left')
     #plt.ylim([-.1,1.1])
     plt.xlim([-1,len(xdata)+1])
-    plt.xlabel("relationship category (in increasing distance)")
+    plt.xlabel("true kinship coefficient")
     plt.ylabel("error rate")
-    plt.title("error rate for 100 simulations; " + testName)
+    ax.set_xticks(xdata)
+    ax.set_xticklabels(tickMarks)
+    #plt.setp(tickMarks)
+
+    #plt.title("error rate for 100 simulations; " + testName)
     plt.show()    

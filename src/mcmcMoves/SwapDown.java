@@ -3,6 +3,7 @@ package mcmcMoves;
 
 import java.util.List;
 
+import mcmc.SimulatedAnnealing;
 import dataStructures.Node;
 import dataStructures.Pedigree;
 
@@ -105,15 +106,7 @@ public class SwapDown extends Move {//works for 3 sampled nodes (2 parents, 1 ch
 
 		
 		//likelihood
-		double acceptRatio = heat * (currPedigree.getLogLikelihood() - prevLogLikelihood) + newToOld - oldToNew;
-
-		
-		if(acceptRatio > 0){
-			return 1;
-		}
-		else{
-			return Math.exp(acceptRatio);
-		}
+		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
 		
 		
 	}

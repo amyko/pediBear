@@ -31,8 +31,6 @@ import utility.DataParser;
 		//outfile: c1 c2 ... cn
 		public void makeChildren(String infoPath, String momPath, String dadPath, String outPath, int momCol, int dadCol, Random rgen, int numChildren, String header) throws IOException{
 			
-			int recomb_count1=0;
-			int recomb_count2=0;
 			
 			//open files
 			BufferedReader momReader = DataParser.openReader(momPath);
@@ -91,11 +89,9 @@ import utility.DataParser;
 				for (int i=0; i<numChildren; i++){
 					PoissonDistribution p = new PoissonDistribution(dist);
 					if(p.sample() % 2 == 1){	//odd number of recombinations happened, switch
-						recomb_count1++;
 						curr1hap[i] = 1- curr1hap[i];
 					}
 					if(p.sample() % 2 == 1){	//odd number of recombinations happened, switch
-						recomb_count2++;
 						curr2hap[i] = 1- curr2hap[i];
 					}	
 				}
@@ -118,50 +114,137 @@ import utility.DataParser;
 			writer.close();
 			momReader.close();
 			dadReader.close();
-			
-			//System.out.format("%f\t%f\n", recomb_count1/(double)numChildren, recomb_count2/(double)numChildren);
+
 	
 			
 		}	
 		
 		
 		
-		public void makeIndividuals(String outPath, int nInd, int nLocus, int dist, double maf, Random rgen, String header) throws IOException{
+		//outfile: c1 c2 ... cn
+		public void makeChildrenIBD(String infoPath, String momPath, String dadPath, String momAncPath, String dadAncPath, String genoOutPath, String ancOutPath, int momCol, int dadCol, int momAncCol, int dadAncCol, Random rgen, int numChildren, String header) throws IOException{
 			
-			PrintWriter writer = DataParser.openWriter(outPath);
-			writer.write(header);
 			
-			for(int locus=0; locus < nLocus; locus++){
+			//open files
+			BufferedReader momReader = DataParser.openReader(momPath);
+			BufferedReader dadReader = DataParser.openReader(dadPath);
+			BufferedReader infoReader = DataParser.openReader(infoPath);
+			BufferedReader momAncReader = DataParser.openReader(momAncPath);
+			BufferedReader dadAncReader = DataParser.openReader(dadAncPath);
+			PrintWriter genoWriter = DataParser.openWriter(genoOutPath);
+			PrintWriter ancWriter = DataParser.openWriter(ancOutPath);
+			
+			//skip header
+			momReader.readLine();
+			dadReader.readLine();
+			momAncReader.readLine();
+			dadAncReader.readLine();
+			infoReader.readLine();
+			
+			//write header
+			genoWriter.write(header);
+			ancWriter.write(header);
+			
+			
+			//initialize
+			int[] curr1hap = new int[numChildren];
+			int[] curr2hap = new int[numChildren];
+			
+			for (int i=0; i< numChildren; i++){
+				curr1hap[i] = rgen.nextBoolean() ? 1 : 0;
+				curr2hap[i] = rgen.nextBoolean() ? 1 : 0;
+			}
+			String[] momFields = momReader.readLine().split("\\s");
+			String[] dadFields = dadReader.readLine().split("\\s");
+			String[] momAncFields = momAncReader.readLine().split("\\s");
+			String[] dadAncFields = dadAncReader.readLine().split("\\s");
+			String[] infoFields = infoReader.readLine().split("\\s");
+			int prevPos = Integer.parseInt(infoFields[POS]);
+			String momGeno = momFields[momCol];
+			String dadGeno = dadFields[dadCol];
+			String momAnc = momAncFields[momAncCol];
+			String dadAnc = dadAncFields[dadAncCol];
+			
+
+			for (int i=0; i< numChildren; i++){
+				//write geno
+				genoWriter.write(String.format("%c%c\t", momGeno.charAt(curr1hap[i]), dadGeno.charAt(curr2hap[i])));
 				
-				//write pos, a1, a2
-				writer.write(String.format("%d\t%s\t%s\t", dist*locus , "A", "T"));
-				
-				for(int i=0; i<nInd; i++){
-					
-					String geno = "";
-					for(int j=0; j<2; j++){
-						if(rgen.nextDouble() < maf){
-							geno += "A";
-						}
-						else{
-							geno += "T";
-						}
-					}
-					
-					writer.write(geno+"\t");
-					
-				}
-				
-				writer.write("\n");
+				//write anc
+				ancWriter.write(String.format("%c%c\t", momAnc.charAt(curr1hap[i]), dadAnc.charAt(curr2hap[i])));
 				
 			}
+			genoWriter.write("\n");
+			ancWriter.write("\n");
+	
 			
-			writer.close();
+			//for all snps
+			String momLine;
+			String dadLine;
+			String infoLine;
+			while((momLine = momReader.readLine())!=null && (dadLine = dadReader.readLine())!=null &&(infoLine = infoReader.readLine())!=null){
+				
+				//read data
+				momFields = momLine.split("\\s");
+				dadFields = dadLine.split("\\s");
+				momAncFields = momAncReader.readLine().split("\\s");
+				dadAncFields = dadAncReader.readLine().split("\\s");
+				infoFields = infoLine.split("\\s");
+				momGeno = momFields[momCol];
+				dadGeno = dadFields[dadCol];
+				momAnc = momAncFields[momAncCol];
+				dadAnc = dadAncFields[dadAncCol];
+				
+				int currPos = Integer.parseInt(infoFields[POS]);
+				double dist = (currPos - prevPos) * recombRate;
+				
+				if(currPos==prevPos) continue;
+				
+				//determine recombination
+				for (int i=0; i<numChildren; i++){
+					PoissonDistribution p = new PoissonDistribution(dist);
+					if(p.sample() % 2 == 1){	//odd number of recombinations happened, switch
+						curr1hap[i] = 1- curr1hap[i];
+					}
+					if(p.sample() % 2 == 1){	//odd number of recombinations happened, switch
+						curr2hap[i] = 1- curr2hap[i];
+					}	
+				}
+					
+
+				for (int i=0; i< numChildren; i++){
+					//write geno
+					genoWriter.write(String.format("%c%c\t", momGeno.charAt(curr1hap[i]), dadGeno.charAt(curr2hap[i])));
+					
+					//write anc
+					ancWriter.write(String.format("%c%c\t", momAnc.charAt(curr1hap[i]), dadAnc.charAt(curr2hap[i])));
+	
+				}
+				genoWriter.write("\n");
+				ancWriter.write("\n");
+				
+				//update prev info
+				prevPos = currPos;
+
+			}
+		
 			
+			//close files
+			genoWriter.close();
+			ancWriter.close();
+			momReader.close();
+			dadReader.close();
+			momAncReader.close();
+			dadAncReader.close();
+
+	
 			
-		}
+		}	
 		
 
+	
+		
+		
 		
 		public void simulatePopulation(String inPath, String outPath, String pedPath, int oldestGen, Random rGen, int chrStart, int chrEnd, int[] cols, int howManyUnrelated) throws IOException{
 			
