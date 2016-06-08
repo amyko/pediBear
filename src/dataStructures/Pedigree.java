@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 
@@ -118,6 +120,110 @@ public class Pedigree {
 		for(int i=0; i<ids.length; i++){
 			for(int j=i+1; j<ids.length; j++){
 				Path rel =  relationships[0][ids[i]][ids[j]];
+				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+			}
+		}
+
+		writer.close();
+		
+	}
+	
+	
+	//this is for simulation only
+	public Pedigree(String inPath, String outPath, int numIndiv, Map<String, Integer> name2Index, Set<Integer> exclude) throws IOException{
+		
+		//relationship
+		this.relationships = new Path[2][numIndiv][numIndiv];
+
+		for(int i=0; i<relationships[0][0].length; i++){
+			for(int j=i+1; j<relationships[0][0].length; j++){
+				this.relationships[0][i][j] = new Path(0,0,0);
+			}
+		}
+
+	 
+		
+		this.numIndiv = numIndiv;
+		this.maxDepth = 6;
+		this.maxDepthForSamples = 6;
+		this.genTime = 29;
+		this.core = null;
+		this.rGen = null;
+		this.curr = 0;
+		this.copy = 1;
+		nActiveNodes[0] = 500;
+		
+		//set up pedigree
+
+		//initialize list
+		nodes.add(new ArrayList<Node>(500));
+		
+		//fill up nodes
+		for(int i=0; i<102; i++){
+			nodes.get(0).add(new Node(true, i));
+		}
+		for(int i=102; i<500; i++){
+			nodes.get(0).add(new Node(false, i));
+		}
+		
+		
+		BufferedReader reader = DataParser.openReader(inPath);
+		reader.readLine();
+		String line;
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			
+			int childIdx = name2Index.get(fields[0]);
+			Node child = nodes.get(0).get(childIdx);
+			
+			if(exclude.contains(childIdx)) continue;
+			
+			if(!fields[1].equals("0")){
+				int momIdx = name2Index.get(fields[1]);
+				Node mom = nodes.get(0).get(momIdx);
+				child.addParent(mom);
+				mom.addChild(child);
+				
+			}
+			if(!fields[2].equals("0")){
+				int momIdx = name2Index.get(fields[2]);
+				Node mom = nodes.get(0).get(momIdx);
+				child.addParent(mom);
+				mom.addChild(child);
+				
+			}
+
+			
+		}
+		
+		
+		//record paths
+		for(int i=0; i<500; i++){
+	
+			if(isLooped(nodes.get(0).get(i), numIndiv)){
+				System.out.println(i);
+			}
+			
+		}
+		
+		
+
+		
+		//record paths
+		for(int i=0; i<numIndiv; i++){
+			
+			updateAdjMat(nodes.get(0).get(i));
+			
+		}
+		
+		
+		//write to path
+		PrintWriter writer = DataParser.openWriter(outPath);
+		
+		for(int i=0; i<numIndiv; i++){
+			for(int j=i+1; j<numIndiv; j++){
+				Path rel =  relationships[0][i][j];
 				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 			}
 		}
@@ -1922,6 +2028,67 @@ public class Pedigree {
 		
 		
 	}
+	
+	public boolean isInbred(Node node){
+		
+		clearVisit();
+		visitAncestors(node);
+		List<Node> ancs = node.getAncestors(new ArrayList<Node>());
+		
+		for(Node i : ancs){
+			if(i.getNumVisit() > 1)
+				return true;
+		}
+		
+		return false;
+		
+		
+	}
+	
+	
+	public void visitAncestors(Node node){
+		
+		node.setNumVisit(node.getNumVisit()+1);
+		
+		for(Node p : node.getParents()){
+			visitAncestors(p);
+		}
+		
+		
+	}
+	
+	
+	//checks for double first cousins, etc.
+	public boolean isLooped(Node node, int numIndiv){
+		
+		List<Node> nodeAnc = node.getAncestors(new ArrayList<Node>());
+		
+		for(int i=0; i<numIndiv; i++){
+			
+			int n=0;
+			
+			if(i==node.getIndex()) continue;
+			
+			List<Node> pairAnc = nodes.get(0).get(i).getAncestors(new ArrayList<Node>());
+			
+			for(Node j : pairAnc){
+				
+				if(nodeAnc.contains(j)) n++;
+				
+			}
+			
+			if(n>2) return true;
+			
+			
+			
+		}
+		
+		return false;
+		
+		
+	}
+	
+
 
 
 

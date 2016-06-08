@@ -68,7 +68,7 @@ public class RunSA {
 		
 		//SA parameters
 		double[] heat = new double[]{.2,.4,.6,.8, 1, 2, 4, 6, 8, 10};
-		int coolingTime = 100000;
+		int coolingTime = 1000000;
  		int runLength = 100;
 		Random rGen = new Random(19420838275L);
 		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .05), new Split2("split2", 0.05), new SwapUp("swapUp", 0.05), new SwapDown("swapDown", 0.05), new SwitchSex("switchSex", 0.05), 
@@ -78,8 +78,8 @@ public class RunSA {
 		String testName = "test11";
 		String outPath = dir + "results/mcmc.sample";
 		String truePath = dir + "results/" +testName + ".true";
-		String mapAccPath = dir + "results/"+testName+".sa.map.acc";
-		//String mapAccPath = dir + "results/testing.mcmc.map.acc";
+		//String mapAccPath = dir + "results/"+testName+".sa.map.acc";
+		String mapAccPath = dir + "results/testing.sa.map.acc";
 
 		//cooling schedule
 		int[] coolingSchedule = new int[heat.length-1];
@@ -99,7 +99,7 @@ public class RunSA {
 		
 			
 			
-		for(int t=0; t<100; t++){
+		for(int t=39; t<40; t++){
 
 			System.out.println(t);         
 			

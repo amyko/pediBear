@@ -50,7 +50,6 @@ def getMeanErrorSortByMeisosis(inPath, truePath, nIndiv):
     #get true path
     trueDict = getTruePath(truePath)
 
-    
     #dictionary to store accuracy rates
     accDict = dict()
 
@@ -84,12 +83,12 @@ def getMeanErrorSortByMeisosis(inPath, truePath, nIndiv):
     keys = np.sort(accDict.keys())
     temp = keys[0]
     keys = keys[1:]
-    keys = np.append(keys, [temp])
     
     print keys
     for k in keys:
         data.append(accDict[k])
 
+    #pdb.set_trace()
 
     means = [np.mean(x) for x in data]
 
@@ -127,12 +126,12 @@ def getTruePath(truePath):
 if __name__ == "__main__":
 
     #file names
-    testName = "test"
-    mcmcPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".mcmc.map.acc"
-    testName = "test"
+    testName = "test11"
+    mcmcPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".sa.map.acc"
+    testName = "test11"
     pairwisePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".pairwise.map.acc"
     truePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".true"
-    nIndiv = 4
+    nIndiv = 20
     nPairs = nIndiv*(nIndiv-1)/2
 
     
@@ -146,20 +145,19 @@ if __name__ == "__main__":
     xdata = [i for i in range(0,len(mcmcMeans))]
     #tickMarks = [1.0/(4*2**i) for i in range(0,7)]
     tickMarks = ['1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256', '0']
-    #tickMarks.append(0)
 
     #pdb.set_trace()
     print mcmcMeans
     print pairwiseMeans
-    mcmcMeans[2] = .13
-    pairwiseMeans[2] = .14
+    #mcmcMeans[2] = .13
+    #pairwiseMeans[2] = .14
     
     #plot
     fig = plt.figure(facecolor='white')
     ax = fig.add_subplot(111)
     #fig, ax = plt.figure(facecolor='white')
    #plt.boxplot(mcmcData)
-    plt.scatter(xdata, mcmcMeans, color='blue', label='MCMC')
+    plt.scatter(xdata, mcmcMeans, color='blue', label='simulated annealing')
     plt.scatter(xdata, pairwiseMeans, color='red', label='pairwise', marker='^')
     plt.legend(loc='upper left')
     #plt.ylim([-.1,1.1])
@@ -168,7 +166,7 @@ if __name__ == "__main__":
     plt.ylabel("error rate")
     ax.set_xticks(xdata)
     ax.set_xticklabels(tickMarks)
-    #plt.setp(tickMarks)
+    plt.setp(tickMarks)
 
     #plt.title("error rate for 100 simulations; " + testName)
     plt.show()    
