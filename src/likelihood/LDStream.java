@@ -222,7 +222,7 @@ public class LDStream {
 		int numIndiv = reader.readLine().split("\\s").length-HEADER_LENGTH; //skip header
 		
 		//TODO temporary solution for header error
-		numIndiv = 100;
+		//numIndiv = 100;
 		
 		//cubic solver
 		Cubic solver = new Cubic();

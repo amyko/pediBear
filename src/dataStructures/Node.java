@@ -321,14 +321,14 @@ public class Node {
 		
 		if (numVisit>0){ //make sure there are no multiple paths
 			if(this.up!=up || this.down!=down){ 
-				System.out.println(this.index);
-				//throw new RuntimeException("Multiple paths to this node");
+				//System.out.println(this.index);
+				throw new RuntimeException("Multiple paths to this node");
 			}
 		}
 
 		if(numVisit >= 2){
-			System.out.println(this.index);
-			//throw new RuntimeException("Too many visits");
+			//System.out.println(this.index);
+			throw new RuntimeException("Too many visits");
 		}
 		
 		this.up = up;

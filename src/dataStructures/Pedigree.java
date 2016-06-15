@@ -129,7 +129,7 @@ public class Pedigree {
 	}
 	
 	
-	//this is for simulation only
+	//this is for jays only
 	public Pedigree(String inPath, String outPath, int numIndiv, Map<String, Integer> name2Index, Set<Integer> exclude) throws IOException{
 		
 		//relationship
@@ -159,10 +159,10 @@ public class Pedigree {
 		nodes.add(new ArrayList<Node>(500));
 		
 		//fill up nodes
-		for(int i=0; i<102; i++){
+		for(int i=0; i<numIndiv; i++){
 			nodes.get(0).add(new Node(true, i));
 		}
-		for(int i=102; i<500; i++){
+		for(int i=numIndiv; i<500; i++){
 			nodes.get(0).add(new Node(false, i));
 		}
 		
@@ -174,10 +174,13 @@ public class Pedigree {
 			
 			String[] fields = line.split("\t");
 			
+			if(!name2Index.containsKey(fields[0])) continue;
+			
 			int childIdx = name2Index.get(fields[0]);
-			Node child = nodes.get(0).get(childIdx);
 			
 			if(exclude.contains(childIdx)) continue;
+			
+			Node child = nodes.get(0).get(childIdx);
 			
 			if(!fields[1].equals("0")){
 				int momIdx = name2Index.get(fields[1]);
@@ -197,17 +200,23 @@ public class Pedigree {
 			
 		}
 		
-		
-		//record paths
+		//delete ghost nodes
+		List<Node> toDelete = new ArrayList<Node>();
 		for(int i=0; i<500; i++){
-	
-			if(isLooped(nodes.get(0).get(i), numIndiv)){
-				System.out.println(i);
-			}
+			//nodes.get(0).get(i).print();
+			
+			Node myNode = nodes.get(0).get(i);
+			
+			if(!myNode.sampled && myNode.getNumEdges()<2)
+				toDelete.add(myNode);
 			
 		}
 		
 		
+		
+		for(Node i : toDelete)
+			deleteNode(i);
+
 
 		
 		//record paths
@@ -1470,6 +1479,8 @@ public class Pedigree {
 	//updates the relationship between the given node to everyone else
 	public void updatePathFromThisNode(Node node){ //works
 
+		//System.out.print(String.format("%d:\t", node.getIndex()));
+		
 		  //record path from source node to every related node
 		  clearVisit();
 		  node.setNumVisit(1);
@@ -2058,35 +2069,7 @@ public class Pedigree {
 	}
 	
 	
-	//checks for double first cousins, etc.
-	public boolean isLooped(Node node, int numIndiv){
-		
-		List<Node> nodeAnc = node.getAncestors(new ArrayList<Node>());
-		
-		for(int i=0; i<numIndiv; i++){
-			
-			int n=0;
-			
-			if(i==node.getIndex()) continue;
-			
-			List<Node> pairAnc = nodes.get(0).get(i).getAncestors(new ArrayList<Node>());
-			
-			for(Node j : pairAnc){
-				
-				if(nodeAnc.contains(j)) n++;
-				
-			}
-			
-			if(n>2) return true;
-			
-			
-			
-		}
-		
-		return false;
-		
-		
-	}
+
 	
 
 
