@@ -1,7 +1,6 @@
 package test;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -24,7 +23,7 @@ public class TestJays {
 	static double r = 1.5e-8; //zebra finch recombination rate (Backstrom, 2010)
 	static double seqError = 0.01;
 	static String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/jays/";
-	static int back = 30000;
+	static int back = 500000;
 	static Random rgen = new Random(526564L);
 	
 	//build true path
@@ -68,6 +67,7 @@ public class TestJays {
 
 			String genoPath = simDir + chr;
 			String infoPath = infoDir + chr;
+			
 			
 			double[] temp = pwStream.computeMarginal(genoPath, infoPath, indCols);
 			for (int i=0; i<marginals.length; i++) marginals[i] += temp[i];
@@ -164,7 +164,7 @@ public class TestJays {
 		//relationships
 		List<Relationship> relationships = new ArrayList<Relationship>();
 
-		relationships.add(new Relationship(15d, new double[] {1-1d/2048d, 1d/2048d, 0}, new Path[]{new Path(0,0,0)})); //unrelated
+		relationships.add(new Relationship(15d, new double[] {1d, 0d, 0}, new Path[]{new Path(0,0,0)})); //unrelated
 		
 		// depth = 1 relationship
 		relationships.add(new Relationship(1d, new double[] {0d, 1d, 0d}, new Path[]{new Path(1,0,1)})); //parent
@@ -204,35 +204,51 @@ public class TestJays {
 		
 		//parameters
 		int chrStart = 1;
-		int chrEnd = 35;
+		int chrEnd = 34;
+		double rsqr = .02;
+		int windowSize = 100000;
 		
 		//individuals
 		int numIndiv = 75;
 		int[] indCols = new int[numIndiv];
 		for(int i=0; i<numIndiv; i++) indCols[i] = i+3;	
 		
+		String testName = "75jays.pruned.1000_15.500k";
+		
+		/*
+		//prune LD
+		System.out.println("Pruning LD");
+		for (int i=chrStart; i<chrEnd; i++){
+			String inPath = dir+"75jays.geno."+i;
+			String outPath = dir+"75jays.geno.pruned."+i;
+			LDStream.thin(inPath, outPath, 1, rgen);
+			//LDStream.pruneLD(inPath, outPath, windowSize, rsqr);
+		}
+		*/
 		
 		//compute info
 		System.out.println("Computing info");
 		for (int i=chrStart; i<chrEnd; i++){
-			String inPath = dir+"75jays.geno."+i;
-			String outPath = dir+"75jays.info."+i;
+			String inPath = dir+testName+".geno."+i;
+			String outPath = dir+testName + ".info."+i;
 			LDStream.writeLdOutfile(inPath, outPath, back);
 		}
 		
 		
+		
+		
 		//compute marginal
 		System.out.println("Computing marginals");
-		computeMarginals(dir + "75jays.geno.", dir+"75jays.info.", dir+"75jays.marginal", indCols, chrStart, chrEnd);
+		computeMarginals(dir + testName + ".geno.", dir+testName+".info.", dir+testName + ".marginal", indCols, chrStart, chrEnd);
 		
 		
 		//compute pairwise
 		System.out.println("Computing pairwise likelihoods");
 		long startTime = System.nanoTime();		
-		computePairwise(dir+"75jays.geno.", dir+"75jays.info.", dir+"75jays.pairwise", indCols, relationships, chrStart, chrEnd);	
+		computePairwise(dir+testName+".geno.", dir+testName+".info.", dir+testName+".pairwise", indCols, relationships, chrStart, chrEnd);	
 		System.out.println("Total time was " + (System.nanoTime() - startTime) / 1e9 / 60d/ 60d + " hours");
-
-	
+		
+		
 		
 	
 	}

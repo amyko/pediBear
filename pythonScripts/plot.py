@@ -64,9 +64,13 @@ def getMeanErrorSortByMeisosis(inPath, truePath, nIndiv):
         i = int(fields[0])
         j = int(fields[1])
         acc = 1 - float(fields[2])
-    
-    
-        key = trueDict[(i,j)][0] + trueDict[(i,j)][1]
+
+        if(trueDict[(i,j)][2]==1): 
+            key = 4
+
+        else:
+            key = trueDict[(i,j)][0] + trueDict[(i,j)][1]
+
     
     
         if key in accDict:
@@ -81,18 +85,14 @@ def getMeanErrorSortByMeisosis(inPath, truePath, nIndiv):
     #make box plot
     data = []
     keys = np.sort(accDict.keys())
-    temp = keys[0]
-    keys = keys[1:]
+    #temp = keys[0]
+    #keys = keys[1:]
     
-    print keys
     for k in keys:
         data.append(accDict[k])
 
-    #pdb.set_trace()
 
     means = [np.mean(x) for x in data]
-
-
 
     return means
 
@@ -126,28 +126,32 @@ def getTruePath(truePath):
 if __name__ == "__main__":
 
     #file names
-    testName = "test11"
-    mcmcPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".sa.map.acc"
-    testName = "test11"
-    pairwisePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".pairwise.map.acc"
-    truePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".true"
+    resultDir = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" 
+    testName = "test13"
+    mcmcPath = resultDir + testName + ".sa.map.acc.adjMarginal100"
+    pairwisePath = resultDir + testName + ".pairwise.map.acc"
+    testName = "test12"
+    plinkPath = resultDir + testName + ".primus.plink.map.acc"
+    relatePath = resultDir + testName + ".primus.relate.map.acc"
+    truePath = resultDir + testName + ".true"
     nIndiv = 20
     nPairs = nIndiv*(nIndiv-1)/2
 
     
-    #get means
-   # xdata = [i for i in range(1,nPairs+1)]
-    #mcmcData, mcmcMeans, keys = getMeanError(mcmcPath, nIndiv)
-    #pairData, pairwiseMeans, keys = getMeanError(pairwisePath, nIndiv)
     
     mcmcMeans = getMeanErrorSortByMeisosis(mcmcPath, truePath, nIndiv)
     pairwiseMeans = getMeanErrorSortByMeisosis(pairwisePath, truePath, nIndiv)
+    plinkMeans = getMeanErrorSortByMeisosis(plinkPath, truePath, nIndiv)
+    relateMeans = getMeanErrorSortByMeisosis(relatePath, truePath, nIndiv)
     xdata = [i for i in range(0,len(mcmcMeans))]
+
     #tickMarks = [1.0/(4*2**i) for i in range(0,7)]
-    tickMarks = ['1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256', '0']
+    tickMarks = ['0', '1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256']
 
     #pdb.set_trace()
     print mcmcMeans
+    print plinkMeans
+    print relateMeans
     print pairwiseMeans
     #mcmcMeans[2] = .13
     #pairwiseMeans[2] = .14
@@ -159,6 +163,8 @@ if __name__ == "__main__":
    #plt.boxplot(mcmcData)
     plt.scatter(xdata, mcmcMeans, color='blue', label='simulated annealing')
     plt.scatter(xdata, pairwiseMeans, color='red', label='pairwise', marker='^')
+    plt.scatter(xdata, plinkMeans, color='magenta', label='PLINK + PRIMUS', marker='>')
+    plt.scatter(xdata, relateMeans, color='green', label='RELATE + PRIMUS', marker='p')
     plt.legend(loc='upper left')
     #plt.ylim([-.1,1.1])
     plt.xlim([-1,len(xdata)+1])

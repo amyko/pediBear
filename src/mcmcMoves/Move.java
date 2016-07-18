@@ -12,7 +12,7 @@ import dataStructures.Pedigree;
 //generic MCMC move
 public abstract class Move {
 
-	public final static int maxDepth = 6;
+	public final static int maxDepth = 7;
 	public final static int initSize = 10;
 
 	
@@ -32,6 +32,9 @@ public abstract class Move {
 	private final static List<Double> logChooseTwo = new ArrayList<Double>();
 	private final static List<Double> logChooseOne = new ArrayList<Double>();
 	protected final static  Map<String, Double> moveProbs = new HashMap<String, Double>();
+	
+	public int nAccept = 0;
+	public int nTried = 0;
 	
 	
 	//store powers of twos and halves
@@ -71,7 +74,7 @@ public abstract class Move {
 			return; //skip bad move
 		}
 		
-		
+		nTried++;
 		double acceptanceAlpha = currPedigree.rGen.nextDouble();
 		
 		//reverse move
@@ -88,6 +91,7 @@ public abstract class Move {
 		//accept move and clean
 		else{
 			//System.out.println("Accepted");
+			nAccept++;
 			clean(currPedigree);
 		}
 			

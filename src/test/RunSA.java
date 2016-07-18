@@ -59,6 +59,7 @@ public class RunSA {
 		int back = 30000;
 		int maxNumNodes = 200;
 		int genTime = 16;
+		double marginalAdj = 100;
 		PairwiseLikelihoodCoreStream2 core = new PairwiseLikelihoodCoreStream2(seqError, r, back, numIndiv);
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
 		String pathToOmega = dir + "pathToOmega.txt";
@@ -67,19 +68,22 @@ public class RunSA {
 		//String lkhdPath = dir + ".pairwise";
 		
 		//SA parameters
-		double[] heat = new double[]{.2,.4,.6,.8, 1, 2, 4, 6, 8, 10};
-		int coolingTime = 1000000;
- 		int runLength = 100;
+		double[] heat = new double[75];
+		heat[0] = .3;
+		for(int i=1; i<heat.length; i++) heat[i] = heat[i-1]*1.05;
+		int coolingTime = 20000;
+ 		int runLength = 1;
+ 		int numRun = 5;
 		Random rGen = new Random(19420838275L);
-		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .05), new Split2("split2", 0.05), new SwapUp("swapUp", 0.05), new SwapDown("swapDown", 0.05), new SwitchSex("switchSex", 0.05), 
-				new CutLink("cutLink", 0.05), new SplitLink("splitLink", 0.05), new ShiftClusterLevel("shiftClusterLevel", .05), new CutOneLinkTwo("cutOneLinkTwo", 0.05), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
-				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.05), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.05), new FStoPO("FStoPO", 0.05), new POtoFS("POtoFS",0.05), 
-				new HalfUncleToCousin("halfUncleToCousin", 0.05), new CousinToHalfUncle("cousinToHalfUncle", 0.05), new CousinToGreatUncle("cousinToGreatUncle", 0.05), new GreatUncleToCousin("greatUncleToCousin", 0.05)};
-		String testName = "test11";
+		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .2), new Split("split", .02), new Split2("split2", 0.02), new SwapUp("swapUp", 0.02), new SwapDown("swapDown", 0.02), new SwitchSex("switchSex", 0.02), 
+				new CutLink("cutLink", 0.15), new SplitLink("splitLink", 0.15), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.15), new CutTwoLinkOne("cutTwoLinkOne", 0.02),
+				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.02), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.02), new FStoPO("FStoPO", 0.02), new POtoFS("POtoFS",0.02), 
+				new HalfUncleToCousin("halfUncleToCousin", 0.02), new CousinToHalfUncle("cousinToHalfUncle", 0.02), new CousinToGreatUncle("cousinToGreatUncle", 0.02), new GreatUncleToCousin("greatUncleToCousin", 0.02)};
+		String testName = "test13";
 		String outPath = dir + "results/mcmc.sample";
 		String truePath = dir + "results/" +testName + ".true";
-		//String mapAccPath = dir + "results/"+testName+".sa.map.acc";
-		String mapAccPath = dir + "results/testing.sa.map.acc";
+		String mapAccPath = dir + "results/"+testName+".sa.map.acc.adjMarginal100";
+		//String mapAccPath = dir + "results/testing.sa.map.acc";
 
 		//cooling schedule
 		int[] coolingSchedule = new int[heat.length-1];
@@ -99,58 +103,56 @@ public class RunSA {
 		
 			
 			
-		for(int t=39; t<40; t++){
+		for(int t=0; t<100; t++){
 
-			System.out.println(t);         
-			
+			System.out.println(t);       
 			
 			String marginalPath = dir + "pairwiseLikelihood/"+testName+".marginal."+t;
 			String lkhdPath = dir + "pairwiseLikelihood/"+testName+".pairwise."+t;
 			
-			//initialize pedigree
-			Node[] inds = new Node[numIndiv];
-			for(int i=0; i<numIndiv; i++){ //(sampled, index, sex, depth ,age)
-				inds[i] = new Node(true, i, i%2, 0, -1);
-			}
-			Pedigree ped = new Pedigree(depth, maxDepthForSamples, inds, core, marginalPath, lkhdPath, rGen, maxNumNodes, genTime);
-
-		
-			//initialize SA
-			SimulatedAnnealing sa = new SimulatedAnnealing(ped, heat, coolingSchedule, moves, runLength, rGen, outPath);
-
+			double bestLkhd = Double.NEGATIVE_INFINITY;
+			int bestRun = 0;
 			
-			//run MCMC
-			double startTime = System.nanoTime();
-			sa.run();
-			double endTime = System.nanoTime();
-
-			double duration = (endTime - startTime)/1e9; 
-
-			System.out.println(String.format("Running time: %.1f seconds", duration));
-
-			
-			//likelihood for true pedigree
-			Path[][] mcmcmcRel = ped.getRelationships();
-			for(int i=0; i<numIndiv; i++){
-				for(int j=i+1; j<numIndiv; j++){
-					
-					Path real = trueRel[i][j];
-					mcmcmcRel[i][j].updatePath(real.getUp(), real.getDown(), real.getNumVisit());
-					
+			for(int run=0; run<numRun; run++){
+				
+				//System.out.println(run);
+				
+				//initialize pedigree
+				Node[] inds = new Node[numIndiv];
+				for(int i=0; i<numIndiv; i++){ //(sampled, index, sex, depth ,age)
+					inds[i] = new Node(true, i, i%2, 0, -1);
 				}
+				Pedigree ped = new Pedigree(depth, maxDepthForSamples, inds, core, marginalPath, lkhdPath, rGen, maxNumNodes, genTime, marginalAdj);
+
+			
+				//initialize SA
+				SimulatedAnnealing sa = new SimulatedAnnealing(ped, heat, coolingSchedule, moves, runLength, rGen, String.format("%s.%d", outPath, run), DataParser.openWriter("dummy.txt"));
+
+				
+				//run MCMC
+				double startTime = System.nanoTime();
+				sa.run();
+				double endTime = System.nanoTime();
+
+				double duration = (endTime - startTime)/1e9; 
+
+				System.out.println(String.format("Running time: %.1f seconds", duration));
+				
+				
+				//if currlkhd is better than best, save mcmc output
+				if(ped.getLogLikelihood() > bestLkhd){
+					bestLkhd = ped.getLogLikelihood();
+					bestRun = run;
+				}
+				
+				
 			}
-			List<Node> inds2 = new ArrayList<Node>();
-			for(int i=0; i<numIndiv; i++){ //(sampled, index, sex, depth ,age)
-				inds2.add(new Node(true, i, i%2, 0, -1));
-			}
-			
-			
-			double trueLkhd = ped.likelihoodLocalPedigree(inds2);
-			
-			System.out.println(String.format("lkhd of true pedigree: %.2f", trueLkhd));
 			
 			
 			
+			
+			
+			/*
 			//likelihood of best pairwise inference
 			Path[][] pairwiseRel = Accuracy.pairwiseBestPed(lkhdPath, totalIndiv, numIndiv);
 			for(int i=0; i<numIndiv; i++){
@@ -176,14 +178,37 @@ public class RunSA {
 					System.out.println(String.format("(%d, %d) : (%d, %d, %d)\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));
 				}
 			}
+			*/
 			
-		
+			
+
+			//////////////////////////////////
+			//likelihood for true pedigree
+			Node[] inds = new Node[numIndiv];
+			for(int i=0; i<numIndiv; i++){ //(sampled, index, sex, depth ,age)
+				inds[i] = new Node(true, i, i%2, 0, -1);
+			}
+			Pedigree ped = new Pedigree(depth, maxDepthForSamples, inds, core, marginalPath, lkhdPath, rGen, maxNumNodes, genTime, marginalAdj);
+			
+			Path[][] mcmcmcRel = ped.getRelationships();
+			for(int i=0; i<numIndiv; i++){
+				for(int j=i+1; j<numIndiv; j++){
+					
+					Path real = trueRel[i][j];
+					mcmcmcRel[i][j].updatePath(real.getUp(), real.getDown(), real.getNumVisit());
+					
+				}
+			}
+			
+			double trueLkhd = ped.likelihoodAllPedigrees();		
+			System.out.println(String.format("lkhd of true pedigree: %.2f", trueLkhd));
+			////////////////////////////////////////
 			
 			//kinship accuracy
-			double[][] mapAcc = Accuracy.mapAccuracy(outPath, truePath, totalIndiv, numIndiv, pathToKinship);
+			double[][] mapAcc = Accuracy.mapAccuracy(String.format("%s.%d", outPath, bestRun), truePath, totalIndiv, numIndiv, pathToKinship);
 			
 			//write header for output path
-			mapWriter.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - sa.bestLkhd));
+			mapWriter.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - bestLkhd));
 			
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){

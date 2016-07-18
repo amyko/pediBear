@@ -146,7 +146,7 @@ public class PairwiseLikelihoodCoreStream2 {
 
 	}
 	
-	
+	//TODO fix this later
 	public void setLikelihoods(String filePath) throws IOException{ //works
 	
 		//clear old values
@@ -157,39 +157,48 @@ public class PairwiseLikelihoodCoreStream2 {
 		
 		String line;
 		Path path = null;
-		int i=-1;
+
 		
 		while((line=reader.readLine())!=null){
+
 			
 			String[] fields = line.split("\t");
 			
-			//update relationship and individual index
+			//update relationship
 			if(fields[0].equals(">")){
-
-				i = 0;				
+				
+				int up = Integer.parseInt(fields[UP]);
+				int down = Integer.parseInt(fields[DOWN]);
+				int nVisit = Integer.parseInt(fields[NUMVISIT]);
+				
 				double[][] lkhdTable = new double[numIndiv][numIndiv];
-				path = new Path(Integer.parseInt(fields[UP]), Integer.parseInt(fields[DOWN]), Integer.parseInt(fields[NUMVISIT]));
+				path = new Path(up, down, nVisit);
+
 				pairwiseLkhd.put(path, lkhdTable);
-				
+
 				continue;
+				
 			}
-			
+
 			//read likelihood
-			for(int j=i+1; j<numIndiv; j++){ 
-				
-				pairwiseLkhd.get(path)[i][j] = Double.parseDouble(fields[j]);
-				pairwiseLkhd.get(path)[j][i] = Double.parseDouble(fields[j]);
-				
+			int i = Integer.parseInt(fields[0]);
+			int j = Integer.parseInt(fields[1]);
+			double lkhd = Double.parseDouble(fields[2]);
+
+			if(i<numIndiv && j<numIndiv){
+				pairwiseLkhd.get(path)[i][j] = lkhd;
+				pairwiseLkhd.get(path)[j][i] = lkhd;
 			}
+	
 			
-			//increment row
-			i++;
+
 		}
 		
 		//close file
 		reader.close();
 		
 	}
+
 	
 	
 	public void setMarginals(String filePath) throws IOException{ //works

@@ -426,7 +426,7 @@ import utility.DataParser;
 				//open files
 				BufferedReader infile = DataParser.openReader(String.format("%stemp.%d.%d", filePath, chr, curr));
 				BufferedReader unrelFile = DataParser.openReader(unrelatedGenoPath + chr);
-				PrintWriter outfile = DataParser.openWriter(filePath + chr);
+				PrintWriter outfile = DataParser.openWriter(filePath+chr);
 			
 				//skip header
 				String[] headerFields = infile.readLine().split("\t");

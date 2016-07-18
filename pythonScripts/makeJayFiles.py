@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import pdb
 import os.path
 
-badInd = [31,32,39,40,41,98,6,7,8,9,10,11,12,21,22,26,27,34,48,49,50,52,53,87,88,90,91]
+badInd = [31,32,39,40,41,98,6,7,8,9,10,11,12,21,22,26,27,34,48,49,50,52,53,87,88,90,91] #inbred or looped
 
 def makeIDFile(inPath, outPath, pedPath):
 
@@ -24,6 +24,7 @@ def makeIDFile(inPath, outPath, pedPath):
     #set
     myset = set()
 
+    #typed individuals
     for line in infile:
         
         fields = line.split()
@@ -82,6 +83,13 @@ def makeIDFile(inPath, outPath, pedPath):
 
 def removeBadIndiv(inPath, outPath, indexPath):
     
+    #name2Index
+    ids = np.loadtxt(indexPath, dtype=int, skiprows=1, usecols=[0], delimiter='\t')
+    names = np.loadtxt(indexPath, dtype=str, skiprows=1, usecols=[1], delimiter='\t')
+
+    
+    name2index = dict(zip(names,ids))
+
     
     #clean data
     outfile = open(outPath, 'wb')
@@ -91,8 +99,13 @@ def removeBadIndiv(inPath, outPath, indexPath):
         fields = line.split()
         #pdb.set_trace()
         if(name2index.get(fields[1]) in badInd): continue
+
+
+        for x in fields:
+            outfile.write("%s " %x)
+        outfile.write("\n")
         
-        outfile.write(line)
+        #outfile.write(line)
         
     
     #pdb.set_trace()
@@ -111,7 +124,7 @@ def makeGenoFiles(inPath, outPath, posPath):
     for i in range(0,75):
         outfile.write("%d\t" %i)
     outfile.write('\n')
-    
+
     
     currChrom = 0
     col = 6
@@ -124,17 +137,20 @@ def makeGenoFiles(inPath, outPath, posPath):
         chrom = chroms[i]
         
         #open new file
-        if(chrom!=currChrom):
+        if(chrom!=currChrom and chrom!=1):
+            
             print chrom
             outfile.close()
             chromNum+=1
             outfile = open(outPath+str(chromNum), 'wb')
-            currChrom = chrom
+            
             #write header
             outfile.write("POS\tA1\tA2\t")
             for j in range(0,75):
                 outfile.write("%d\t" %j)
             outfile.write('\n')
+                
+            currChrom = chrom
         
         #get SNPS for this position
         snps = np.loadtxt(inPath, dtype=str, delimiter=' ', usecols=[col, col+1])
@@ -175,14 +191,85 @@ def makeGenoFiles(inPath, outPath, posPath):
     infile.close()
         
         
+def makeMapFile(genoPath, outPath):
+
+    outfile = open(outPath, 'wb')
+    
+    snpID = 1
+
+    for chrom in range(1,35):
+        
+        infile = open(genoPath+str(chrom))
+        infile.readline()
+        
+        for line in infile:
+            
+            fields = line.split()
+            
+            outfile.write("%d\tsnp%d\t%d\t%s\n" %(chrom, snpID, 0, fields[0]))
+            snpID+=1
+        infile.close()
+        
+    outfile.close()
+        
 
 
+def replacePedID(mydir):
+    
+    infile = open(mydir+"75jays.pruned.50_1.ped")
+    outfile = open(mydir + "75jays.pruned.50_1.founders.ped", 'wb')
+    
+    names = np.loadtxt(mydir+"75jays.index2name", dtype=str, delimiter='\t', skiprows=1, usecols=[1])
+    ids = np.loadtxt(mydir+"75jays.index2name", dtype=int, delimiter='\t', skiprows=1, usecols=[0])
+    
+    name2id = dict(zip(names, ids))
+    
+    for line in infile:
+        
+        fields = line.split()
+        
+        #change name
+        fields[1] = str(name2id[fields[1]] + 1)
+        
+        #change parents
+        fields[2] = '0'
+        fields[3] = '0'
+        
+        for x in fields:
+            outfile.write("%s " %x)
+        outfile.write("\n")
+        
+    infile.close()
+    outfile.close()
+    
+def makeSexFile(mydir):
+    
+    outfile = open(mydir+"75jays.founders.sex", 'wb')
+   
+    sexes = np.loadtxt(mydir+"75jays.index2name", dtype=int, delimiter='\t', skiprows=1, usecols=[2])
+    
+    i=1
+    while(i<76):
+        sex = sexes[i-1]
+        outfile.write("1\t%d\t%d\n" %(i,sex))
+        i+=1
+    outfile.close() 
 
 if __name__ == "__main__":
 
+    mydir = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/jays/"
+    
     #file names
-    inPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/jays/75jays.ped"
-    outPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/jays/75jays.geno."
-    posPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/jays/jays.map"
+    inPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/jays/75jays.pruned.1000_15.ped"
+    outPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/jays/75jays.pruned.1000_15.geno."
+    posPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/jays/102jays.pruned.1000_15.map"
+    indexPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/jays/102jays.index2name"
 
-    makeGenoFiles(inPath, outPath, posPath)
+    #removeBadIndiv(inPath, outPath, indexPath)
+
+    #makeGenoFiles(inPath, outPath, posPath)
+    
+    #replacePedID(mydir)
+    makeSexFile(mydir)
+    
+    #makeMapFile(outPath, posPath)

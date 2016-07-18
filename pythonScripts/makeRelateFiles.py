@@ -65,6 +65,55 @@ def makeIndivFile(outPath, numIndiv):
     outfile.write('\n')
     outfile.close()
     
+    
+def pedToDat(pedPath, altPath, outPath):
+    
+    outfile = open(outPath, 'wb')
+    
+    #selected individuals
+    infile = open(pedPath)
+    for line in infile:
+        geno = line.split()[6:]
+        
+        for i in range(0, len(geno)/2):
+            a1 = geno[2*i]
+            a2 = geno[2*i+1]
+            
+            g = 2
+            
+            if(a1=='A' and a2=='A'): g = 1
+            elif(a1=='T' and a2=='T'): g = 3
+            
+            outfile.write('%d\t' %g)
+        
+        outfile.write("\n")
+
+    infile.close()
+
+    # alt reference pop
+    infile = open(altPath)
+    for line in infile:
+        geno = line.split()[6:]
+        
+        for i in range(0, len(geno)/2):
+            a1 = geno[2*i]
+            a2 = geno[2*i+1]
+            
+            g = 2
+            if(a1=='A' and a2=='A'): g = 1
+            elif(a1=='T' and a2=='T'): g = 3
+            
+            outfile.write('%d\t' %g)
+        
+        outfile.write("\n")
+            
+                
+    infile.close()
+    outfile.close()      
+        
+        
+
+    
 
 if __name__ == "__main__":
         
@@ -78,15 +127,18 @@ if __name__ == "__main__":
     genoPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/unrelated/msprime.geno.pruned.1"
     outPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/ibd/"+testName+".geno.concat."
 
-    makeChrFile(chrPath, 3541)
-    makeIndivFile(indivPath, 52)
+    #makeChrFile(chrPath, 3541)
+    #makeIndivFile(indivPath, 52)
 
-    for t in range(0,300):
+    pedPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/test12.ped."
+    altPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/test12.all.ped"
+    outPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/relateFiles/geno."
+
+    for t in range(0,100):
         print(t)
-        makeGenoFile(pairPath+str(t), genoPath, outPath+str(t))
-        
-        
-        
+        pedToDat(pedPath+str(t), altPath, outPath+str(t))
+
+            
     
         
     pdb.set_trace()

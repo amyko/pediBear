@@ -24,10 +24,11 @@ public class Pedigree {
 
 	//pedigree variables
 	public final int maxDepth;
-	public final int maxDepthForSamples;
+	//public final int maxDepthForSamples;
 	public final int numIndiv;
 	private final PairwiseLikelihoodCoreStream2 core;
 	public final Random rGen;
+	public boolean looped;
 
 	
 	//for reverse move
@@ -43,12 +44,93 @@ public class Pedigree {
 	public final double genTime;
 	final double muGenTime = 25;
 	final double varGenTime = 64;
+	
+	
+	//for prior for unrelatedness
+	private final double marginalAdj;
 
 	
 
 	////// CONSTRUCTOR ///////
+	//for primus
+	public Pedigree(String inPath, Map<String, Integer> name2Index) throws IOException{
+		
+		
+		this.numIndiv = name2Index.size();
+		this.maxDepth = 5;
+		this.genTime = 29;
+		this.core = null;
+		this.rGen = null;
+		this.curr = 0;
+		this.copy = 1;
+		nActiveNodes[0] = 200;
+		this.marginalAdj = 0;
+		
+		//relationship
+		this.relationships = new Path[2][numIndiv][numIndiv];
+
+		for(int i=0; i<relationships[0][0].length; i++){
+			for(int j=i+1; j<relationships[0][0].length; j++){
+				this.relationships[0][i][j] = new Path(0,0,0);
+			}
+		}
+		
+		
+		//set up pedigree
+
+		//initialize list
+		nodes.add(new ArrayList<Node>(200));
+		
+		//fill up nodes
+		for(int i=0; i<200; i++){
+			nodes.get(0).add(new Node(true, i));
+		}
+		
+		
+		BufferedReader reader = DataParser.openReader(inPath);
+		String line;
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			
+			int childIdx = name2Index.get(fields[1]);
+			Node child = nodes.get(0).get(childIdx);
+			
+			if(!fields[2].equals("0")){
+				int momIdx = name2Index.get(fields[2]);
+				Node mom = nodes.get(0).get(momIdx);
+				child.addParent(mom);
+				mom.addChild(child);
+			}
+			if(!fields[3].equals("0")){
+				int momIdx = name2Index.get(fields[3]);
+				Node mom = nodes.get(0).get(momIdx);
+				child.addParent(mom);
+				mom.addChild(child);
+			}
+			
+			
+		}
+		
+		reader.close();
+		
+		
+		//record paths
+		for(String name : name2Index.keySet()){
+			
+			updateAdjMat(nodes.get(0).get(name2Index.get(name)));
+			
+		}
+
+		
+	}
+	
+	
+	
 	//this is for simulation only
 	public Pedigree(String inPath, String outPath, int numIndiv, int[] ids) throws IOException{
+		
+		this.marginalAdj = 0;
 		
 		//relationship
 		this.relationships = new Path[2][184][184];
@@ -63,7 +145,6 @@ public class Pedigree {
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = 5;
-		this.maxDepthForSamples = 5;
 		this.genTime = 29;
 		this.core = null;
 		this.rGen = null;
@@ -132,6 +213,8 @@ public class Pedigree {
 	//this is for jays only
 	public Pedigree(String inPath, String outPath, int numIndiv, Map<String, Integer> name2Index, Set<Integer> exclude) throws IOException{
 		
+		this.marginalAdj = 0;
+		
 		//relationship
 		this.relationships = new Path[2][numIndiv][numIndiv];
 
@@ -145,7 +228,6 @@ public class Pedigree {
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = 6;
-		this.maxDepthForSamples = 6;
 		this.genTime = 29;
 		this.core = null;
 		this.rGen = null;
@@ -226,6 +308,8 @@ public class Pedigree {
 			
 		}
 		
+		System.out.println(String.format("%f", this.likelihoodAllPedigrees()));
+		
 		
 		//write to path
 		PrintWriter writer = DataParser.openWriter(outPath);
@@ -239,17 +323,18 @@ public class Pedigree {
 
 		writer.close();
 		
+		
 	}
 	
 	
 	
 	//TODO handle known relationships
-	public Pedigree(int maxDepth, int maxDepthForSamples, Node[] inds, PairwiseLikelihoodCoreStream2 core, String marginalPath, String lkhdPath, Random rGen, int maxNumNodes, double genTime) throws IOException{
+	public Pedigree(int maxDepth, int maxDepthForSamples, Node[] inds, PairwiseLikelihoodCoreStream2 core, String marginalPath, String lkhdPath, Random rGen, int maxNumNodes, double genTime, double marginalAdj) throws IOException{
 		
 		this.numIndiv = inds.length;
 		this.maxDepth = maxDepth;
-		this.maxDepthForSamples = maxDepthForSamples;
 		this.genTime = genTime;
+		this.marginalAdj = marginalAdj;
 		this.core = core;
 		this.rGen = rGen;
 		this.curr = 0;
@@ -299,7 +384,7 @@ public class Pedigree {
 		//compute current likelihood
 		NormalDistribution normalDist = new NormalDistribution(muGenTime, varGenTime);
 		for(Node i : inds){
-			logLikelihood[curr] += core.getMarginal(i);
+			logLikelihood[curr] += core.getMarginal(i) + marginalAdj;
 			
 			if(i.getAge()!=-1){
 				logLikelihood[curr] += Math.log(normalDist.density(i.getAge()));
@@ -1430,6 +1515,102 @@ public class Pedigree {
 	}
 	
 	
+	public void contract(Node parent, Node child){
+
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+
+
+		//disconnect child cluster
+		this.disconnect(parent, child);
+			
+		//shift child cluster up
+		clearVisit();
+		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
+		for(Node i : childCluster){
+			i.setDepth(i.getDepth() + 1);
+		}
+		
+		//new parents and children
+		for(Node p : parent.getParents()){
+			this.connect(p, child);
+		}
+		for(Node c : parent.getChildren()){
+			this.connect(child, c);
+		}
+	
+		
+		//delete old parent to child
+		deleteNode(parent);
+
+		
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+		
+	}
+	
+	
+	
+	public void stretch(Node child){
+		
+		//cluster containing child
+		clearVisit();
+		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
+		
+		//subtract likelihood for old cluster
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+
+		
+		Node newParent = this.makeNewNode(child.getDepth(), child.getSex());
+		
+
+		//connect new parent, disconnect child cluster
+		for(Node p : child.getParents()){
+			this.connect(p, newParent);
+			p.removeChild(child);
+		}
+		child.getParents().clear();
+		
+			
+		//shift child cluster down
+		clearVisit();
+		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
+		for(Node i : childCluster){
+			i.setDepth(i.getDepth() - 1);
+		}
+
+		//connect new parent to everyone
+		this.connect(newParent, child);
+		
+
+		//update adj matrix
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+		
+		
+		//add new likelihood
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		
+		
+		
+	}
+	
+	
+	
 	///////// UPDATE ADJACENCY MATRIX ////////
 	public void updateAdjMat(Node node){
 		
@@ -1492,13 +1673,16 @@ public class Pedigree {
 
 	//records the path from node to its relatives via its parents
 	private void updateUpDownPath(Node node, int up){
-					
+				
+		boolean isLooped = false;
+		
 		//for every parent
 		for (Node parent :node.getParents()){
 			
 			//update path to parent
 			if (parent.sampled){
-				parent.recordPath(up, 0);
+				isLooped = parent.recordPath(up, 0);
+				if(isLooped) this.looped = true;
 			}
 				
 			//update children of this parent
@@ -1517,6 +1701,8 @@ public class Pedigree {
 	//records the path from node to its descendants, excluding excludeChild
 	private void updateDownPath(Node node, Node excludeChild, int up, int down){
 
+		boolean isLooped = false;
+		
 		//for every child
 		for (Node child : node.getChildren()){
 			
@@ -1524,7 +1710,8 @@ public class Pedigree {
 			
 			//update path to this child
 			if (child.sampled){
-				child.recordPath(up, down);
+				isLooped = child.recordPath(up, down);
+				if(isLooped) this.looped = true;
 			}
 			
 			//recurse
@@ -1544,6 +1731,9 @@ public class Pedigree {
 		int n = connectedSamples.size();
 		
 		if(n==0) return 0d;
+		
+		if(n==1)
+			return core.getMarginal(connectedSamples.get(0)) + marginalAdj;
 		
 		double lkhd = 0d;
 		int smaller;
@@ -1583,7 +1773,7 @@ public class Pedigree {
 		
 		
 		//TODO testing
-		lkhd += ageLikelihood(connectedSamples);
+		//lkhd += ageLikelihood(connectedSamples);
 		
 
 		return lkhd;
@@ -1592,6 +1782,71 @@ public class Pedigree {
 	
 	
 
+	public double likelihoodAllPedigrees(){
+		
+		double toReturn = 0d;
+		clearVisit();
+		
+		//count number of clusters
+
+		
+		for(int i=0; i<numIndiv; i++){
+			
+			Node node = nodes.get(curr).get(i);
+			
+			if(node.getNumVisit() > 0) continue;
+	
+			List<Node> connected = new ArrayList<Node>();
+			//node.getConnectedSampledNodes(connected);
+			getConnectedSampledNodes(node, connected);
+			
+			toReturn += likelihoodLocalPedigree(connected);
+			
+			for(Node j  : connected){
+				System.out.print(String.format("%d\t", j.getIndex()));
+			}
+			System.out.println();
+			
+			
+		}
+		
+		//System.out.println(String.format("Number of clusters: %d", n));
+		
+		return toReturn;
+		
+		
+	}
+	
+	//get connectd nodes from relationship matrix
+	private List<Node> getConnectedSampledNodes(Node node, List<Node> toReturn){
+		
+		node.setNumVisit(1);
+		if(node.sampled) toReturn.add(node);
+		
+		//recurse on neighbors
+		for(int i=0; i<numIndiv; i++){
+			
+			if(i==node.getIndex()) continue;
+			
+			Node neighbor = nodes.get(curr).get(i);
+			if(neighbor.getNumVisit() > 0) continue;
+			
+			int bigger = node.getIndex() > i ? node.getIndex() : i;
+			int smaller = node.getIndex() > i ? i : node.getIndex();
+			
+			
+			if(relationships[curr][smaller][bigger].getNumVisit()==0){
+				continue;
+			}
+			
+			getConnectedSampledNodes(neighbor, toReturn);
+			
+		}
+		
+		return toReturn;
+		
+	}
+	
 	
 	
 	private double ageLikelihood(List<Node> connectedSamples){

@@ -50,7 +50,7 @@ public class Cut extends Move {//WORKS
 			int symm = (!highestNode.sampled && highestNode.getParents().size()==0) ? 1 : 0;
 			oldToNew += (1+symm) * getPowersOfHalf2(highestNode.getChildren().size()) * moveProbs.get("split");
 		}
-		
+
 		
 		//cut 
 		int nBefore = currPedigree.getNActiveNodes();

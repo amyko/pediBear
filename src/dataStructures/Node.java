@@ -317,23 +317,27 @@ public class Node {
 	
 	
 	//////// RECORD PATH /////////
-	public void recordPath(int up, int down){
+	public boolean recordPath(int up, int down){
 		
 		if (numVisit>0){ //make sure there are no multiple paths
 			if(this.up!=up || this.down!=down){ 
 				//System.out.println(this.index);
-				throw new RuntimeException("Multiple paths to this node");
+				//throw new RuntimeException("Multiple paths to this node");
+				return true;
 			}
 		}
 
 		if(numVisit >= 2){
 			//System.out.println(this.index);
-			throw new RuntimeException("Too many visits");
+			//throw new RuntimeException("Too many visits");
+			return true;
 		}
 		
 		this.up = up;
 		this.down = down;
 		this.numVisit++;
+		
+		return false;
 		
 	}
 	

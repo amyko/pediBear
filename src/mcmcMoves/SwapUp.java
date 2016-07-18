@@ -28,8 +28,9 @@ public class SwapUp extends Move {
 		
 
 		//bad cases
-		if(child.getDepth() == currPedigree.maxDepthForSamples || splitsPedigree(currPedigree, child)) 
+		if(child.getDepth()==currPedigree.maxDepth || splitsPedigree(currPedigree, child)) 
 			return REJECT;
+		
 		
 
 		int nBefore = currPedigree.getNActiveNodes();
@@ -130,10 +131,10 @@ public class SwapUp extends Move {
 		//parent to switch with
 		Node parent = child.getParentWithSex(child.getSex());
 		
-		//has two parents and the parent to switch with is a ghost
-		if(child.getParents().size()==1 && parent==null) return true;
 		
-	
+		//has two parents and the parent to switch with is a ghost		
+		if(child.getParents().size()==1 && parent==null) return true;
+
 		if(child.getParents().size()==2 && !parent.sampled) return true;
 
 		

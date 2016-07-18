@@ -26,7 +26,6 @@ public class RunPairwiseTest {
 		double currLkhd = Double.NEGATIVE_INFINITY;
 		
 		String line;
-		int currLineNum = 0;
 		while((line=reader.readLine())!=null){
 			
 			String[] fields = line.split("\t");
@@ -34,15 +33,20 @@ public class RunPairwiseTest {
 			//compare relationship
 			if(fields[0].equals(">")){
 				currPath = new Path(Integer.parseInt(fields[1]), Integer.parseInt(fields[2]), Integer.parseInt(fields[3]));
-				currLineNum = 0;
+				//System.out.print(String.format("%d\t%d\t%d\n", currPath.getUp(), currPath.getDown(), currPath.getNumVisit()));
 				continue;
 			}
 			
 			
+			int currI = Integer.parseInt(fields[0]);
+			int currJ = Integer.parseInt(fields[1]);
+			
 			//find i and j
-			if(currLineNum==i){
+			if(currI==i && currJ==j){
 
-				currLkhd = Double.parseDouble(fields[j]);
+				currLkhd = Double.parseDouble(fields[2]);
+				
+				//System.out.println(currLkhd);
 				
 				if(currLkhd > bestLkhd){
 					bestLkhd = currLkhd;
@@ -51,7 +55,6 @@ public class RunPairwiseTest {
 				
 			}
 
-			currLineNum++;
 
 			
 		}
@@ -65,48 +68,110 @@ public class RunPairwiseTest {
 	
 	
 	
+	//get path with the highest likelihood
+	public static Path[][] getHighestLkhdPath(String lkhdPath, int numIndiv) throws NumberFormatException, IOException{
+
+		double[][] bestLkhd = new double[numIndiv][numIndiv];
+		for(int i=0; i<numIndiv; i++){
+			for(int j=i+1; j<numIndiv; j++){
+				bestLkhd[i][j] = Double.NEGATIVE_INFINITY;
+			}
+		}
+		Path[][] bestPath = new Path[numIndiv][numIndiv];
+		for(int i=0; i<numIndiv; i++){
+			for(int j=i+1; j<numIndiv; j++){
+				bestPath[i][j] = null;
+			}
+		}
+		
+		//open reader
+		BufferedReader reader = DataParser.openReader(lkhdPath);
+
+		Path currPath = null;
+		
+		String line;
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			
+			//compare relationship
+			if(fields[0].equals(">")){
+				currPath = new Path(Integer.parseInt(fields[1]), Integer.parseInt(fields[2]), Integer.parseInt(fields[3]));
+				continue;
+			}
+			
+			
+			int i = Integer.parseInt(fields[0]);
+			int j = Integer.parseInt(fields[1]);
+			double currLkhd = Double.parseDouble(fields[2]);
+			
+			if(currLkhd > bestLkhd[i][j]){
+				
+				bestLkhd[i][j] = currLkhd;
+				bestPath[i][j] = currPath;
+				
+			}
+			
+		}
+
+		reader.close();
+		
+		return bestPath;
+					
+		
+	}
+	
+	
 	
 	
 	public static void main(String[] args) throws IOException{
 		
 		//param
-		int numIndiv = 6;
+		int numIndiv = 75;
 		
 		//files
-		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String testName = "test";
-		String inPath = dir + "pairwiseLikelihood/"+testName+".pairwise.";
-		String outPath = dir + "results/"+testName+".out";
-		String ibdAccPath = dir + "results/"+testName+".pairwise.ibd.acc";
-		String mapAccPath = dir + "results/"+testName+".pairwise.map.acc";
+		//String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
+		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/jays/";
+		String testName = "75jays";
+		//String inPath = dir + "pairwiseLikelihood/"+testName+".pairwise.";
+		//String outPath = dir + "results/"+testName+".out";
+		//String mapAccPath = dir + "results/"+testName+".pairwise.map.acc";
+		String inPath = dir + testName+".pruned.1000_15.pairwise";
+		String outPath = dir + testName+".pruned.1000_15.out";
+		String mapAccPath = dir +testName+".pruned.1000_15.pairwise.map.acc";
 		String pathToOmegaPath = dir + "pathToOmega.txt";
-		String truePath = dir + "results/" +testName + ".true";
-		//String truePath = dir + "results/test3.true";
+		String truePath = dir + testName + ".true";
+		//String truePath = dir + "results/test12.true";
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		
+		
+		//getHighestLkhdPath(inPath, 0, 4);
+		
 		//open outfiles
-		Writer ibdWriter = DataParser.openWriter(ibdAccPath);
 		Writer mapWriter = DataParser.openWriter(mapAccPath);
 		
 		//run pairwise test
-		for(int t=0; t<100; t++){
+		for(int t=0; t<1; t++){
 			
 			//open writer
 			Writer writer2 = DataParser.openWriter(outPath);
 			writer2.write(String.format(">\t%d\n", t));
 			
 			//write to acc files
-			ibdWriter.write(String.format(">\t%d\n", t));
 			mapWriter.write(String.format(">\t%d\n", t));
 			
-			String lkhdPath = inPath + t;
+			//String lkhdPath = inPath + t;
+			String lkhdPath = inPath;
 			
 			
 			//pairwise result
+			Path[][] bestPaths = getHighestLkhdPath(lkhdPath, numIndiv);
+			
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){
 					
-					Path bestPath = getHighestLkhdPath(lkhdPath, i, j);
+					//Path bestPath = getHighestLkhdPath(lkhdPath, i, j);
+					Path bestPath = bestPaths[i][j];
 					
 					writer2.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));	
 				}
@@ -116,20 +181,16 @@ public class RunPairwiseTest {
 			
 			//accuracy based on mcmc
 			double[][] mapAcc = Accuracy.kinshipAccuracy(outPath, truePath, numIndiv, pathToKinship);
-			double[][] ibdAcc = Accuracy.ibdAccuracy(outPath, numIndiv, pathToKinship);
+
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){
 					mapWriter.write(String.format("%d\t%d\t%.3f\n", i, j, mapAcc[i][j]));
-					ibdWriter.write(String.format("%d\t%d\t%.5f\n", i, j, ibdAcc[i][j]));
 				}
 			}
 			
 			
 		}
 		
-		
-		
-		ibdWriter.close();
 		mapWriter.close();
 		
 		

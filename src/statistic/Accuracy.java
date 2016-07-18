@@ -289,7 +289,7 @@ public class Accuracy {
 		for(int i=0; i<numIndiv; i++){
 			for(int j=i+1; j<numIndiv; j++){
 				Path bestPath = mapPed[i][j];
-				System.out.println(String.format("(%d, %d) : (%d, %d, %d)\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));
+				//System.out.println(String.format("(%d, %d) : (%d, %d, %d)\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));
 			}
 		}
 		
@@ -585,13 +585,28 @@ public class Accuracy {
 			Path key = new Path(Integer.parseInt(fields[UP]) , Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[NUMVISIT]));
 			
 			trueRel[i][j] = key;
-
+			
+			Path key2 = new Path(Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[UP]) , Integer.parseInt(fields[NUMVISIT]));
+			trueRel[j][i] = key2;
 			
 		}
 		
 		reader.close();
 		
 		return trueRel;
+		
+	}
+	
+	
+	public static boolean hasSameIBD(Map<Path, double[]> pathToOmega, Path i, Path j){
+	
+		double[] omega1 = pathToOmega.get(i);
+		double[] omega2 = pathToOmega.get(j);
+		
+		if(omega1[0]==omega2[0] && omega1[1]==omega2[1] && omega1[2]==omega2[2])
+			return true;
+		
+		return false;
 		
 	}
 	

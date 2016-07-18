@@ -17,7 +17,7 @@ public class SimulatedAnnealing {
 	final int runLength;
 	final Move[] moves; 
 	final PrintWriter writer;
-	final PrintWriter writer2;
+	final PrintWriter convWriter;
 	final Random rGen;
 	
 	//heating parameters
@@ -29,13 +29,13 @@ public class SimulatedAnnealing {
 	public double bestLkhd = Double.NEGATIVE_INFINITY;
 	
 
-	public SimulatedAnnealing(Pedigree ped, double[] heat, int[] coolingSchedule, Move[] moves, int runLength, Random rGen, String outPath) throws IOException{
+	public SimulatedAnnealing(Pedigree ped, double[] heat, int[] coolingSchedule, Move[] moves, int runLength, Random rGen, String outPath, PrintWriter convWriter) throws IOException{
 
 		this.ped = ped;
 		this.runLength = runLength;
 		this.moves = moves;		
 		this.writer = DataParser.openWriter(outPath);
-		this.writer2 = DataParser.openWriter(outPath+".2");
+		this.convWriter = convWriter;
 		
 		this.rGen = rGen;
 		this.heat = heat;
@@ -60,11 +60,14 @@ public class SimulatedAnnealing {
 	private void runBurnIn(){
 		
 		System.out.println("Burn in...");
+		
+		convWriter.write(">\n");
 
 		
 		for(int t=0; t<heat.length-1; t++){
 
 			//run burn-in
+			//while(moves[0].nTried < 100 && moves[0].nAccept <50){
 			for(int i = 0; i < coolingSchedule[t]; i++){
 			
 
@@ -72,7 +75,7 @@ public class SimulatedAnnealing {
 					
 				/*
 				//TESTING			
-				if(!ped.sanityCheck()){
+				if(!ped.sanityCheck() || i==9724){
 					System.out.println(String.format("(%s,%d)", move.name, i));
 				
 					for(int k=0; k< ped.getNActiveNodes(); k++){
@@ -86,13 +89,23 @@ public class SimulatedAnnealing {
 						
 				}
 				*/
+				
 					
 					
 				move.mcmcMove(ped, heat[t]);
-					
+				
 					
 			
 			}
+			
+			
+			//count num success
+			System.out.print(String.format("%d\t%d\t%d\t%f\n", t, moves[0].nAccept, moves[0].nTried, ped.getLogLikelihood()));
+			moves[0].nAccept = 0;
+			moves[0].nTried = 0;
+			
+			//record likelihood
+			convWriter.write(String.format("%d\t%f\n", coolingSchedule[t]*(t+1), ped.getLogLikelihood()));
 			
 			
 		}
@@ -125,11 +138,10 @@ public class SimulatedAnnealing {
 			
 
 			sample(ped);
-			sample2(ped);
+			//sample2(ped);
 
 			
-			//update
-		
+			//update	
 			Move move = chooseMove();
 			move.mcmcMove(ped, heat[heat.length-1]);
 
@@ -188,46 +200,21 @@ public class SimulatedAnnealing {
 	
 	
 	
-	private void sample2(Pedigree currPedigree){
-		
-		//header for this sample
-		writer2.write(String.format(">\t%.5f\t%d\n", currPedigree.getLogLikelihood(), currPedigree.getNActiveNodes()));
-		
-		for(int i=0; i<currPedigree.getNActiveNodes(); i++){
-
-			Node node = currPedigree.getNode(i);
-			List<Node> parents = node.getParents();
-			int p1 = -1;
-			int p2 = -1;
-			if(parents.size()==1){
-				p1 = parents.get(0).getIndex();
-			}
-			else if(parents.size()==2){
-				p1 = parents.get(0).getIndex();
-				p2 = parents.get(1).getIndex();
-			}
-			
-			int sampled = node.sampled ? 1 : 0;
-			
-			writer2.write(String.format("%d\t%d\t%d\t%d\t%d\n", node.getIndex(), p1, p2, node.getDepth(), sampled));
-
-		}
-		
-		
-	}
-	
 	
 	public static double acceptanceRatio(double proposalLkhd, double currLkhd, double heat){
 		
 		//accept if uphill
-		if(proposalLkhd > currLkhd) return 1d;
+		if(proposalLkhd > currLkhd){
+			return 1d;
+		}
 		
 		//reject if frozen
 		if(heat==0) return 0d;
 		
 		//accept with prob
-		return Math.exp(heat * (proposalLkhd - currLkhd));
-
+		double prob = Math.exp(heat * (proposalLkhd - currLkhd));
+		
+		return prob;
 	}
 	
 	
