@@ -47,6 +47,7 @@ public class RunPairwiseTest {
 				currLkhd = Double.parseDouble(fields[2]);
 				
 				//System.out.println(currLkhd);
+
 				
 				if(currLkhd > bestLkhd){
 					bestLkhd = currLkhd;
@@ -105,6 +106,8 @@ public class RunPairwiseTest {
 			int j = Integer.parseInt(fields[1]);
 			double currLkhd = Double.parseDouble(fields[2]);
 			
+
+			
 			if(currLkhd > bestLkhd[i][j]){
 				
 				bestLkhd[i][j] = currLkhd;
@@ -127,28 +130,29 @@ public class RunPairwiseTest {
 	public static void main(String[] args) throws IOException{
 		
 		//param
-		int numIndiv = 75;
+		int numIndiv = 100;
 		
 		//files
-		//String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/jays/";
-		String testName = "75jays";
-		//String inPath = dir + "pairwiseLikelihood/"+testName+".pairwise.";
-		//String outPath = dir + "results/"+testName+".out";
-		//String mapAccPath = dir + "results/"+testName+".pairwise.map.acc";
-		String inPath = dir + testName+".pruned.1000_15.pairwise";
-		String outPath = dir + testName+".pruned.1000_15.out";
-		String mapAccPath = dir +testName+".pruned.1000_15.pairwise.map.acc";
+		/* for simulations
+		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
+		String testName = "test13";
+		String inPath = dir + "pairwiseLikelihood/"+testName+".pairwise.";
+		String outPath = dir + "results/"+testName+".out";
+		String mapAccPath = dir + "results/"+testName+".pairwise.map.acc";
 		String pathToOmegaPath = dir + "pathToOmega.txt";
-		String truePath = dir + testName + ".true";
-		//String truePath = dir + "results/test12.true";
+		//String truePath = dir + testName + ".true";
+		String truePath = dir + "results/test12.true";
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
+		*/ 
 		
-		
-		//getHighestLkhdPath(inPath, 0, 4);
-		
+		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/inuits/";
+		String testName = dir + "100tasiilaq.admixed0.5.aims0.05.prune0.1";
+		String inPath = testName+".pairwise";
+		String outPath = testName+".out";
+
+
 		//open outfiles
-		Writer mapWriter = DataParser.openWriter(mapAccPath);
+		//Writer mapWriter = DataParser.openWriter(mapAccPath);
 		
 		//run pairwise test
 		for(int t=0; t<1; t++){
@@ -158,10 +162,11 @@ public class RunPairwiseTest {
 			writer2.write(String.format(">\t%d\n", t));
 			
 			//write to acc files
-			mapWriter.write(String.format(">\t%d\n", t));
+			//mapWriter.write(String.format(">\t%d\n", t));
 			
 			//String lkhdPath = inPath + t;
 			String lkhdPath = inPath;
+
 			
 			
 			//pairwise result
@@ -179,6 +184,7 @@ public class RunPairwiseTest {
 			
 			writer2.close();
 			
+			/*
 			//accuracy based on mcmc
 			double[][] mapAcc = Accuracy.kinshipAccuracy(outPath, truePath, numIndiv, pathToKinship);
 
@@ -187,11 +193,13 @@ public class RunPairwiseTest {
 					mapWriter.write(String.format("%d\t%d\t%.3f\n", i, j, mapAcc[i][j]));
 				}
 			}
+			*/
 			
 			
 		}
 		
-		mapWriter.close();
+		//mapWriter.close();
+		
 		
 		
 		

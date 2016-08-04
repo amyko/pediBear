@@ -455,6 +455,10 @@ public class TestLikelihood {
 				}
 				*/
 				
+				
+				//TODO pruned set
+				
+				
 
 				
 				//compute marginal probs

@@ -5,6 +5,8 @@ import java.util.List;
 
 public class LogSum {
 	
+	
+	//returns log(a+b) given logA and logB
 	public static double addLogSummand(double logA, double logB){
 		if(Double.NEGATIVE_INFINITY == logA && Double.NEGATIVE_INFINITY == logB){
 			return Double.NEGATIVE_INFINITY;

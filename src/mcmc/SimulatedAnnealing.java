@@ -100,7 +100,7 @@ public class SimulatedAnnealing {
 			
 			
 			//count num success
-			System.out.print(String.format("%d\t%d\t%d\t%f\n", t, moves[0].nAccept, moves[0].nTried, ped.getLogLikelihood()));
+			//System.out.print(String.format("%d\t%d\t%d\t%f\n", t, moves[0].nAccept, moves[0].nTried, ped.getLogLikelihood()));
 			moves[0].nAccept = 0;
 			moves[0].nTried = 0;
 			

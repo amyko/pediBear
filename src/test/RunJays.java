@@ -56,21 +56,21 @@ public class RunJays {
 		//pedigree parameters
 		int depth = 5;
 		int maxDepthForSamples = depth;
-		int numIndiv = 30;
+		int numIndiv = 75;
 		int totalIndiv = 75;
 		double seqError = 0.01;
 		double r = 1.5e-8;
 		int back = 30000;
 		int maxNumNodes = 500;
 		int genTime = 16;
-		double marginalAdj = 100;
+		double marginalAdj = 0;
 		PairwiseLikelihoodCoreStream2 core = new PairwiseLikelihoodCoreStream2(seqError, r, back, numIndiv);
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/jays/";
 		String pathToOmega = dir + "pathToOmega.txt";
 
 		//SA parameters
-		double[] heat = new double[200];
-		heat[0] = .05;
+		double[] heat = new double[800];
+		heat[0] = .01;
 		for(int i=1; i<heat.length; i++) heat[i] = heat[i-1]*1.01;
 
 
@@ -127,7 +127,7 @@ public class RunJays {
 		PrintWriter convWriter = DataParser.openWriter(convPath);
 		
 			
-		for(int t=0; t<1; t++){
+		for(int t=0; t<5; t++){
 
 			System.out.println(t);  
 			String outPath = dir + "mcmc.sample."+t;

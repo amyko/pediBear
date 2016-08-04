@@ -119,11 +119,11 @@ if __name__ == "__main__":
     #file names
     resultDir = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/jays/" 
     testName = "75jays"
-    mcmcPath = resultDir + testName + ".sa.map.acc.50indiv.0"
+    mcmcPath = resultDir + testName + ".sa.map.acc.50indiv.4"
     pairwisePath = resultDir + testName + ".pruned.50_1.pairwise.map.acc"
     truePath = resultDir + testName + ".true"
     omegaPath = resultDir + "pathToOmega.txt"
-    nIndiv = 30
+    nIndiv = 75
     nPairs = nIndiv*(nIndiv-1)/2
 
     
