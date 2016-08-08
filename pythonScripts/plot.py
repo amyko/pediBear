@@ -127,9 +127,9 @@ if __name__ == "__main__":
 
     #file names
     resultDir = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" 
-    testName = "test13"
-    mcmcPath = resultDir + testName + ".sa.map.acc.adjMarginal100"
-    pairwisePath = resultDir + testName + ".pairwise.map.acc"
+    testName = "test12"
+    mcmcPath = resultDir + testName + ".sa.map.acc.prior.10k"
+    pairwisePath = resultDir + testName + ".pruned.10k.pairwise.map"
     testName = "test12"
     plinkPath = resultDir + testName + ".primus.plink.map.acc"
     relatePath = resultDir + testName + ".primus.relate.map.acc"
@@ -141,8 +141,8 @@ if __name__ == "__main__":
     
     mcmcMeans = getMeanErrorSortByMeisosis(mcmcPath, truePath, nIndiv)
     pairwiseMeans = getMeanErrorSortByMeisosis(pairwisePath, truePath, nIndiv)
-    plinkMeans = getMeanErrorSortByMeisosis(plinkPath, truePath, nIndiv)
-    relateMeans = getMeanErrorSortByMeisosis(relatePath, truePath, nIndiv)
+    #plinkMeans = getMeanErrorSortByMeisosis(plinkPath, truePath, nIndiv)
+    #relateMeans = getMeanErrorSortByMeisosis(relatePath, truePath, nIndiv)
     xdata = [i for i in range(0,len(mcmcMeans))]
 
     #tickMarks = [1.0/(4*2**i) for i in range(0,7)]
@@ -150,11 +150,10 @@ if __name__ == "__main__":
 
     #pdb.set_trace()
     print mcmcMeans
-    print plinkMeans
-    print relateMeans
+   # print plinkMeans
+    #print relateMeans
     print pairwiseMeans
-    #mcmcMeans[2] = .13
-    #pairwiseMeans[2] = .14
+
     
     #plot
     fig = plt.figure(facecolor='white')
@@ -163,6 +162,9 @@ if __name__ == "__main__":
    #plt.boxplot(mcmcData)
     plt.scatter(xdata, mcmcMeans, color='blue', label='simulated annealing')
     plt.scatter(xdata, pairwiseMeans, color='red', label='pairwise', marker='^')
+    plt.show()
+    pdb.set_trace()
+    
     plt.scatter(xdata, plinkMeans, color='magenta', label='PLINK + PRIMUS', marker='>')
     plt.scatter(xdata, relateMeans, color='green', label='RELATE + PRIMUS', marker='p')
     plt.legend(loc='upper left')

@@ -1,20 +1,18 @@
 package dataStructures;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 
 import utility.ArrayUtility;
 import utility.DataParser;
-import likelihood.PairwiseLikelihoodCoreStream2;
+import likelihood.PairwiseLikelihoodCoreStreamPed;
 
 //This is the data structure that stores information about all of the individuals in the sample
 //Essentially the nodes themselves encode the pedigree graph, and this class contains
@@ -26,7 +24,7 @@ public class Pedigree {
 	public final int maxDepth;
 	//public final int maxDepthForSamples;
 	public final int numIndiv;
-	private final PairwiseLikelihoodCoreStream2 core;
+	private final PairwiseLikelihoodCoreStreamPed core;
 	public final Random rGen;
 	public boolean looped;
 
@@ -36,7 +34,7 @@ public class Pedigree {
 	private final List<ArrayList<Node>> nodes = new ArrayList<ArrayList<Node>>(2);
 	private int[] nActiveNodes = new int[2];
 	private double[] logLikelihood = new double[2];
-	private int curr;
+	public int curr;
 	private int copy;
 
 	
@@ -50,7 +48,10 @@ public class Pedigree {
 	private final double lambda;
 	private final double logLambda;
 	private final double[] logFact;
-	private int nSingletons;
+	public final int[] nSingletons;
+
+	
+	
 	
 
 	////// CONSTRUCTOR ///////
@@ -221,7 +222,7 @@ public class Pedigree {
 	
 	
 	//TODO handle known relationships
-	public Pedigree(int maxDepth, int maxDepthForSamples, Node[] inds, PairwiseLikelihoodCoreStream2 core, String marginalPath, String lkhdPath, Random rGen, int maxNumNodes, double genTime, double lambda) throws IOException{
+	public Pedigree(int maxDepth, int maxDepthForSamples, Node[] inds, PairwiseLikelihoodCoreStreamPed core, String marginalPath, String lkhdPath, Random rGen, int maxNumNodes, double genTime, double lambda) throws IOException{
 		
 		this.numIndiv = inds.length;
 		this.maxDepth = maxDepth;
@@ -232,8 +233,9 @@ public class Pedigree {
 		this.rGen = rGen;
 		this.curr = 0;
 		this.copy = 1;
-		this.logFact = new double[numIndiv];
-		this.nSingletons = numIndiv;
+		this.logFact = new double[numIndiv+1];
+		this.nSingletons = new int[2];
+		nSingletons[curr] = numIndiv;
 		
 		//log factorials
 		logFact[0] = 0;
@@ -581,7 +583,6 @@ public class Pedigree {
 		clearVisit();
 		List<Node> nodesBeforeSplit = parent.getConnectedSampledNodes(new ArrayList<Node>());
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(nodesBeforeSplit);
-
 		this.logLikelihood[curr] -= getSingletonProb();
 		
 		//make ghost parent
@@ -762,7 +763,9 @@ public class Pedigree {
 
 
 		//subtract old terms
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);		
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);	
+
+		
 		
 		//switch nodes
 		switchParentChild(parent, child);
@@ -843,6 +846,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 		
 		//cut child from parent
 		Node parent = child.getParents().get(0);
@@ -894,7 +898,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 	}
 	
@@ -908,6 +913,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 		
 		
 		//cut parent from grandparents & clean up
@@ -940,6 +946,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 		
 	}
@@ -973,6 +981,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 		
 
 
@@ -1024,6 +1033,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 
 		
 		
@@ -1039,6 +1050,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 
 		
 		//disconnect parent
@@ -1090,6 +1102,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 		
 		
@@ -1106,6 +1120,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 
 		
 		//cut child from parent
@@ -1157,6 +1172,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 		
 	}
@@ -1172,6 +1189,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 
 		
 		//cut child from parent
@@ -1215,6 +1233,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 		
 	}
@@ -1230,6 +1250,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 		
 		
 		//cut from parent
@@ -1274,6 +1295,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 		
 	}
@@ -1288,6 +1311,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 
 		
 		//choose sib
@@ -1327,7 +1351,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 		
 	}
@@ -1344,6 +1369,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 		
 		
 		//cut from parent
@@ -1380,6 +1406,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 		
 	}
@@ -1393,6 +1421,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 
 
 		//disconnect parent
@@ -1432,6 +1461,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 		
 		
@@ -1447,6 +1478,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 
 
 		//disconnect child cluster
@@ -1480,6 +1512,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 		
 		
@@ -1495,6 +1529,7 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
+		this.logLikelihood[curr] -= getSingletonProb();
 
 		
 		Node newParent = this.makeNewNode(child.getDepth(), child.getSex());
@@ -1527,6 +1562,8 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updateNumSingletons();
+		this.logLikelihood[curr] += getSingletonProb();
 		
 		
 		
@@ -1707,7 +1744,9 @@ public class Pedigree {
 	
 	private double getSingletonProb(){
 		
-		return this.nSingletons*logLambda - lambda - logFact[this.nSingletons];
+		double toReturn = this.nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]];
+		
+		return toReturn;
 		
 	}
 	
@@ -1875,6 +1914,7 @@ public class Pedigree {
 		
 		nActiveNodes[copy] = nActiveNodes[curr];
 		logLikelihood[copy] = logLikelihood[curr];
+		nSingletons[copy] = nSingletons[curr];
 		
 		
 	}
@@ -1920,7 +1960,7 @@ public class Pedigree {
 	}
 	
 	
-	private void updateNumSingletons(){
+	public void updateNumSingletons(){
 		
 		//get number of singletons
 		int k = 0;
@@ -1931,7 +1971,7 @@ public class Pedigree {
 			
 		}
 		
-		this.nSingletons = k;
+		this.nSingletons[curr] = k;
 		
 	}
 	

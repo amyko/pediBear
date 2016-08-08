@@ -130,13 +130,13 @@ if __name__ == "__main__":
     #makeChrFile(chrPath, 3541)
     #makeIndivFile(indivPath, 52)
 
-    pedPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/test12.ped."
-    altPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/test12.all.ped"
+    pedPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/genotypes/test12.pruned.10k."
+    altPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/genotypes/test12.all.pruned.10k.ped"
     outPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/relateFiles/geno."
 
     for t in range(0,100):
         print(t)
-        pedToDat(pedPath+str(t), altPath, outPath+str(t))
+        pedToDat(pedPath+str(t)+".ped", altPath, outPath+str(t))
 
             
     

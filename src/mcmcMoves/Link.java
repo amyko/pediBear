@@ -57,6 +57,9 @@ public class Link extends Move{ //WORKS; special merge not tested
 			targetSex = currPedigree.rGen.nextDouble() <.5 ? 0 : 1;
 		}
 		
+		//copy pedigree
+		currPedigree.copyCurrPedigree();
+		
 		
 		//take a random path to targetDepth-1
 		int nBefore = currPedigree.getNActiveNodes();
@@ -174,6 +177,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 	@Override
 	protected void reverseMove(Pedigree currPedigree) {
 		
+		/*
 		if(specialMerge){
 			currPedigree.split2(recipient, donor, donorChildren, mergingFormsFullSibs);
 		}
@@ -183,6 +187,9 @@ public class Link extends Move{ //WORKS; special merge not tested
 		
 		currPedigree.clean(donor);
 		currPedigree.clean(recipient);
+		*/
+		
+		currPedigree.reverse();
 		
 	}
 	

@@ -14,6 +14,7 @@ import dataStructures.Node;
 import dataStructures.Path;
 import dataStructures.Pedigree;
 import likelihood.PairwiseLikelihoodCoreStream2;
+import likelihood.PairwiseLikelihoodCoreStreamPed;
 import mcmc.SimulatedAnnealing;
 import mcmcMoves.CousinToGreatUncle;
 import mcmcMoves.CousinToHalfUncle;
@@ -59,8 +60,8 @@ public class RunSA {
 		int back = 30000;
 		int maxNumNodes = 200;
 		int genTime = 16;
-		double marginalAdj = 100;
-		PairwiseLikelihoodCoreStream2 core = new PairwiseLikelihoodCoreStream2(seqError, r, back, numIndiv);
+		double prior = .99*numIndiv;
+		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(seqError, r, back, numIndiv);
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
 		String pathToOmega = dir + "pathToOmega.txt";
 
@@ -79,10 +80,10 @@ public class RunSA {
 				new CutLink("cutLink", 0.15), new SplitLink("splitLink", 0.15), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.15), new CutTwoLinkOne("cutTwoLinkOne", 0.02),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.02), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.02), new FStoPO("FStoPO", 0.02), new POtoFS("POtoFS",0.02), 
 				new HalfUncleToCousin("halfUncleToCousin", 0.02), new CousinToHalfUncle("cousinToHalfUncle", 0.02), new CousinToGreatUncle("cousinToGreatUncle", 0.02), new GreatUncleToCousin("greatUncleToCousin", 0.02)};
-		String testName = "test13";
+		String testName = "test12";
 		String outPath = dir + "results/mcmc.sample";
 		String truePath = dir + "results/" +testName + ".true";
-		String mapAccPath = dir + "results/"+testName+".sa.map.acc.adjMarginal100";
+		String mapAccPath = dir + "results/"+testName+".sa.map.acc.prior.10k";
 		//String mapAccPath = dir + "results/testing.sa.map.acc";
 
 		//cooling schedule
@@ -107,8 +108,8 @@ public class RunSA {
 
 			System.out.println(t);       
 			
-			String marginalPath = dir + "pairwiseLikelihood/"+testName+".marginal."+t;
-			String lkhdPath = dir + "pairwiseLikelihood/"+testName+".pairwise."+t;
+			String marginalPath = dir + "genotypes/test12.pruned.10k."+t+".marginal";
+			String lkhdPath = dir + "genotypes/test12.pruned.10k."+t+".pairwise";
 			
 			double bestLkhd = Double.NEGATIVE_INFINITY;
 			int bestRun = 0;
@@ -122,7 +123,7 @@ public class RunSA {
 				for(int i=0; i<numIndiv; i++){ //(sampled, index, sex, depth ,age)
 					inds[i] = new Node(true, i, i%2, 0, -1);
 				}
-				Pedigree ped = new Pedigree(depth, maxDepthForSamples, inds, core, marginalPath, lkhdPath, rGen, maxNumNodes, genTime, marginalAdj);
+				Pedigree ped = new Pedigree(depth, maxDepthForSamples, inds, core, marginalPath, lkhdPath, rGen, maxNumNodes, genTime, prior);
 
 			
 				//initialize SA
@@ -136,6 +137,7 @@ public class RunSA {
 
 				double duration = (endTime - startTime)/1e9; 
 
+				System.out.println(String.format("Number of singletons: %d", ped.nSingletons[ped.curr]));
 				System.out.println(String.format("Running time: %.1f seconds", duration));
 				
 				
@@ -181,15 +183,16 @@ public class RunSA {
 			*/
 			
 			
-
+			
 			//////////////////////////////////
 			//likelihood for true pedigree
 			Node[] inds = new Node[numIndiv];
 			for(int i=0; i<numIndiv; i++){ //(sampled, index, sex, depth ,age)
 				inds[i] = new Node(true, i, i%2, 0, -1);
 			}
-			Pedigree ped = new Pedigree(depth, maxDepthForSamples, inds, core, marginalPath, lkhdPath, rGen, maxNumNodes, genTime, marginalAdj);
 			
+			//copy relationship
+			Pedigree ped = new Pedigree(depth, maxDepthForSamples, inds, core, marginalPath, lkhdPath, rGen, maxNumNodes, genTime, prior);
 			Path[][] mcmcmcRel = ped.getRelationships();
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){
@@ -199,10 +202,12 @@ public class RunSA {
 					
 				}
 			}
+			ped.nSingletons[ped.curr] = 10;
 			
 			double trueLkhd = ped.likelihoodAllPedigrees();		
 			System.out.println(String.format("lkhd of true pedigree: %.2f", trueLkhd));
 			////////////////////////////////////////
+			 
 			
 			//kinship accuracy
 			double[][] mapAcc = Accuracy.mapAccuracy(String.format("%s.%d", outPath, bestRun), truePath, totalIndiv, numIndiv, pathToKinship);

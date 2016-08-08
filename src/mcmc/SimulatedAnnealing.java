@@ -89,9 +89,7 @@ public class SimulatedAnnealing {
 						
 				}
 				*/
-				
-					
-					
+
 				move.mcmcMove(ped, heat[t]);
 				
 					

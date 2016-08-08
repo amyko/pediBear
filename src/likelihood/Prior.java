@@ -201,9 +201,9 @@ public class Prior {
 	
 	public static void main(String[] args){
 
-		int N = 1000000;
+		int N = 10000;
 		int n = 20;
-		int g = 4;
+		int g = 5;
 	
 		
 		System.out.println(Math.exp(logPg(N,n,g)));

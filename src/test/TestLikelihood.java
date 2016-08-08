@@ -7,7 +7,9 @@ import java.util.Random;
 import java.io.PrintWriter;
 
 import likelihood.LDStream;
+import likelihood.LDStreamPed;
 import likelihood.PairwiseLikelihoodCoreStream2;
+import likelihood.PairwiseLikelihoodCoreStreamPed;
 import dataStructures.Relationship;
 import dataStructures.Path;
 import simulator.SimulatorStream;
@@ -16,7 +18,7 @@ import utility.DataParser;
 //makes a test pedigree and then computes its likelihood under the pairwise core and using lander-green
 public class TestLikelihood {
 		
-		public static double r = 1.3e-8; 
+		public static double recombRate = 1.3e-8; 
 		public static double seqError = 0.01;
 		public static String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/";
 		public static int back = 30000;
@@ -28,7 +30,7 @@ public class TestLikelihood {
 		public static void simulateCousins(String inPath, String outPath, int numGen, boolean full, int howMany, int nCluster, int start) throws IOException{
 			
 			//initialize simulator
-			SimulatorStream sim = new SimulatorStream(r);
+			SimulatorStream sim = new SimulatorStream(recombRate);
 
 			
 			String[] outNames = new String[nCluster];
@@ -124,7 +126,7 @@ public class TestLikelihood {
 		public static int simulateChildren(String inPath, String outPath, String momPath, int numGen, int howMany, int momCol, int start) throws IOException{
 			
 			//initialize simulator
-			SimulatorStream sim = new SimulatorStream(r);
+			SimulatorStream sim = new SimulatorStream(recombRate);
 			
 			//first generation
 			String firstPath = dir+"simulations/parent.out";
@@ -180,83 +182,42 @@ public class TestLikelihood {
 		}
 		
 		
-		public static void computeMarginals(String simDir, String infoDir, String outPath, int[] indCols, int chrStart, int chrEnd) throws IOException{
+		public static void computeMarginals(PairwiseLikelihoodCoreStreamPed core, String fileName, int[] ids, int t) throws IOException{
 			
 			//compute
-			PairwiseLikelihoodCoreStream2 pwStream = new PairwiseLikelihoodCoreStream2(seqError, r, back, indCols.length);
-			double[] marginals = new double[indCols.length];
-			for (int chr=chrStart; chr<chrEnd; chr++){
+			double[] marginals = core.computeMarginal(fileName+"."+t+".tped", dir+ "simulations/genotypes/test12.all.pruned.10k.info", ids);
 
-				String genoPath = simDir + chr;
-				String infoPath = infoDir + chr;
-				
-				double[] temp = pwStream.computeMarginal(genoPath, infoPath, indCols);
-				for (int i=0; i<marginals.length; i++) marginals[i] += temp[i];
-				
-			}
-
-			//write header
-			PrintWriter writer = DataParser.openWriter(outPath);		
-			for (int i=0; i<indCols.length; i++){
-				writer.write(i+"\t");
-			}
-			writer.write("\n");
+			//open outfile
+			PrintWriter writer = DataParser.openWriter(fileName+"."+t+".marginal");				
 			
-			
-			
-			//write marginals
+			//write marginals to file
 			for (double item : marginals){
-				writer.write(String.format("%f\t",item));
+				writer.write(String.format("%f\n",item));
 			}
 			writer.close();
 		}
 		
 		
-		public static void computePairwise(String simDir, String infoDir, String outPath, int[] indCols, List<Relationship> relationships, int chrStart, int chrEnd) throws IOException{
+		public static void computePairwise(PairwiseLikelihoodCoreStreamPed core, String fileName, int[] ids, List<Relationship> relationships, int t) throws IOException{
 			
-			int numIndiv = indCols.length;
+			int numIndiv = ids.length;
 			int numRel = relationships.size();
 			
 			//likelihood
-			PairwiseLikelihoodCoreStream2 pwStream = new PairwiseLikelihoodCoreStream2(seqError, r, back, numIndiv);
-			PrintWriter writer = DataParser.openWriter(outPath);
+			PrintWriter writer = DataParser.openWriter(fileName+"."+t+".pairwise");
 				
-		
-			double[][][] lkhd = new double[numRel][numIndiv][numIndiv];
+			double[][][] lkhd = core.forwardAlgorithm(fileName+"."+t+".tped", dir+ "simulations/genotypes/test12.all.pruned.10k.info", ids, relationships);
 			
-			for (int chr=chrStart; chr<chrEnd; chr++){
-			
-				//compute likelihood
-				String genoPath = simDir + chr;
-				String infoPath =  infoDir +chr;
-				double[][][] tempLkhd = pwStream.forwardAlgorithm(genoPath, infoPath, indCols, relationships);
-				
-				
-				//add to total likelihood
-				for(int i=0; i<numIndiv; i++){
-					for(int j=i+1; j<numIndiv; j++){
-						
-						for(int k=0; k<numRel; k++){
-							lkhd[k][i][j] += tempLkhd[k][i][j];	
-						}
-						
-					}
-				}
-				
-				
-				//System.out.println();
-				
-			}
-			
-			
-	
+
 			//write to file
 			for(int k=0; k<numRel; k++){
 				
 				for(Path path : relationships.get(k).getAllPaths()){
-					//Path path = relationships.get(k).getPath();
+
 					String header = String.format(">\t%d\t%d\t%d\n",path.getUp(), path.getDown(), path.getNumVisit());
 					writer.write(header);
+					//DataParser.writeMatrixToFile(writer, lkhd[k]);
+					
 					for(int i=0; i<numIndiv; i++){
 						for(int j=i+1; j<numIndiv; j++){
 							
@@ -264,20 +225,11 @@ public class TestLikelihood {
 							
 						}
 					}
+					
+					
 					writer.flush();					
 				}
 
-				/*
-				//print lkhd
-				System.out.print(header);
-				for(int i=0; i<numIndiv; i++){
-					for(int j=0; j<numIndiv; j++){
-						System.out.format("%f\t",lkhd[k][i][j]);
-					}
-					System.out.println();
-				}
-				System.out.println();
-				*/
 			
 			}
 		
@@ -295,13 +247,13 @@ public class TestLikelihood {
 			////////////////////////////
 			
 			//initialize simulator
-			SimulatorStream sim = new SimulatorStream(r);
+			SimulatorStream sim = new SimulatorStream(recombRate);
 			
 			//relationships
 			List<Relationship> relationships = new ArrayList<Relationship>();
 
-			relationships.add(new Relationship(13d, new double[] {1023d/1024d, 1d/1024d, 0}, new Path[]{new Path(0,0,0)})); //unrelated
-			//relationships.add(new Relationship(11d, new double[] {1d, 0, 0}, new Path[]{new Path(0,0,0)})); //unrelated
+			relationships.add(new Relationship(13d, new double[] {1d, 0d, 0}, new Path[]{new Path(0,0,0)})); //unrelated
+	
 			
 			// depth = 1 relationship
 			relationships.add(new Relationship(1d, new double[] {0d, 1d, 0d}, new Path[]{new Path(1,0,1)})); //parent
@@ -341,17 +293,14 @@ public class TestLikelihood {
 			relationships.add(new Relationship(10d, new double[] {511d/512d, 1d/512d, 0d}, new Path[]{new Path(5,5,1)}));
 			relationships.add(new Relationship(11d, new double[] {127d/128d, 1d/128d, 0d}, new Path[]{new Path(5,4,2)}));
 			relationships.add(new Relationship(12d, new double[] {255d/256d, 1d/256d, 0d}, new Path[]{new Path(5,5,2)}));
-			
-
-			//depth = distantly related
-			//relationships.add(new Relationship(11d, new double[] {1-1d/128d, 1d/128d, 0}, new Path[]{new Path(5,0,1), new Path(5,1,1), new Path(5,2,1), new Path(5,3,1), new Path(5,4,1), new Path(5,5,1), new Path(5,1,2), new Path(5,2,2), new Path(5,3,2), new Path(5,4,2), new Path(5,5,2)})); 
+ 			
 			
 			//////////////////////////////
 	
 			
 			//dir
-			String dataDir = dir + "unrelated/";
-			String simDir = dir + "simulations/";
+			//String dataDir = dir + "unrelated/";
+			String simDir = dir + "simulations/genotypes/";
 			
 			//individuals
 			int numIndiv = 20;
@@ -367,7 +316,12 @@ public class TestLikelihood {
 			int nChildren = 5;
 			int nGen = 4;
 			int howManyUnrelated = 10;
-			String testName = "test14";
+			String testName = "test12.pruned.10k";
+			
+			
+			//pairwise core
+			PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(seqError, recombRate, back, numIndiv);
+			
 			
 			/*
 			//prune ld
@@ -375,23 +329,14 @@ public class TestLikelihood {
 			for(int i=1; i<23; i++){
 				LDStream.thin(dataDir+"msprime.geno."+i, dataDir+"msprime.geno.pruned."+i, .2, rgen);
 			}
-			
-			
-			
-	
-			
-			//compute info
-			System.out.println("Computing info");
-			for (int i=chrStart; i<chrEnd; i++){
-				String inPath = dataDir+"/genotypesUsedInPrimus/msprime.geno.pruned."+i;
-				String outPath = dataDir+"/genotypesUsedInPrimus/msprime.info.pruned."+i;
-				LDStream.writeLdOutfile(inPath, outPath, back);
-			}
-			
 			*/
 			
-			
-			
+			/*
+			//compute info
+			System.out.println("Computing info");
+			String fileName = "test12.all.pruned.10k";
+			LDStreamPed.writeLdOutfile(simDir+fileName, simDir+fileName + ".info", back);	
+			*/
 			
 	
 			//int[] cols = new int[]{8, 15, 37, 46, 56, 65, 83, 93, 114, 130};
@@ -400,7 +345,7 @@ public class TestLikelihood {
 			//int[] ids = new int[]{10,19,49,61,74,86,111,124,152,174};
 			
 			
-			for(int t=0; t<1; t++){
+			for(int t=0; t<100; t++){
 				
 				System.out.println(t);
 		
@@ -456,22 +401,20 @@ public class TestLikelihood {
 				*/
 				
 				
-				//TODO pruned set
-				
-				
 
 				
 				//compute marginal probs
 				System.out.println("Computing marginals");
-				computeMarginals(simDir+"/genotypes/sim.test.geno.error."+t+".", dataDir+"genotypesUsedInPrimus/msprime.info.pruned.", simDir+"pairwiseLikelihood/"+testName+".marginal."+t, indCols, chrStart, chrEnd);
+				computeMarginals(core, simDir+testName, indCols, t);
+				
 				
 				
 				//compute pairwise
 				System.out.println("Computing pairwise likelihoods");
 				long startTime = System.nanoTime();		
-				computePairwise(simDir+"genotypes/sim.test.geno.error."+t+".", dataDir+"genotypesUsedInPrimus/msprime.info.pruned.", simDir+"pairwiseLikelihood/"+testName+".pairwise."+t, indCols, relationships, chrStart, chrEnd);	
+				computePairwise(core, simDir+testName, indCols, relationships, t);	
 				System.out.println("Total time was " + (System.nanoTime() - startTime) / 1e9 / 60d/ 60d + " hours");
-		
+				
 				
 			
 			}
