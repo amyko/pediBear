@@ -379,7 +379,7 @@ public class SplitLink extends Move {//WORKS
 			minRecipientAnc = currPedigree.getAncestorWithMinAge(recipient);
 		}
 		
-		if(maxDonorDesc!=null && minRecipientAnc!=null && (minRecipientAnc.getAge() - maxDonorDesc.getAge() < (minRecipientAnc.getDepth() - maxDonorDesc.getDepth()) * currPedigree.genTime)){
+		if(maxDonorDesc!=null && minRecipientAnc!=null && (minRecipientAnc.getAge() <= maxDonorDesc.getAge())){
 			return true;
 		}
 
@@ -396,7 +396,7 @@ public class SplitLink extends Move {//WORKS
 			maxRecipientDesc = currPedigree.getDescendantWithMaxAge(recipient);
 		}
 		
-		if(minDonorAnc!=null && maxRecipientDesc!=null && (minDonorAnc.getAge() - maxRecipientDesc.getAge() < (minDonorAnc.getDepth() - maxRecipientDesc.getDepth()) * currPedigree.genTime)){
+		if(minDonorAnc!=null && maxRecipientDesc!=null && (minDonorAnc.getAge() <= maxRecipientDesc.getAge())){
 			return true;
 		}
 		

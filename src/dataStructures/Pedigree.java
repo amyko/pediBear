@@ -26,7 +26,6 @@ public class Pedigree {
 	public final int numIndiv;
 	private final PairwiseLikelihoodCoreStreamPed core;
 	public final Random rGen;
-	public boolean looped;
 
 	
 	//for reverse move
@@ -37,23 +36,19 @@ public class Pedigree {
 	public int curr;
 	private int copy;
 
-	
-	//for age
-	public final double genTime;
-	final double muGenTime = 25;
-	final double varGenTime = 64;
-	
+
 	
 	//for prior for unrelatedness
 	private final double lambda;
 	private final double logLambda;
 	private final double[] logFact;
 	public final int[] nSingletons;
+	
+	//for primus
+	public boolean looped = false;
 
 	
 	
-	
-
 	////// CONSTRUCTOR ///////
 	//for primus
 	public Pedigree(String inPath, Map<String, Integer> name2Index) throws IOException{
@@ -61,7 +56,6 @@ public class Pedigree {
 		
 		this.numIndiv = name2Index.size();
 		this.maxDepth = 5;
-		this.genTime = 29;
 		this.core = null;
 		this.rGen = null;
 		this.curr = 0;
@@ -70,6 +64,7 @@ public class Pedigree {
 		this.lambda = 0;
 		this.logLambda = 0;
 		logFact = null;
+		nSingletons = null;
 		
 		//relationship
 		this.relationships = new Path[2][numIndiv][numIndiv];
@@ -88,7 +83,7 @@ public class Pedigree {
 		
 		//fill up nodes
 		for(int i=0; i<200; i++){
-			nodes.get(0).add(new Node(true, i));
+			nodes.get(0).add(new Node("missing", String.format("%d", i), -1, true, i));
 		}
 		
 		
@@ -137,6 +132,7 @@ public class Pedigree {
 		
 		this.lambda = 0;
 		this.logLambda = 0;
+		this.nSingletons = null;
 		logFact = null;
 		
 		//relationship
@@ -152,7 +148,6 @@ public class Pedigree {
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = 5;
-		this.genTime = 29;
 		this.core = null;
 		this.rGen = null;
 		this.curr = 0;
@@ -166,7 +161,8 @@ public class Pedigree {
 		
 		//fill up nodes
 		for(int i=0; i<200; i++){
-			nodes.get(0).add(new Node(true, i));
+
+			nodes.get(0).add(new Node("1", String.format("%d", i+1), -1, false, i));
 		}
 		
 		
@@ -183,6 +179,9 @@ public class Pedigree {
 			Node child = nodes.get(0).get(childIdx);
 			Node mom = nodes.get(0).get(momIdx);
 			Node dad = nodes.get(0).get(dadIdx);
+			
+			mom.setSex(0);
+			dad.setSex(1);
 			
 			
 			child.addParent(dad);
@@ -205,28 +204,64 @@ public class Pedigree {
 		//write to path
 		PrintWriter writer = DataParser.openWriter(outPath);
 		
+		this.clearVisit();
+		for(int i=0; i<this.numIndiv; i++){
+			recordFam(this.getNode(ids[i]), writer);
+		}
+		
+		
+		
+		/*
 		for(int i=0; i<ids.length; i++){
 			for(int j=i+1; j<ids.length; j++){
 				Path rel =  relationships[0][ids[i]][ids[j]];
 				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 			}
 		}
+		*/
 
 		writer.close();
 		
 	}
 	
 	
-
-	
-	
-	
-	//TODO handle known relationships
-	public Pedigree(int maxDepth, int maxDepthForSamples, Node[] inds, PairwiseLikelihoodCoreStreamPed core, String marginalPath, String lkhdPath, Random rGen, int maxNumNodes, double genTime, double lambda) throws IOException{
+	private void recordFam(Node ind, PrintWriter famWriter){
 		
-		this.numIndiv = inds.length;
+		//visit
+		if(ind.getNumVisit()!=0) return;
+		ind.setNumVisit(1);
+		
+		String name = ind.iid;
+		String pa = "0";
+		String ma = "0";
+		
+		//get parent ids
+		for(Node parent : ind.getParents()){
+			
+			recordFam(parent, famWriter);
+		
+			if(parent.getSex()==0)
+				ma = parent.iid;
+			else if(parent.getSex()==1)
+				pa = parent.iid;
+			else
+				throw new RuntimeException("Parent with unknown sex");
+			
+		}
+		
+		//write to file
+		famWriter.write(String.format("%s\t%s\t%s\n", name, pa, ma));
+		
+		
+	}
+	
+	
+	
+	//TODO handle known relationships, age
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv) throws IOException{
+		
+		this.numIndiv = numIndiv;
 		this.maxDepth = maxDepth;
-		this.genTime = genTime;
 		this.lambda = lambda;
 		this.logLambda = lambda;
 		this.core = core;
@@ -256,42 +291,53 @@ public class Pedigree {
 		}
 	 
 		//update nodes list
-		//add sampled nodes
+		//initialize list
+		nodes.add(new ArrayList<Node>(maxNumNodes)); //current
+		nodes.add(new ArrayList<Node>(maxNumNodes)); //copy
+		
+		//add sampled nodes by reading in .tfam
+		BufferedReader famFile = DataParser.openReader(fileName+".tfam");
+		
+		String line;
+		int index = 0;
+		while((line=famFile.readLine())!=null){
+			
+			String[] fields = line.split("\\s");
+			String fid = fields[0];
+			String iid = fields[1];
+			int sex = Integer.parseInt(fields[4]) - 1;
+			
+			nodes.get(0).add(new Node(fid, iid, sex, true, index));
+			nodes.get(1).add(new Node(fid, iid, sex, true, index));
+			index++;
+			
+		}
+		
+		
+		
+		//add ghost nodes
 		for(int c=0; c<2; c++){
-			
-			//initailize list
-			nodes.add(new ArrayList<Node>(maxNumNodes));
-			
-			//add sample nodes
-			for(int i=0; i<inds.length; i++){
-				Node ind = inds[i];
-				nodes.get(c).add(new Node(true, i, ind.getSex(), ind.getDepth(), ind.getAge()));
-			}
-			
+
 			//add ghost nodes
-			for(int i = inds.length; i<maxNumNodes; i++){
-				nodes.get(c).add(new Node(false, i));
+			for(int i = numIndiv; i<maxNumNodes; i++){
+				nodes.get(c).add(new Node("missing", String.format("%d", i), -1, false, i));
 			}
 			
 			//active nodes
-			this.nActiveNodes[c] = inds.length;
+			this.nActiveNodes[c] = numIndiv;
 		}
 		
 
 		
 		
 		//initialize pairwise & marginal likelihoods
-		core.setMarginals(marginalPath);
-		core.setLikelihoods(lkhdPath);
+		core.setMarginals(fileName+".marginal");
+		core.setLikelihoods(fileName+".pairwise");
 		
 		//compute current likelihood
-		NormalDistribution normalDist = new NormalDistribution(muGenTime, varGenTime);
-		for(Node i : inds){
-			logLikelihood[curr] += core.getMarginal(i);
-			
-			if(i.getAge()!=-1){
-				logLikelihood[curr] += Math.log(normalDist.density(i.getAge()));
-			}
+		for(int i=0; i<numIndiv; i++){
+			logLikelihood[curr] += core.getMarginal(nodes.get(0).get(i));
+
 		}
 		
 		logLikelihood[curr] += getSingletonProb();
@@ -415,7 +461,7 @@ public class Pedigree {
 		int newCapacity = (3 * oldCapacity) / 2 + 1;
 		
 		for(int i=oldCapacity; i<newCapacity; i++){
-			nodes.get(curr).add(new Node(false, i));
+			nodes.get(curr).add(new Node("missing", String.format("%d", i), -1, false, i));
 		}
 				
 	}
@@ -745,6 +791,7 @@ public class Pedigree {
 			
 			this.logLikelihood[curr] += likelihoodLocalPedigree(mergedPed);
 		}
+	
 		
 		updateNumSingletons();
 		this.logLikelihood[curr] += getSingletonProb();
@@ -956,7 +1003,7 @@ public class Pedigree {
 	public void shiftCluster(List<Node> cluster, int offset){
 		
 		//subtract old likelihood
-		this.logLikelihood[curr] -= ageLikelihood(cluster);
+		//this.logLikelihood[curr] -= ageLikelihood(cluster);
 		
 		//shift cluster
 		for(Node i : cluster){
@@ -965,7 +1012,7 @@ public class Pedigree {
 		
 
 		//add new likelihood
-		this.logLikelihood[curr] += ageLikelihood(cluster);
+		//this.logLikelihood[curr] += ageLikelihood(cluster);
 		
 		
 		
@@ -1635,15 +1682,15 @@ public class Pedigree {
 	//records the path from node to its relatives via its parents
 	private void updateUpDownPath(Node node, int up){
 				
-		boolean isLooped = false;
-		
 		//for every parent
 		for (Node parent :node.getParents()){
 			
 			//update path to parent
 			if (parent.sampled){
-				isLooped = parent.recordPath(up, 0);
+				boolean isLooped = parent.recordPath(up, 0);
+
 				if(isLooped) this.looped = true;
+				
 			}
 				
 			//update children of this parent
@@ -1662,8 +1709,6 @@ public class Pedigree {
 	//records the path from node to its descendants, excluding excludeChild
 	private void updateDownPath(Node node, Node excludeChild, int up, int down){
 
-		boolean isLooped = false;
-		
 		//for every child
 		for (Node child : node.getChildren()){
 			
@@ -1671,7 +1716,8 @@ public class Pedigree {
 			
 			//update path to this child
 			if (child.sampled){
-				isLooped = child.recordPath(up, down);
+				boolean isLooped = child.recordPath(up, down);	
+				
 				if(isLooped) this.looped = true;
 			}
 			
@@ -1731,11 +1777,7 @@ public class Pedigree {
 		int coeff = n>1? -(n-2) : 1;
 		lkhd += coeff * marginals;
 		
-		
-		
-		//TODO testing
-		//lkhd += ageLikelihood(connectedSamples);
-		
+
 
 		return lkhd;
 		
@@ -1747,6 +1789,8 @@ public class Pedigree {
 		double toReturn = this.nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]];
 		
 		return toReturn;
+		
+		//return 0;
 		
 	}
 	
@@ -1770,10 +1814,12 @@ public class Pedigree {
 			
 			toReturn += likelihoodLocalPedigree(connected);
 			
+			/*
 			for(Node j  : connected){
 				System.out.print(String.format("%d\t", j.getIndex()));
 			}
 			System.out.println();
+			*/
 			
 			
 		}
@@ -1816,7 +1862,7 @@ public class Pedigree {
 	}
 	
 	
-	
+	/*
 	private double ageLikelihood(List<Node> connectedSamples){
 		
 		double toReturn = 0d;
@@ -1836,6 +1882,7 @@ public class Pedigree {
 		return toReturn;
 		
 	}
+	*/
 	
 	
 	public double totalLikelihood(){
@@ -1863,14 +1910,29 @@ public class Pedigree {
 	}
 	
 	
-	
+	public double pairwiseLkhd(){
+		
+		double toReturn = 0d;
+		
+		for(int i=0; i<numIndiv; i++){
+			for(int j=i+1; j<numIndiv; j++){
+				
+				toReturn += core.getLikelihood(nodes.get(curr).get(i), nodes.get(curr).get(j), relationships[curr][i][j]);
+				
+			}
+		}
+		
+		
+		return toReturn/5.0;
+		
+	}
 	
 	/////////////////// REVERSE MOVE /////////////////////
 	public void copyCurrPedigree(){
 		
 		//if not enough nodes in the copy nodeList, make more
 		for(int i=nodes.get(copy).size(); i<nActiveNodes[curr]; i++){
-			nodes.get(copy).add(new Node(false, i));
+			nodes.get(copy).add(new Node("missing", String.format("%d", i), -1, false, i));
 		}
 		
 		//reset extra nodes
@@ -1962,18 +2024,65 @@ public class Pedigree {
 	
 	public void updateNumSingletons(){
 		
+		/*
 		//get number of singletons
 		int k = 0;
 		for(int i=0; i<numIndiv; i++){
 			
-			if(nodes.get(curr).get(i).getParents().size()==0 && nodes.get(curr).get(i).getChildren().size()==0)
-				k++;
+			boolean singleton = true;
+			
+			//connection to i
+			for(int j=0; j<numIndiv; j++){
+				
+				if(j==i) continue;
+				int smaller;
+				int bigger;
+				if(j<i){
+					smaller = j;
+					bigger = i;
+				}
+				else{
+					smaller = i;
+					bigger = j;
+				}
+				
+				if(this.relationships[curr][smaller][bigger].getNumVisit()!=0){
+					singleton = false;
+					break;
+				}
+				
+			}
+			
+			if(singleton==true) k++;
+			
+
 			
 		}
 		
 		this.nSingletons[curr] = k;
+		*/
+		
+		//get number of clusters
+		
+		this.clearVisit();
+		
+		int numCluster = 0;
+		
+		for(int i=0; i<numIndiv; i++){
+			
+			Node ind = nodes.get(curr).get(i);
+			
+			if(ind.getNumVisit()>0) continue;
+			
+			numCluster++;
+			ind.getConnectedNodes(new ArrayList<Node>());
+			
+		}
+		
+		nSingletons[curr] = numCluster;
 		
 	}
+	
 	
 
 	

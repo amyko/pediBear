@@ -169,7 +169,7 @@ public class SwapUp extends Move {
 					maxAgeDesc = currPedigree.getDescendantWithMaxAge(c);
 				}
 				
-				if(maxAgeDesc!=null && (child.getAge() - maxAgeDesc.getAge() < (child.getDepth() - maxAgeDesc.getDepth() + 1) * currPedigree.genTime)){
+				if(maxAgeDesc!=null && (child.getAge() <= maxAgeDesc.getAge())){
 					return true;
 				}
 				
@@ -183,7 +183,7 @@ public class SwapUp extends Move {
 			
 			//parent is too old to be its current ancestors's younger relative
 			Node minAgeAnc = currPedigree.getAncestorWithMinAge(parent);
-			if(minAgeAnc!=null && (minAgeAnc.getAge() - parent.getAge() < (minAgeAnc.getDepth() - parent.getDepth() + 1) * currPedigree.genTime)){
+			if(minAgeAnc!=null && (minAgeAnc.getAge() <= parent.getAge())){
 				return true;
 			}
 			

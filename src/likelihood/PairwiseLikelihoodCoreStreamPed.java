@@ -332,217 +332,230 @@ public class PairwiseLikelihoodCoreStreamPed {
 		return toReturn;
 	}
 	
-	//TODO fix to input tped
+	
+	
 	//marginal probability of an individual
-	public double[] computeMarginalIndep(String genoPath, String infoPath, int[] indCols) throws IOException{ //works
-		
-		int numIndiv = indCols.length;
+	public double[] computeMarginalIndep(String genoPath, String infoPath, int[] ids) throws IOException{ //works
+
 		double[] toReturn = new double[numIndiv];
-		int numSnp = DataParser.countLines(infoPath)-1;
-		
+
 		//open files
 		BufferedReader genoFile = DataParser.openReader(genoPath);
 		BufferedReader infoFile = DataParser.openReader(infoPath);
-		//skip headers
-		genoFile.readLine();
-		infoFile.readLine();
-
-		String[] geno;
-		String[] info;
 		
-		for(int locus = 0; locus < numSnp; locus++){ //for every snp
+		//skip header for infofile
+		infoFile.readLine();
+		
+		String genoLine;
+		String infoLine;
+		
+		while((genoLine=genoFile.readLine())!=null && (infoLine=infoFile.readLine())!=null){
+		
+			//read fields
+			String[] geno = genoLine.split("\\s");
+			String[] info = infoLine.split("\\s");
+
 			
-			//read current
-			info = infoFile.readLine().split("\t");
-			geno = genoFile.readLine().split("\t");
-			
-			
-			//compute all possible genotype probs
+			//likelihood of single snp
 			Map<Genotype, Double> oneLocusGenoProbMap = computePossibleGenotypeProbWithError(info);
 			
 			for (int i=0; i<numIndiv; i++){
-				String g = geno[indCols[i]];
+				String g = geno[2*ids[i]+4] + geno[2*ids[i]+5];
 				toReturn[i] += Math.log(oneLocusGenoProbMap.get(genotypeKey.get(g)));
 			}
+		
 			
 		}
+		
 		
 		return toReturn;
 	}
 	
-	//TODO fix to input tped
+
+	
+	
+	//pairwise likelihood for independent sites
 	public double[][][] forwardAlgorithmIndep(String genoPath, String infoPath, int[] indCols, List<Relationship> rel) throws IOException{
 		
-		int numIndiv = indCols.length;
+		
 		int numRel = rel.size();
 		int numIBD = 3;
 		double[][][] toReturn = new double[numRel][numIndiv][numIndiv];
-		int numSnp = DataParser.countLines(infoPath)-1;
 
 		
 		//open file
 		BufferedReader genoFile = DataParser.openReader(genoPath);
 		BufferedReader infoFile = DataParser.openReader(infoPath);
-		genoFile.readLine(); //skip header
 		infoFile.readLine(); //skip header
 		
+	
+		int currChrom = -9;
+		int prevChrom = -9;	
+		int currPos = 0;
+		int prevPos = 0;
+		String genoLine;
+		String infoLine;
 		
 		//previous forward probabilities (only 3 distinct ibd states)
 		double[][][][] alpha = new double[numRel][numIndiv][numIndiv][3];
 		
-		//initialization:
-		//read file
-		String[] geno = genoFile.readLine().split("\t");
-		String[] info = infoFile.readLine().split("\t");
-	
-		Map<EmissionKey, Double> emissionMap = computePossibleOneLocusEmissionWithError(info);
+		while((genoLine=genoFile.readLine())!=null && (infoLine=infoFile.readLine())!=null){
 		
-		//initial alpha
-		for(int ibd = 0; ibd < numIBD; ibd++){
-			for(int i=0; i<numIndiv; i++){
-				int i1 = indCols[i];
-				for(int j=i+1; j<numIndiv; j++){
-					int i2 = indCols[j];
-					EmissionKey key = new EmissionKey(new SimplePair<Genotype,Genotype>(genotypeKey.get(geno[i1]), genotypeKey.get(geno[i2])), null, ibd);
-
-					for(int k=0; k<numRel; k++){
-						alpha[k][i][j][ibd] = rel.get(k).getMarginalProbs()[ibd] * emissionMap.get(key);	
-					}
-						
-
+			//read line
+			String[] geno = genoLine.split("\\s");
+			String[] info = infoLine.split("\\s");
 					
-				}
-			}
-		}
-
-		// scale alphas
-		for(int i=0; i<numIndiv; i++){
-			for(int j=i+1; j<numIndiv; j++){
-				
-				for(int k=0; k<numRel; k++){
-				
-					if(ArrayUtility.sum(alpha[k][i][j]) == 0d){
-						throw new RuntimeException("Zero alpha");	//It is impossible for these genotypes to have this relationship (should never happen with sequencing errors)
-					}
-					
-					double scalingFactor = 1d / ArrayUtility.sum(alpha[k][i][j]);
-
-					for(int ibd = 0; ibd < numIBD; ibd++) 
-						alpha[k][i][j][ibd] = alpha[k][i][j][ibd] * scalingFactor;//scale alpha
-					
-					//add to lkhd
-					toReturn[k][i][j] -= Math.log(scalingFactor);
-					
-					
-				}
-				
-
-			}
-		}
+			//update chrom and pos
+			prevChrom = currChrom;
+			currChrom = Integer.parseInt(geno[0]);
+			prevPos = currPos;
+			currPos = Integer.parseInt(info[POS]);
+			Map<EmissionKey, Double> emissionMap = computePossibleOneLocusEmissionWithError(info);
 		
-	
-		//update previous data
-		int prevPos = Integer.parseInt(info[POS]);
-		
-
-		//recursion:
-		for(int locus = 1; locus < numSnp; locus++){
-			//if (locus%10000==0) System.out.println(locus);
 			
-			double[][][][] tempAlpha = new double[numRel][numIndiv][numIndiv][3];
-			
-			//read info
-			info = infoFile.readLine().split("\t");
-			
-			//read geno
-			geno = genoFile.readLine().split("\t");
-			
-			//read relevant data
-			int currPos = Integer.parseInt(info[POS]);
-			double dist = (currPos - prevPos) * recombRate;
-
-			
-			//compute all possible emission probs
-			emissionMap = computePossibleOneLocusEmissionWithError(info);
-			
-			for (int ibdNew = 0; ibdNew < numIBD; ibdNew++){
-				//transition
-				for(int ibdPrev = 0; ibdPrev < numIBD; ibdPrev++){	
-					
+			////// FIRST SNP /////
+			if(currChrom!=prevChrom){
+				
+				alpha = new double[numRel][numIndiv][numIndiv][3];
+				
+				//initial alpha
+				for(int ibd = 0; ibd < numIBD; ibd++){
 					for(int i=0; i<numIndiv; i++){
+						int i1 = 2*indCols[i]+4;
 						for(int j=i+1; j<numIndiv; j++){
-							
+							int i2 = 2*indCols[j]+4;
+							EmissionKey key = new EmissionKey(new SimplePair<Genotype,Genotype>(genotypeKey.get(geno[i1]+geno[i1+1]), genotypeKey.get(geno[i2]+geno[i2+1])), null, ibd);
+		
 							for(int k=0; k<numRel; k++){
-								double transitionDensity = transitionDensity(ibdNew, ibdPrev, dist, rel.get(k));
-								tempAlpha[k][i][j][ibdNew] += alpha[k][i][j][ibdPrev] * transitionDensity;					
-								
+								alpha[k][i][j][ibd] = rel.get(k).getMarginalProbs()[ibd] * emissionMap.get(key);	
 							}
-						
+								
+		
 							
-						
 						}
 					}
-					
-				
 				}
-				
-				
-				//emission	
+		
+				// scale alphas
 				for(int i=0; i<numIndiv; i++){
-					int i1 = indCols[i];
 					for(int j=i+1; j<numIndiv; j++){
-						int i2 = indCols[j];
-						EmissionKey key = new EmissionKey(new SimplePair<Genotype,Genotype>(genotypeKey.get(geno[i1]), genotypeKey.get(geno[i2])), null, ibdNew);
-						double emissionDensity = emissionMap.get(key); //should never be zero
-						
 						
 						for(int k=0; k<numRel; k++){
-							tempAlpha[k][i][j][ibdNew] *= emissionDensity;	
+						
+							if(ArrayUtility.sum(alpha[k][i][j]) == 0d){
+								throw new RuntimeException("Zero alpha");	//It is impossible for these genotypes to have this relationship (should never happen with sequencing errors)
+							}
+							
+							double scalingFactor = 1d / ArrayUtility.sum(alpha[k][i][j]);
+		
+							for(int ibd = 0; ibd < numIBD; ibd++) 
+								alpha[k][i][j][ibd] = alpha[k][i][j][ibd] * scalingFactor;//scale alpha
+							
+							//add to lkhd
+							toReturn[k][i][j] -= Math.log(scalingFactor);
+							
+							
 						}
 						
-						
-						
+		
 					}
+				}
+
+			}
+		
+
+			//all other snps
+			else{
+
+			
+				double[][][][] tempAlpha = new double[numRel][numIndiv][numIndiv][3];
+				
+				
+				//read relevant data
+				double dist = (currPos - prevPos) * recombRate;
+	
+				
+				for (int ibdNew = 0; ibdNew < numIBD; ibdNew++){
+					//transition
+					for(int ibdPrev = 0; ibdPrev < numIBD; ibdPrev++){	
+						
+						for(int i=0; i<numIndiv; i++){
+							for(int j=i+1; j<numIndiv; j++){
+								
+								for(int k=0; k<numRel; k++){
+									double transitionDensity = transitionDensity(ibdNew, ibdPrev, dist, rel.get(k));
+									tempAlpha[k][i][j][ibdNew] += alpha[k][i][j][ibdPrev] * transitionDensity;					
+									
+								}
+							
+								
+							
+							}
+						}
+						
+					
+					}
+					
+					
+					//emission	
+					for(int i=0; i<numIndiv; i++){
+						int i1 = 2*indCols[i]+4;
+						for(int j=i+1; j<numIndiv; j++){
+							int i2 = 2*indCols[j]+4;
+							EmissionKey key = new EmissionKey(new SimplePair<Genotype,Genotype>(new Genotype(geno[i1]+geno[i1+1]), new Genotype(geno[i2]+geno[i2+1])), null, ibdNew);
+							double emissionDensity = emissionMap.get(key); //should never be zero
+							
+							
+							for(int k=0; k<numRel; k++){
+								tempAlpha[k][i][j][ibdNew] *= emissionDensity;	
+							}
+							
+							
+							
+						}
+					}
+					
+					
+					
+					
+	
 				}
 				
-
-			}
-			
-			
-			//scale alphas
-			for(int i=0; i<numIndiv; i++){
-				for(int j=i+1; j<numIndiv; j++){
-					
-					for(int k=0; k<numRel; k++){
-						if(ArrayUtility.sum(tempAlpha[k][i][j]) == 0d){
-							System.out.print(locus);
-							throw new RuntimeException("Zero temp alpha");	//It is impossible for these genotypes to have this relationship (should never happen with sequencing errors)
+				
+				//scale alphas
+				for(int i=0; i<numIndiv; i++){
+					for(int j=i+1; j<numIndiv; j++){
 						
+						for(int k=0; k<numRel; k++){
+							if(ArrayUtility.sum(tempAlpha[k][i][j]) == 0d){
+								throw new RuntimeException("Zero temp alpha");	//It is impossible for these genotypes to have this relationship (should never happen with sequencing errors)
+							
+							}
+							
+							double scalingFactor = 1d / ArrayUtility.sum(tempAlpha[k][i][j]);
+	
+							for(int ibd = 0; ibd < numIBD; ibd++){
+								alpha[k][i][j][ibd] = tempAlpha[k][i][j][ibd] * scalingFactor;//scale alpha
+							}
+							
+							//add to lkhd
+							toReturn[k][i][j] -= Math.log(scalingFactor);	
 						}
 						
-						double scalingFactor = 1d / ArrayUtility.sum(tempAlpha[k][i][j]);
-
-						for(int ibd = 0; ibd < numIBD; ibd++){
-							alpha[k][i][j][ibd] = tempAlpha[k][i][j][ibd] * scalingFactor;//scale alpha
-						}
 						
-						//add to lkhd
-						toReturn[k][i][j] -= Math.log(scalingFactor);	
 					}
-					
-					
 				}
-			}
-
 			
-			//add previous info
-			prevPos = currPos;
+			}
+			
 			
 		}
 		
 		return toReturn;
 		
-	}
+	}	
+	
+	
 	
 	
 	//pairwise likelihood for dependent sites
@@ -1508,6 +1521,224 @@ public class PairwiseLikelihoodCoreStreamPed {
 		
 		
 	}
+	
+	
+	/*
+	 	//TODO fix to input tped
+	//marginal probability of an individual
+	public double[] computeMarginalIndep(String genoPath, String infoPath, int[] indCols) throws IOException{ //works
+		
+		int numIndiv = indCols.length;
+		double[] toReturn = new double[numIndiv];
+		int numSnp = DataParser.countLines(infoPath)-1;
+		
+		//open files
+		BufferedReader genoFile = DataParser.openReader(genoPath);
+		BufferedReader infoFile = DataParser.openReader(infoPath);
+		//skip headers
+		genoFile.readLine();
+		infoFile.readLine();
+
+		String[] geno;
+		String[] info;
+		
+		for(int locus = 0; locus < numSnp; locus++){ //for every snp
+			
+			//read current
+			info = infoFile.readLine().split("\t");
+			geno = genoFile.readLine().split("\t");
+			
+			
+			//compute all possible genotype probs
+			Map<Genotype, Double> oneLocusGenoProbMap = computePossibleGenotypeProbWithError(info);
+			
+			for (int i=0; i<numIndiv; i++){
+				String g = geno[indCols[i]];
+				toReturn[i] += Math.log(oneLocusGenoProbMap.get(genotypeKey.get(g)));
+			}
+			
+		}
+		
+		return toReturn;
+	}
+	 
+	 
+	 //TODO fix to input tped
+	public double[][][] forwardAlgorithmIndep(String genoPath, String infoPath, int[] indCols, List<Relationship> rel) throws IOException{
+		
+		int numIndiv = indCols.length;
+		int numRel = rel.size();
+		int numIBD = 3;
+		double[][][] toReturn = new double[numRel][numIndiv][numIndiv];
+		int numSnp = DataParser.countLines(infoPath)-1;
+
+		
+		//open file
+		BufferedReader genoFile = DataParser.openReader(genoPath);
+		BufferedReader infoFile = DataParser.openReader(infoPath);
+		genoFile.readLine(); //skip header
+		infoFile.readLine(); //skip header
+		
+		
+		//previous forward probabilities (only 3 distinct ibd states)
+		double[][][][] alpha = new double[numRel][numIndiv][numIndiv][3];
+		
+		//initialization:
+		//read file
+		String[] geno = genoFile.readLine().split("\t");
+		String[] info = infoFile.readLine().split("\t");
+	
+		Map<EmissionKey, Double> emissionMap = computePossibleOneLocusEmissionWithError(info);
+		
+		//initial alpha
+		for(int ibd = 0; ibd < numIBD; ibd++){
+			for(int i=0; i<numIndiv; i++){
+				int i1 = indCols[i];
+				for(int j=i+1; j<numIndiv; j++){
+					int i2 = indCols[j];
+					EmissionKey key = new EmissionKey(new SimplePair<Genotype,Genotype>(genotypeKey.get(geno[i1]), genotypeKey.get(geno[i2])), null, ibd);
+
+					for(int k=0; k<numRel; k++){
+						alpha[k][i][j][ibd] = rel.get(k).getMarginalProbs()[ibd] * emissionMap.get(key);	
+					}
+						
+
+					
+				}
+			}
+		}
+
+		// scale alphas
+		for(int i=0; i<numIndiv; i++){
+			for(int j=i+1; j<numIndiv; j++){
+				
+				for(int k=0; k<numRel; k++){
+				
+					if(ArrayUtility.sum(alpha[k][i][j]) == 0d){
+						throw new RuntimeException("Zero alpha");	//It is impossible for these genotypes to have this relationship (should never happen with sequencing errors)
+					}
+					
+					double scalingFactor = 1d / ArrayUtility.sum(alpha[k][i][j]);
+
+					for(int ibd = 0; ibd < numIBD; ibd++) 
+						alpha[k][i][j][ibd] = alpha[k][i][j][ibd] * scalingFactor;//scale alpha
+					
+					//add to lkhd
+					toReturn[k][i][j] -= Math.log(scalingFactor);
+					
+					
+				}
+				
+
+			}
+		}
+		
+	
+		//update previous data
+		int prevPos = Integer.parseInt(info[POS]);
+		
+
+		//recursion:
+		for(int locus = 1; locus < numSnp; locus++){
+			//if (locus%10000==0) System.out.println(locus);
+			
+			double[][][][] tempAlpha = new double[numRel][numIndiv][numIndiv][3];
+			
+			//read info
+			info = infoFile.readLine().split("\t");
+			
+			//read geno
+			geno = genoFile.readLine().split("\t");
+			
+			//read relevant data
+			int currPos = Integer.parseInt(info[POS]);
+			double dist = (currPos - prevPos) * recombRate;
+
+			
+			//compute all possible emission probs
+			emissionMap = computePossibleOneLocusEmissionWithError(info);
+			
+			for (int ibdNew = 0; ibdNew < numIBD; ibdNew++){
+				//transition
+				for(int ibdPrev = 0; ibdPrev < numIBD; ibdPrev++){	
+					
+					for(int i=0; i<numIndiv; i++){
+						for(int j=i+1; j<numIndiv; j++){
+							
+							for(int k=0; k<numRel; k++){
+								double transitionDensity = transitionDensity(ibdNew, ibdPrev, dist, rel.get(k));
+								tempAlpha[k][i][j][ibdNew] += alpha[k][i][j][ibdPrev] * transitionDensity;					
+								
+							}
+						
+							
+						
+						}
+					}
+					
+				
+				}
+				
+				
+				//emission	
+				for(int i=0; i<numIndiv; i++){
+					int i1 = indCols[i];
+					for(int j=i+1; j<numIndiv; j++){
+						int i2 = indCols[j];
+						EmissionKey key = new EmissionKey(new SimplePair<Genotype,Genotype>(genotypeKey.get(geno[i1]), genotypeKey.get(geno[i2])), null, ibdNew);
+						double emissionDensity = emissionMap.get(key); //should never be zero
+						
+						
+						for(int k=0; k<numRel; k++){
+							tempAlpha[k][i][j][ibdNew] *= emissionDensity;	
+						}
+						
+						
+						
+					}
+				}
+				
+
+			}
+			
+			
+			//scale alphas
+			for(int i=0; i<numIndiv; i++){
+				for(int j=i+1; j<numIndiv; j++){
+					
+					for(int k=0; k<numRel; k++){
+						if(ArrayUtility.sum(tempAlpha[k][i][j]) == 0d){
+							System.out.print(locus);
+							throw new RuntimeException("Zero temp alpha");	//It is impossible for these genotypes to have this relationship (should never happen with sequencing errors)
+						
+						}
+						
+						double scalingFactor = 1d / ArrayUtility.sum(tempAlpha[k][i][j]);
+
+						for(int ibd = 0; ibd < numIBD; ibd++){
+							alpha[k][i][j][ibd] = tempAlpha[k][i][j][ibd] * scalingFactor;//scale alpha
+						}
+						
+						//add to lkhd
+						toReturn[k][i][j] -= Math.log(scalingFactor);	
+					}
+					
+					
+				}
+			}
+
+			
+			//add previous info
+			prevPos = currPos;
+			
+		}
+		
+		return toReturn;
+		
+	}
+	 
+	 
+	 */
 
 	 
 }

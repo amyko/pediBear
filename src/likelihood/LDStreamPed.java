@@ -32,13 +32,15 @@ public class LDStreamPed {
 	//output: info file
 	public static void writeLdOutfile(String fileName, String outPath, int back) throws IOException{
 		
+		//TODO fix this!!
+		int numIndiv = 100;
 		//num indiv
-		int numIndiv = DataParser.countLines(fileName+".fam");
-		
+		//int numIndiv = DataParser.countLines(fileName+".tfam"); 
+
 		//open files
 		BufferedReader tpedfile = DataParser.openReader(fileName+".tped");
-		BufferedReader bimfile = DataParser.openReader(fileName+".bim");
-		PrintWriter writer = DataParser.openWriter(outPath);
+		//BufferedReader bimfile = DataParser.openReader(fileName+".bim");
+		PrintWriter writer = DataParser.openWriter(fileName+".info");
 		
 		//write header for outfile
 		writer.write("CHROM\tPOS\tLDPOS\tU\tu\tV\tv\tpA\tpC\tpG\tpT\tA\tB\tC\tD\n");
@@ -60,15 +62,15 @@ public class LDStreamPed {
 		String bimline;
 		int prevChrom = 1;
 		int currChrom = 1;
-		while ((tpedline = tpedfile.readLine())!=null && (bimline = bimfile.readLine())!=null){
-			
+		//while ((tpedline = tpedfile.readLine())!=null && (bimline = bimfile.readLine())!=null){
+		while ((tpedline = tpedfile.readLine())!=null){
 			String[] tpedFields = tpedline.split("\\s");
-			String[] bimFields = bimline.split("\\s");
+			//String[] bimFields = bimline.split("\\s");
 			
 			// update current info
 			prevChrom = currChrom;
-			currChrom = Integer.parseInt(bimFields[CHROM]);
-			int currPos = Integer.parseInt(bimFields[POS]);
+			currChrom = Integer.parseInt(tpedFields[CHROM]);
+			int currPos = Integer.parseInt(tpedFields[POS]);
 			if(currChrom!=prevChrom){
 				prevPosList.clear();
 				prevGenotypeList.clear();
@@ -78,7 +80,11 @@ public class LDStreamPed {
 					
 			if(prevPosList.contains(currPos)) continue; //skip if it was already processed
 			
-			char[] currAlleleTypes = new char[]{bimFields[A1].charAt(0), bimFields[A2].charAt(0)};
+			
+			//TODO fix this!
+			//char[] currAlleleTypes = new char[]{bimFields[A1].charAt(0), bimFields[A2].charAt(0)};
+			char[] currAlleleTypes = new char[]{'A','T'};
+			
 			
 			String[] currGenotypes = new String[numIndiv];
 			for (int i=0; i<numIndiv; i++){				
@@ -113,7 +119,7 @@ public class LDStreamPed {
 		}
 		
 		tpedfile.close();
-		bimfile.close();
+		//bimfile.close();
 		writer.close();
 		
 		

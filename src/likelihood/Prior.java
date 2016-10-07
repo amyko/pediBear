@@ -203,7 +203,7 @@ public class Prior {
 
 		int N = 10000;
 		int n = 20;
-		int g = 5;
+		int g = 4;
 	
 		
 		System.out.println(Math.exp(logPg(N,n,g)));

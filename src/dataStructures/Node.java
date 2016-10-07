@@ -5,15 +5,19 @@ import java.util.List;
 
 public class Node {
 	
+	//for indexing nodes
+	static int currIdx = 0;
+	
 	//fixed features
 	public final boolean sampled;
 	private final double age; //-1 = not available
+	public final String fid;
+	public final String iid;
 	
 	//mutable features (for ghost nodes)
 	private int index;
 	private int depth;
 	private int sex; //0=female, 1=male, -1=either
-
 
 	//edges
 	private final List<Node> children;
@@ -27,21 +31,23 @@ public class Node {
 	
 
 	/////// CONSTRUCTORS /////////	
-	public Node(boolean sampled, int index, int sex, int depth, double age){
-
+	public Node(String fid, String iid, int sex, boolean sampled, double age, int depth, int index){
+		
+		this.fid = fid;
+		this.iid = iid;
 		this.sampled = sampled;
-		this.index = index;
 		this.depth = depth;
 		this.sex = sex;
 		this.age = age;
 		this.parents = new ArrayList<Node>(2);
 		this.children = new ArrayList<Node>();
+		this.index = index;
 		
 	}	
 	
 	
-	public Node(boolean sampled, int index){
-		this(sampled, index, -1, -1, -1);
+	public Node(String fid, String iid, int sex, boolean sampled, int index){
+		this(fid, iid, sex, sampled, -1, 0, index);
 	}
 	
 	

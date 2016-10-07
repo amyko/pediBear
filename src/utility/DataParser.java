@@ -90,6 +90,63 @@ public class DataParser {
 		writer.close();
 		
 	}
+
+	public static void concatFilesSpace(String[] paths, String outPath, int[][] cols) throws IOException{
+		//assumes that the line nums are equal //fix this later
+		
+		//open readers & writer
+		int numFiles = paths.length;
+		List<BufferedReader> readers = new ArrayList<BufferedReader>(numFiles);
+		for(String p : paths){
+			readers.add(openReader(p));
+		}
+		PrintWriter writer = openWriter(outPath);
+		
+		
+		// write to file
+		boolean endOfLine = false;
+		while(true){
+			//read lines
+			String[] lines = new String[numFiles];
+			for (int i=0; i<numFiles; i++){
+				lines[i] = readers.get(i).readLine();
+				if (lines[i]==null) endOfLine=true;
+			}
+		
+			//check end of line
+			if(endOfLine==true) break;
+			
+			
+			//write to file
+			String toWrite = "";
+			for (int i=0; i<numFiles; i++){
+				String[] fields = lines[i].split("\\s");
+				
+				//write all columns
+				if(cols[i].length==0){
+					for (int j=0; j<fields.length; j++){
+						toWrite += fields[j]+" ";
+					}
+				}
+				
+				//write select columns
+				else{
+					for (int j=0; j<cols[i].length; j++){
+						toWrite += fields[cols[i][j]]+" ";
+					}
+				}
+			}
+			writer.write(toWrite + "\n");	
+		}
+		
+		
+		//close files
+		for (BufferedReader r : readers){
+			r.close();
+		}
+		writer.close();
+		
+	}
 	
 	public static void writeMatrixToFile(PrintWriter writer, double[][] data) throws IOException{
 		

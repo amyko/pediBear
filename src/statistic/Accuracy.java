@@ -220,7 +220,7 @@ public class Accuracy {
 	
 	
 	
-	//accuracy based on MAP estimate
+	//accuracy based on MAP estimate; acc=1 if the kinship coefficients are equal
 	public static double[][] mapAccuracy(String outPath, String truePath, int totalIndiv, int numIndiv, Map<Path, double[]> pathToOmega) throws NumberFormatException, IOException{
 		
 		double[][] accuracy = new double[numIndiv][numIndiv];
@@ -282,6 +282,7 @@ public class Accuracy {
 		
 		reader.close();
 		
+		/*
 		//print map path
 		System.out.println();
 		System.out.println(String.format("MCMC MAP likelihood: %.2f", bestLkhd));
@@ -289,9 +290,10 @@ public class Accuracy {
 		for(int i=0; i<numIndiv; i++){
 			for(int j=i+1; j<numIndiv; j++){
 				Path bestPath = mapPed[i][j];
-				//System.out.println(String.format("(%d, %d) : (%d, %d, %d)\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));
+				System.out.println(String.format("(%d, %d) : (%d, %d, %d)\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit()));
 			}
 		}
+		*/
 		
 		
 		return accuracy;
@@ -362,54 +364,66 @@ public class Accuracy {
 	
 	
 	
-	//acc=1 if inferred ibd coefficeints are the same as truth
-	public static double[][] kinshipAccuracy(String outPath, String truePath, int numIndiv, Map<Path, double[]> pathToOmega) throws NumberFormatException, IOException{
+	//returns squared distance from true kinship coefficient
+	public static double[][] kinshipDist(String outPath, String truePath, int totalIndiv, int numIndiv, Map<Path, double[]> pathToOmega) throws NumberFormatException, IOException{
 		
-		double[][] kinshipDist = new double[numIndiv][numIndiv];
+		
+		
+		double[][] accuracy = new double[numIndiv][numIndiv];
 		
 		//read true relationship
-		double[][][] trueOmega = getTrueOmega(truePath, numIndiv, pathToOmega);
+		double[][][] trueOmega = getTrueOmega(truePath, totalIndiv, pathToOmega);
 			
 		//read output
 		BufferedReader reader = DataParser.openReader(outPath);
 		String line;
-		int numSample = 0;
+		double bestLkhd = Double.NEGATIVE_INFINITY;
+		boolean process = false;
+		
 		while((line = reader.readLine())!=null){
 			
 			String[] fields = line.split("\t");
 			if(fields[0].equals(">")){
-				numSample++;
+				
+				double currLkhd = Double.parseDouble(fields[1]);
+				
+				if(currLkhd > bestLkhd){
+					bestLkhd = currLkhd;
+					process = true;
+				}
+				else
+					process = false;
+				
 				continue;
 			}
 			
-			int i = Integer.parseInt(fields[IND1]);
-			int j = Integer.parseInt(fields[IND2]);
-			Path key = new Path(Integer.parseInt(fields[UP]) , Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[NUMVISIT]));
 			
-			int c = 0;
-			for(int k=0; k<3; k++){
-				if(Math.abs(trueOmega[i][j][k] - pathToOmega.get(key)[k]) < 1e-13){
-					c++;
-				}
+			if(process){
+				
+				int i = Integer.parseInt(fields[IND1]);
+				int j = Integer.parseInt(fields[IND2]);
+				Path key = new Path(Integer.parseInt(fields[UP]) , Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[NUMVISIT]));
+				
+				double trueKinship = .25*trueOmega[i][j][1] + .5*trueOmega[i][j][2];
+				double inferredKinship = .25*pathToOmega.get(key)[1] + .5*pathToOmega.get(key)[2];
+
+				
+				accuracy[i][j] = Math.abs(trueKinship-inferredKinship);
+
 			}
+
 			
-			int add = c==3 ? 1 : 0;
-			
-			kinshipDist[i][j] += add;
+
 			
 		}
 		
 		reader.close();
 		
+
 		
-		//normalize by sample size
-		for(int i=0; i<numIndiv; i++){
-			for(int j=i+1; j<numIndiv; j++){
-				kinshipDist[i][j] /= numSample;
-			}
-		}
 		
-		return kinshipDist;
+		return accuracy;
+
 		
 		
 	}
@@ -418,9 +432,9 @@ public class Accuracy {
 	//average r = .25*k1 + .5k2 across posterior samples
 	public static double[][] ibdAccuracy(String outPath, int numIndiv, Map<Path, double[]> pathToOmega) throws NumberFormatException, IOException{
 		
-		double[][] kinshipDist = new double[numIndiv][numIndiv];
 		
-			
+		double[][] kinshipDist = new double[numIndiv][numIndiv];
+				
 		//read output
 		BufferedReader reader = DataParser.openReader(outPath);
 		String line;

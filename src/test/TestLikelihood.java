@@ -169,8 +169,6 @@ public class TestLikelihood {
 
 
 		
-		
-		
 		public static void computeInfo(String hapmapPath, String simPath, String outPath, int back) throws IOException{
 			
 			//concatenate
@@ -185,8 +183,9 @@ public class TestLikelihood {
 		public static void computeMarginals(PairwiseLikelihoodCoreStreamPed core, String fileName, int[] ids, int t) throws IOException{
 			
 			//compute
-			double[] marginals = core.computeMarginal(fileName+"."+t+".tped", dir+ "simulations/genotypes/test12.all.pruned.10k.info", ids);
-
+			double[] marginals = core.computeMarginal(fileName+"."+t+".tped", dir+ "simulations/simPed2/msprime.unrel.try2.10k.info", ids);
+			
+			
 			//open outfile
 			PrintWriter writer = DataParser.openWriter(fileName+"."+t+".marginal");				
 			
@@ -206,8 +205,7 @@ public class TestLikelihood {
 			//likelihood
 			PrintWriter writer = DataParser.openWriter(fileName+"."+t+".pairwise");
 				
-			double[][][] lkhd = core.forwardAlgorithm(fileName+"."+t+".tped", dir+ "simulations/genotypes/test12.all.pruned.10k.info", ids, relationships);
-			
+			double[][][] lkhd = core.forwardAlgorithm(fileName+"."+t+".tped", dir+ "simulations/simPed2/msprime.unrel.try2.10k.info", ids, relationships);
 
 			//write to file
 			for(int k=0; k<numRel; k++){
@@ -253,37 +251,30 @@ public class TestLikelihood {
 			List<Relationship> relationships = new ArrayList<Relationship>();
 
 			relationships.add(new Relationship(13d, new double[] {1d, 0d, 0}, new Path[]{new Path(0,0,0)})); //unrelated
-	
+			//relationships.add(new Relationship(13d, new double[] {511d/512d, 1d/512d, 0d}, new Path[]{new Path(0,0,0)})); //unrelated
 			
 			// depth = 1 relationship
 			relationships.add(new Relationship(1d, new double[] {0d, 1d, 0d}, new Path[]{new Path(1,0,1)})); //parent
-			relationships.add(new Relationship(2d, new double[] {.5, .5, 0d}, new Path[]{new Path(1,1,1), new Path(2,0,1)})); //half-sib
 			relationships.add(new Relationship(4d, new double[] {.25, .5, .25}, new Path[]{new Path(1,1,2)})); //full-sib
 			
+			
+			relationships.add(new Relationship(2d, new double[] {.5, .5, 0d}, new Path[]{new Path(1,1,1), new Path(2,0,1)})); //half-sib
+			
 			//depth = 2 relationships
-			//relationships.add(new Relationship(2d, new double[] {.5, .5, 0d}, 2,0,1)); //grand parents
 			relationships.add(new Relationship(3d, new double[] {3d/4d, 1d/4d, 0d}, new Path[]{new Path(2,1,1), new Path(3,0,1)})); //half uncle
 			relationships.add(new Relationship(4d, new double[] {7d/8d, 1d/8d, 0d}, new Path[]{new Path(2,2,1), new Path(3,1,1), new Path(4,0,1)})); //half cousins
 			relationships.add(new Relationship(5d, new double[] {.5, .5, 0d}, new Path[]{new Path(2,1,2)})); //uncle
 			relationships.add(new Relationship(6d, new double[] {3d/4d, 1d/4d, 0d}, new Path[]{new Path(2,2,2), new Path(3,1,2)})); //first cousins
 			
 			//depth = 3 relationships
-			//relationships.add(new Relationship(3d, new double[] {.75, .25, 0d}, 3,0,1)); 
-			//relationships.add(new Relationship(4d, new double[] {7d/8d, 1d/8d, 0d}, 3,1,1)); 
 			relationships.add(new Relationship(5d, new double[] {15d/16d, 1d/16d, 0d}, new Path[]{new Path(3,2,1), new Path(4,1,1), new Path(5,0,1)})); 
 			relationships.add(new Relationship(6d, new double[] {31d/32d, 1d/32d, 0d}, new Path[]{new Path(3,3,1), new Path(4,2,1), new Path(5,1,1)}));
-			//relationships.add(new Relationship(6d, new double[] {.75, .25, 0d}, 3,1,2));
 			relationships.add(new Relationship(7d, new double[] {7d/8d, 1d/8d, 0d}, new Path[]{new Path(3,2,2), new Path(4,1,2)})); 
 			relationships.add(new Relationship(8d, new double[] {15d/16d, 1d/16d, 0d}, new Path[]{new Path(3,3,2), new Path(4,2,2), new Path(5,1,2)})); 
 			
 			//depth = 4 relationships
-			//relationships.add(new Relationship(4d, new double[] {7d/8d, 1d/8d, 0d}, 4,0,1)); 
-			//relationships.add(new Relationship(5d, new double[] {15d/16d, 1d/16d, 0d}, 4,1,1)); 
-			//relationships.add(new Relationship(6d, new double[] {31d/32d, 1d/32d, 0d}, 4,2,1)); 
 			relationships.add(new Relationship(7d, new double[] {63d/64d, 1d/64d, 0d}, new Path[]{new Path(4,3,1), new Path(5,2,1)}));
 			relationships.add(new Relationship(8d, new double[] {127d/128d, 1d/128d, 0d}, new Path[]{new Path(4,4,1), new Path(5,3,1)}));
-			//relationships.add(new Relationship(7d, new double[] {7d/8d, 1d/8d, 0d}, 4,1,2)); 
-			//relationships.add(new Relationship(8d, new double[] {15d/16d, 1d/16d, 0d}, 4,2,2)); 
 			relationships.add(new Relationship(9d, new double[] {31d/32d, 1d/32d, 0d}, new Path[]{new Path(4,3,2), new Path(5,2,2)}));
 			relationships.add(new Relationship(10d, new double[] {63d/64d, 1d/64d, 0d}, new Path[]{new Path(4,4,2), new Path(5,3,2)}));
 			
@@ -299,8 +290,8 @@ public class TestLikelihood {
 	
 			
 			//dir
-			//String dataDir = dir + "unrelated/";
-			String simDir = dir + "simulations/genotypes/";
+			String simDir = dir + "simulations/simPed2/";
+
 			
 			//individuals
 			int numIndiv = 20;
@@ -316,27 +307,19 @@ public class TestLikelihood {
 			int nChildren = 5;
 			int nGen = 4;
 			int howManyUnrelated = 10;
-			String testName = "test12.pruned.10k";
+			String testName = "sim2";
 			
 			
 			//pairwise core
 			PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(seqError, recombRate, back, numIndiv);
 			
+
 			
-			/*
-			//prune ld
-			System.out.println("Pruning LD");
-			for(int i=1; i<23; i++){
-				LDStream.thin(dataDir+"msprime.geno."+i, dataDir+"msprime.geno.pruned."+i, .2, rgen);
-			}
-			*/
 			
-			/*
 			//compute info
-			System.out.println("Computing info");
-			String fileName = "test12.all.pruned.10k";
-			LDStreamPed.writeLdOutfile(simDir+fileName, simDir+fileName + ".info", back);	
-			*/
+			//System.out.println("Computing info");
+			//LDStreamPed.writeLdOutfile(dir+"unrelated/msprime.unrel.try2.10k", simDir+"msprime.unrel.try2.10k.info", back);	
+			
 			
 	
 			//int[] cols = new int[]{8, 15, 37, 46, 56, 65, 83, 93, 114, 130};
@@ -345,7 +328,7 @@ public class TestLikelihood {
 			//int[] ids = new int[]{10,19,49,61,74,86,111,124,152,174};
 			
 			
-			for(int t=0; t<100; t++){
+			for(int t=0; t<50; t++){
 				
 				System.out.println(t);
 		
@@ -401,6 +384,7 @@ public class TestLikelihood {
 				*/
 				
 				
+				
 
 				
 				//compute marginal probs
@@ -418,10 +402,11 @@ public class TestLikelihood {
 				
 			
 			}
+		
 			
 			
 			//true path
-			//sim.writeTruePathFile(simDir+"pairwiseLikelihood/"+testName+".ped", simDir+"results/"+testName+".true", ids);
+			//sim.writeTruePathFile(simDir+"test12.ped", simDir+"10indiv.ped", ids);
 			
 			
 			

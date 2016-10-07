@@ -199,6 +199,8 @@ public class Link extends Move{ //WORKS; special merge not tested
 		
 		currPedigree.deleteNode(donor);
 	
+		//return;
+		
 	}
 	
 
@@ -296,7 +298,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 			minRecipientAnc = currPedigree.getAncestorWithMinAge(recipient);
 		}
 		
-		if(maxDonorDesc!=null && minRecipientAnc!=null && (minRecipientAnc.getAge() - maxDonorDesc.getAge() < (minRecipientAnc.getDepth() - maxDonorDesc.getDepth()) * currPedigree.genTime)){
+		if(maxDonorDesc!=null && minRecipientAnc!=null && (minRecipientAnc.getAge() <= maxDonorDesc.getAge())){
 			return true;
 		}
 
@@ -313,7 +315,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 			maxRecipientDesc = currPedigree.getDescendantWithMaxAge(recipient);
 		}
 		
-		if(minDonorAnc!=null && maxRecipientDesc!=null && (minDonorAnc.getAge() - maxRecipientDesc.getAge() < (minDonorAnc.getDepth() - maxRecipientDesc.getDepth()) * currPedigree.genTime)){
+		if(minDonorAnc!=null && maxRecipientDesc!=null && (minDonorAnc.getAge() <= maxRecipientDesc.getAge())){
 			return true;
 		}
 		

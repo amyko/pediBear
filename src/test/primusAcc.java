@@ -5,10 +5,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import dataStructures.Path;
 import dataStructures.Pedigree;
@@ -21,13 +19,14 @@ public class primusAcc {
 	public static void main(String[] args) throws IOException{
 		
 		//directories
-		String testName = "test12.relate";
+		String testName = "test12.pruned.10k";
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String mapPath = dir + "results/primus.relate.map.acc";
+		String outPath = dir + "results/test12.pruned.10k.plink";
 		String truePath = dir + "results/test12.true";
 		
 		//open files
-		PrintWriter writer = DataParser.openWriter(mapPath);
+		PrintWriter accWriter = DataParser.openWriter(outPath+".mapAcc");
+		PrintWriter distWriter = DataParser.openWriter(outPath+".kinshipDist");
 		Path[][] trueRel = Accuracy.getTruePath(truePath, 20);
 		Map<Path, double[]> pathToOmega = Accuracy.getPathToOmega(dir + "pathToOmega.txt");
 		
@@ -35,10 +34,11 @@ public class primusAcc {
 			
 			System.out.println(t);
 			
-			String resultPath = dir + String.format("primus.relate.result/result.relate.%d/", t);
+			String resultPath = dir + String.format("test12.10k.primus.plink.results/result.%d/", t);
 			
 			//accuracy matrix (i,j,acc)
 			double[][] accMat = new double[20][20];
+			double[][] distMat = new double[20][20];
 			
 			//////////////////////////////////////////////////////////////
 			//write accuracy for unrelated individuals
@@ -49,7 +49,7 @@ public class primusAcc {
 			List<Integer> unrel = new ArrayList<Integer>();
 			while((line = reader.readLine())!=null){
 				String[] fields = line.split("\t");
-				unrel.add(Integer.parseInt(fields[0]) - 1);
+				unrel.add(Integer.parseInt(fields[1]) - 1);
 			}
 			reader.close();
 			
@@ -58,12 +58,19 @@ public class primusAcc {
 		
 					if(ind1>=ind2) continue;
 					
+					//accuracy
 					int acc = 0;
 					if(trueRel[ind1][ind2].getNumVisit()==0) acc = 1;
-					
 					accMat[ind1][ind2] = acc;
 					
+					//distance
+					Path trueKey = trueRel[ind1][ind2];
+					double trueKinship = .25*pathToOmega.get(trueKey)[1] + .5*pathToOmega.get(trueKey)[2];
+
 					
+					distMat[ind1][ind2] = trueKinship;
+	
+								
 				}
 			}
 			
@@ -110,21 +117,58 @@ public class primusAcc {
 				//score unrelated between this network and others
 				for(String name1 : names){
 					
-					int rid1 = Integer.parseInt(name1.split("__")[0]) - 1;
+					int rid1 = Integer.parseInt(name1.split("__")[1]) - 1;
 					
 					for(int rid2=0; rid2<20; rid2++){
 						
-						if(names.contains(String.format("%d__%d", rid2, rid2)) || rid1==rid2) continue;
+						if(names.contains(String.format("%d__%d", 1, rid2+1)) || rid1==rid2) continue;
 
-						
+						//acc
 						int acc = 0;
-						if(trueRel[rid1][rid2].getNumVisit()==0) acc = 1;
-						
+						if(trueRel[rid1][rid2].getNumVisit()==0) acc = 1;		
 						accMat[rid1][rid2] = acc;
+						
+						//distance
+						Path trueKey = trueRel[rid1][rid2];
+						double trueKinship = .25*pathToOmega.get(trueKey)[1] + .5*pathToOmega.get(trueKey)[2];
+						distMat[rid1][rid2] = trueKinship;
+						
 						
 					}
 					
+					
+					
 				}
+				
+				
+				//get number of good pedigrees
+				int numGoodPed = nPed;
+				for(int p=1; p<=nPed; p++){
+					
+					String famDir = netDir + String.format("%s.%d.genome_network%d_%d.fam",testName,t,net,p);
+					
+					//make name2Index map
+					Map<String, Integer> name2Index = new HashMap<String, Integer>();
+					reader = DataParser.openReader(famDir);
+					
+					int idx = 0;
+					while((line = reader.readLine())!=null){
+						String name = line.split("\t")[1];
+						name2Index.put(name, idx++);
+					}
+					reader.close();
+					
+					
+					//build pedigree
+					Pedigree ped = new Pedigree(famDir, name2Index);
+					
+					//skip if pedigree is looped
+					if(ped.looped){
+						numGoodPed--;
+					}
+				}
+				
+				if(numGoodPed==0) continue;
 				
 				
 				//for each max score pedigree
@@ -149,7 +193,6 @@ public class primusAcc {
 					
 					//skip if pedigree is looped
 					if(ped.looped){
-						nPed--;
 						continue;
 					}
 					
@@ -167,12 +210,21 @@ public class primusAcc {
 							Path inferred = rel[id1][id2];
 							
 							//real ID
-							int rid1 = Integer.parseInt(name1.split("__")[0]) - 1;
-							int rid2 = Integer.parseInt(name2.split("__")[0]) - 1;
+							int rid1 = Integer.parseInt(name1.split("__")[1]) - 1;
+							int rid2 = Integer.parseInt(name2.split("__")[1]) - 1;
 							Path truth = trueRel[rid1][rid2];
 
+							//acc
 							if(Accuracy.hasSameIBD(pathToOmega, inferred, truth))
-								accMat[rid1][rid2] += 1.0/nPed;							
+								accMat[rid1][rid2] += 1.0/numGoodPed;							
+
+							
+							//dist
+							double trueKinship = .25*pathToOmega.get(truth)[1] + .5*pathToOmega.get(truth)[2];
+							double inferredKinship = .25*pathToOmega.get(inferred)[1] + .5*pathToOmega.get(inferred)[2];
+							distMat[rid1][rid2] += Math.abs(trueKinship - inferredKinship)/numGoodPed;
+							
+							
 							
 						}
 						
@@ -182,27 +234,37 @@ public class primusAcc {
 					
 				}
 				
-				
-				
-				
+											
 
 				
 			}
 			
 			//////////////////////////////////////
-			//write
+			//Kinship accuracy
 			//write header for map file
-			writer.write(String.format(">\t%d\n", t));
+			accWriter.write(String.format(">\t%d\n", t));
 			
 			for(int i=0; i<accMat.length; i++){
 				for(int j=i+1; j<accMat.length; j++){
-					writer.write(String.format("%d\t%d\t%f\n", i, j, accMat[i][j]));
+					accWriter.write(String.format("%d\t%d\t%f\n", i, j, accMat[i][j]));
 				}
 			}
+			
+			//kinship distance
+			distWriter.write(String.format(">\t%d\n", t));
+			
+			for(int i=0; i<accMat.length; i++){
+				for(int j=i+1; j<accMat.length; j++){
+					distWriter.write(String.format("%d\t%d\t%.8f\n", i, j, distMat[i][j]));
+				}
+			}
+			
+			
 
 		}
 		
-		writer.close();
+		accWriter.close();
+		distWriter.close();
 		
 		
 	}

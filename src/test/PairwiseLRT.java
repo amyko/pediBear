@@ -81,19 +81,27 @@ public class PairwiseLRT {
 		
 		List<Path> toReturn = new ArrayList<Path>();
 		
+
+		
 		for(Path nullRel : path2lkhd.keySet()){
 			
 			double nullLkhd = path2lkhd.get(nullRel)[i][j];
-
+			
 			//get the supremum of L(H1)
 			double maxL1 = Double.NEGATIVE_INFINITY;
 			
 			for(Path altRel : path2lkhd.keySet()){
+				
 				double altLkhd = path2lkhd.get(altRel)[i][j];
+			
+				//skip null lkhd
+				if(altLkhd==nullLkhd) continue;
+				
 				if(altLkhd > maxL1) maxL1 = altLkhd;
 			}
 			
-			//cannot null
+			
+			//cannot reject null
 			if(nullLkhd - maxL1 >= c){
 				toReturn.add(nullRel);
 			}
@@ -108,8 +116,8 @@ public class PairwiseLRT {
 	}
 	
 	
-	
-	public static void LRT(String lkhdPath, double[][][] trueOmega, Map<Path, double[]> pathToKinship, PrintWriter pathWriter, PrintWriter mapWriter, int numIndiv, double c) throws NumberFormatException, IOException{
+	//write accuracy and distance
+	public static void LRT(String lkhdPath, double[][][] trueOmega, Map<Path, double[]> pathToKinship, PrintWriter pathWriter, PrintWriter mapWriter, PrintWriter distWriter, int numIndiv, double c) throws NumberFormatException, IOException{
 		
 		//get path2lkhd table
 		Map<Path, double[][]> path2lkhd = path2table(lkhdPath, numIndiv);
@@ -121,6 +129,7 @@ public class PairwiseLRT {
 				
 				pathWriter.write(String.format("%d\t%d\t", i , j));
 				mapWriter.write(String.format("%d\t%d\t", i , j));
+				distWriter.write(String.format("%d\t%d\t", i , j));
 				
 				List<Path> inferredRel = pairwiseLRT(path2lkhd, i, j, c);
 
@@ -128,18 +137,20 @@ public class PairwiseLRT {
 					
 					pathWriter.write("x\n");
 					mapWriter.write("0\n");
+					distWriter.write("0\n");
 					
 				}
 				
 				else{
 					
 					double acc = 0;
+					double dist = 0;
 					
 					for(Path rel : inferredRel){
 					
 						pathWriter.write(String.format("%d\t%d\t%d\t", rel.getUp(), rel.getDown(), rel.getNumVisit()));
 
-						//see if it matches the true omega
+						//accuracy
 						int count = 0;
 						for(int k=0; k<3; k++){
 							if(Math.abs(trueOmega[i][j][k] - pathToKinship.get(rel)[k]) < 1e-13){
@@ -150,10 +161,22 @@ public class PairwiseLRT {
 						int add = count==3 ? 1 : 0;
 						acc += add;
 						
+						//dist
+						double trueKinship = .25*trueOmega[i][j][1] + .5*trueOmega[i][j][2];
+						double inferredKinship = .25*pathToKinship.get(rel)[1] + .5*pathToKinship.get(rel)[2];
+						dist += Math.abs(trueKinship - inferredKinship);
+						
+						
+						
 					}
 					
 					acc = acc / inferredRel.size();
+					dist = dist / inferredRel.size();
 					mapWriter.write(String.format("%f\n", acc));
+					distWriter.write(String.format("%f\n", dist));
+					
+
+					
 					
 				}
 				
@@ -175,16 +198,15 @@ public class PairwiseLRT {
 	public static void main(String[] args) throws IOException{
 		
 		//param
-		int numIndiv = 20;
-		double c = Math.log(1);
+		int numIndiv = 18;
+		double c = 0;
 		
 		//files
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String testName = "test12.pruned.10k";
-		String outPath = dir + "results/" +testName + ".pairwise.out";
-		String mapPath = dir + "results/" + testName + ".pairwise.map";
+		String testName = "sim3";
+		String outPath = dir + "results/" +testName + ".pairwise";
 		String pathToOmegaPath = dir + "pathToOmega.txt";
-		String truePath = dir + "results/test12.true";
+		String truePath = dir + "results/sim3.true";
 
 		
 		//get true omega
@@ -192,25 +214,27 @@ public class PairwiseLRT {
 		double[][][] trueOmega = Accuracy.getTrueOmega(truePath, numIndiv, pathToKinship);
 
 		//open outfiles
-		PrintWriter mapWriter = DataParser.openWriter(mapPath);
-		PrintWriter outWriter = DataParser.openWriter(outPath);
+		PrintWriter mapWriter = DataParser.openWriter(outPath+".mapAcc");
+		PrintWriter outWriter = DataParser.openWriter(outPath+".out");
+		PrintWriter distWriter = DataParser.openWriter(outPath+".kinshipDist");
 		
 		//run pairwise test
-		for(int t=0; t<100; t++){
+		for(int t=0; t<1; t++){
 			
-			String lkhdPath = dir + "genotypes/test12.pruned.10k."+t+".pairwise";
+			String lkhdPath = dir + "simPed3/sim3.10morgan.0.050."+t+".pairwise";
 			
 			//write header
 			outWriter.write(String.format(">\t%d\n", t));
 			mapWriter.write(String.format(">\t%d\n", t));
+			distWriter.write(String.format(">\t%d\n", t));
 			
-			LRT(lkhdPath, trueOmega, pathToKinship, outWriter, mapWriter, numIndiv, c);
-
-			
+			LRT(lkhdPath, trueOmega, pathToKinship, outWriter, mapWriter, distWriter, numIndiv, c);
+	
 		}
 		
 		mapWriter.close();
 		outWriter.close();
+		distWriter.close();
 		
 
 		

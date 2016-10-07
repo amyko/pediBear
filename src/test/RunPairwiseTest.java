@@ -146,7 +146,7 @@ public class RunPairwiseTest {
 		*/ 
 		
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/inuits/";
-		String testName = dir + "100tasiilaq.admixed0.5.aims0.05.prune0.1";
+		String testName = dir + "100tasiilaq.admixed0.5.aims0.05.3k";
 		String inPath = testName+".pairwise";
 		String outPath = testName+".out";
 

@@ -16,8 +16,9 @@ public class SimulatedAnnealing {
 	final Pedigree ped;
 	final int runLength;
 	final Move[] moves; 
-	final PrintWriter writer;
-	final PrintWriter convWriter;
+	final PrintWriter famWriter;
+	final PrintWriter pairWriter;
+	PrintWriter convWriter;
 	final Random rGen;
 	
 	//heating parameters
@@ -29,13 +30,14 @@ public class SimulatedAnnealing {
 	public double bestLkhd = Double.NEGATIVE_INFINITY;
 	
 
-	public SimulatedAnnealing(Pedigree ped, double[] heat, int[] coolingSchedule, Move[] moves, int runLength, Random rGen, String outPath, PrintWriter convWriter) throws IOException{
+	public SimulatedAnnealing(Pedigree ped, double[] heat, int[] coolingSchedule, Move[] moves, int runLength, Random rGen, String outPath) throws IOException{
 
 		this.ped = ped;
 		this.runLength = runLength;
 		this.moves = moves;		
-		this.writer = DataParser.openWriter(outPath);
-		this.convWriter = convWriter;
+		this.famWriter = DataParser.openWriter(outPath+".fam");
+		this.pairWriter = DataParser.openWriter(outPath+".pair");
+		this.convWriter = DataParser.openWriter(outPath+".lkhd");
 		
 		this.rGen = rGen;
 		this.heat = heat;
@@ -64,6 +66,8 @@ public class SimulatedAnnealing {
 		convWriter.write(">\n");
 
 		
+		int iter = 0;
+		
 		for(int t=0; t<heat.length-1; t++){
 
 			//run burn-in
@@ -90,12 +94,17 @@ public class SimulatedAnnealing {
 				}
 				*/
 
+				
+
 				move.mcmcMove(ped, heat[t]);
 				
+				iter++;
 					
 			
 			}
 			
+			//record likelihood
+			recordLkhd(ped, iter);
 			
 			//count num success
 			//System.out.print(String.format("%d\t%d\t%d\t%f\n", t, moves[0].nAccept, moves[0].nTried, ped.getLogLikelihood()));
@@ -113,9 +122,6 @@ public class SimulatedAnnealing {
 		
 		
 	}
-	
-	
-	
 	
 	
 	
@@ -143,14 +149,14 @@ public class SimulatedAnnealing {
 			Move move = chooseMove();
 			move.mcmcMove(ped, heat[heat.length-1]);
 
-			
-
 	
 		}
 		
 		
 		//close outfile
-		writer.close();
+		famWriter.close();
+		convWriter.close();
+		pairWriter.close();
 		
 	}
 	
@@ -177,25 +183,95 @@ public class SimulatedAnnealing {
 	}
 	
 	
-
+	
+	
 	//write relationship to file
 	private void sample(Pedigree currPedigree){
 		
+		//pairwise relationship
 		//header for this sample
-		writer.write(String.format(">\t%.5f\n", currPedigree.getLogLikelihood()));
+		pairWriter.write(String.format(">\t%.5f\n", currPedigree.getLogLikelihood()));
 		
 		for(int i=0; i<currPedigree.numIndiv; i++){
 			for(int j=i+1; j<currPedigree.numIndiv; j++){
 				
 				Path rel = currPedigree.getRelationships()[i][j];
 				
-				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				pairWriter.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
 			}
 		}
 		
+		//write family relationship
+		famWriter.write(String.format("NAME\tFATHER\tMOTHER\tSEX\tSAMPLED\n"));
+		currPedigree.clearVisit();
+		for(int i=0; i<currPedigree.numIndiv; i++){
+			recordFam(currPedigree.getNode(i));
+		}
+		
+	
 	}
 	
+	
+	private void recordFam(Node ind){
+		
+		//visit
+		if(ind.getNumVisit()!=0) return;
+		ind.setNumVisit(1);
+		
+		String name = ind.fid + "_" + ind.iid;
+		String pa = "0";
+		String ma = "0";
+		String sex = ind.getSex()==1 ? "M" : "F";
+		String sampleStatus = ind.sampled ? "000000" : "999999";
+		
+			
+		//get parent ids
+		for(Node parent : ind.getParents()){
+			
+			recordFam(parent);
+		
+			if(parent.getSex()==0)
+				ma = parent.fid + "_" + parent.iid;
+			else if(parent.getSex()==1)
+				pa = parent.fid + "_" + parent.iid;
+			else
+				throw new RuntimeException("Parent with unknown sex");
+			
+		}
+		
+		//if only one parent is present
+		if(ind.getParents().size()==1){
+			
+			int missingParentSex = ind.getParents().get(0).getSex()==1 ? 0 : 1;
+			
+			//make missing parent
+			Node missingParent = new Node("missingParent", ind.iid, missingParentSex, false, -1);
+			
+			recordFam(missingParent);
+			
+			if(missingParentSex==0) ma = "missingParent_" + ind.iid;
+			else pa = "missingParent_" + ind.iid;
+			
+		}
+
+		
+		
+		
+		
+		//write to file
+		famWriter.write(String.format("%s\t%s\t%s\t%s\t%s\n", name, pa, ma, sex, sampleStatus));
+		
+		
+	}
+	
+	
+	
+	private void recordLkhd(Pedigree currPedigree, int iter){
+		
+		convWriter.write(String.format("%d\t%.3f\n", iter, currPedigree.getLogLikelihood()));
+		
+	}
 	
 	
 	

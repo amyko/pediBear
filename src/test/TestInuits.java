@@ -15,7 +15,7 @@ import utility.DataParser;
 public class TestInuits {
 	
 	static double recombRate = 1.3e-8; //zebra finch recombination rate (Backstrom, 2010)
-	static double seqError = 0.01;
+	static double seqError = 0.01; 
 	static String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/inuits/";
 	static int back = 500000;
 	static Random rgen = new Random(526564L);
@@ -24,7 +24,7 @@ public class TestInuits {
 	public static void computeMarginals(PairwiseLikelihoodCoreStreamPed core, String fileName, int[] ids) throws IOException{
 		
 		//compute
-		double[] marginals = core.computeMarginal(fileName+".tped", fileName+".info", ids);
+		double[] marginals = core.computeMarginalIndep(fileName+".tped", fileName+".info", ids);
 
 		//open outfile
 		PrintWriter writer = DataParser.openWriter(fileName+".marginal");				
@@ -45,7 +45,7 @@ public class TestInuits {
 		//likelihood
 		PrintWriter writer = DataParser.openWriter(fileName+".pairwise");
 			
-		double[][][] lkhd = core.forwardAlgorithm(fileName+".tped", fileName+".info", ids, relationships);
+		double[][][] lkhd = core.forwardAlgorithmIndep(fileName+".tped", fileName+".info", ids, relationships);
 		
 
 		//write to file
@@ -88,8 +88,8 @@ public class TestInuits {
 		
 		// depth = 1 relationship
 		relationships.add(new Relationship(1d, new double[] {0d, 1d, 0d}, new Path[]{new Path(1,0,1)})); //parent
+		relationships.add(new Relationship(4d, new double[] {.25, .5, .25}, new Path[]{new Path(1,1,2)})); //full-sib	
 		relationships.add(new Relationship(2d, new double[] {.5, .5, 0d}, new Path[]{new Path(1,1,1), new Path(2,0,1)})); //half-sib
-		relationships.add(new Relationship(4d, new double[] {.25, .5, .25}, new Path[]{new Path(1,1,2)})); //full-sib
 		
 		//depth = 2 relationships
 		relationships.add(new Relationship(3d, new double[] {3d/4d, 1d/4d, 0d}, new Path[]{new Path(2,1,1), new Path(3,0,1)})); //half uncle
@@ -117,12 +117,6 @@ public class TestInuits {
 		relationships.add(new Relationship(12d, new double[] {255d/256d, 1d/256d, 0d}, new Path[]{new Path(5,5,2), new Path(6,4,2)}));
 		
 		
-		//depth = 6 relationships
-		relationships.add(new Relationship(11d, new double[] {1023d/1024d, 1d/1024d, 0d}, new Path[]{new Path(6,5,1)}));
-		relationships.add(new Relationship(12d, new double[] {2047d/2048d, 1d/2048d, 0d}, new Path[]{new Path(6,6,1)}));
-		relationships.add(new Relationship(13d, new double[] {511d/512d, 1d/512d, 0d}, new Path[]{new Path(6,5,2)}));
-		relationships.add(new Relationship(14d, new double[] {1023d/1024d, 1d/1024d, 0d}, new Path[]{new Path(6,6,2)}));
-		 
 		
 		
 		//individuals
@@ -133,8 +127,8 @@ public class TestInuits {
 		//pairwise core
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(seqError, recombRate, back, numIndiv);
 		
-		String fileName = dir + "100tasiilaq.admixed0.5.aims0.05.prune0.1";
-
+		//String fileName =  "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/nucFam";
+		String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/genotypes/test12.all.pruned.10k";
 		
 		//compute info
 		System.out.println("Computing info");

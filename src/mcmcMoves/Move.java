@@ -12,7 +12,7 @@ import dataStructures.Pedigree;
 //generic MCMC move
 public abstract class Move {
 
-	public final static int maxDepth = 7;
+	public final static int maxDepth = 6;
 	public final static int initSize = 10;
 
 	
@@ -73,6 +73,22 @@ public abstract class Move {
 			//System.out.println("Skipped");
 			return; //skip bad move
 		}
+		
+		
+		//TODO TESTING depth constraint
+		boolean reject = false;
+		for(int i=0; i<currPedigree.numIndiv; i++){
+			
+			if(currPedigree.getNode(i).getDepth() > 1){
+				reject = true;
+				break;
+			}
+		}
+		if(reject==true){
+			reverseMove(currPedigree);
+			return;
+		}
+		
 		
 		nTried++;
 		double acceptanceAlpha = currPedigree.rGen.nextDouble();
