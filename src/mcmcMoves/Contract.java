@@ -53,6 +53,7 @@ public class Contract extends Move{ //WORKS; special merge not tested
 			return REJECT;
 
 
+		
 		//record previous config
 		currPedigree.copyCurrPedigree();
 		

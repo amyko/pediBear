@@ -183,7 +183,7 @@ public class TestLikelihood {
 		public static void computeMarginals(PairwiseLikelihoodCoreStreamPed core, String fileName, int[] ids, int t) throws IOException{
 			
 			//compute
-			double[] marginals = core.computeMarginal(fileName+"."+t+".tped", dir+ "simulations/simPed2/msprime.unrel.try2.10k.info", ids);
+			double[] marginals = core.computeMarginal(fileName+"."+t+".tped", dir+ "simulations/genotypes/test12.all.pruned.5k.info", ids);
 			
 			
 			//open outfile
@@ -205,7 +205,7 @@ public class TestLikelihood {
 			//likelihood
 			PrintWriter writer = DataParser.openWriter(fileName+"."+t+".pairwise");
 				
-			double[][][] lkhd = core.forwardAlgorithm(fileName+"."+t+".tped", dir+ "simulations/simPed2/msprime.unrel.try2.10k.info", ids, relationships);
+			double[][][] lkhd = core.forwardAlgorithm(fileName+"."+t+".tped", dir+ "simulations/genotypes/test12.all.pruned.5k.info", ids, relationships);
 
 			//write to file
 			for(int k=0; k<numRel; k++){
@@ -290,7 +290,7 @@ public class TestLikelihood {
 	
 			
 			//dir
-			String simDir = dir + "simulations/simPed2/";
+			String simDir = dir + "simulations/genotypes/";
 
 			
 			//individuals
@@ -307,7 +307,7 @@ public class TestLikelihood {
 			int nChildren = 5;
 			int nGen = 4;
 			int howManyUnrelated = 10;
-			String testName = "sim2";
+			String testName = "test12.pruned.5k";
 			
 			
 			//pairwise core
@@ -317,8 +317,8 @@ public class TestLikelihood {
 			
 			
 			//compute info
-			//System.out.println("Computing info");
-			//LDStreamPed.writeLdOutfile(dir+"unrelated/msprime.unrel.try2.10k", simDir+"msprime.unrel.try2.10k.info", back);	
+			System.out.println("Computing info");
+			LDStreamPed.writeLdOutfile(dir+"simulations/genotypes/test12.all.pruned.5k", simDir+"test12.all.pruned.5k.info", back);	
 			
 			
 	
@@ -328,7 +328,7 @@ public class TestLikelihood {
 			//int[] ids = new int[]{10,19,49,61,74,86,111,124,152,174};
 			
 			
-			for(int t=0; t<50; t++){
+			for(int t=0; t<100; t++){
 				
 				System.out.println(t);
 		

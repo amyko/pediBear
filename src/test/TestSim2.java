@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Random;
 
+import simulator.SimulatorStream;
 import simulator.SimulatorStreamPed;
 import utility.DataParser;
 
@@ -170,8 +171,6 @@ public class TestSim2 {
 	
 
 	
-	
-	
 	public static void sim2(SimulatorStreamPed sim, String tpedPath, int startID, int numUnrel) throws IOException{
 		
 		//simulate clusters
@@ -257,9 +256,55 @@ public class TestSim2 {
 	}
 	
 	
-	
+	public static void sim4(SimulatorStreamPed sim, String tpedPath, int startID, int numUnrel) throws IOException{
+		
+		//first generation: make 2 children
+		sim.makeChildren(tpedPath, tpedPath, dir+"gen1.out", startID, startID+1, rGen, 1);
+		startID+=2;
+		
+		//make a child
+		sim.makeChildren(dir+"gen1.out", tpedPath, dir+"gen2.out", 0, startID, rGen, 2);
+		startID++;
+
+		
+		//concatenate final children
+		DataParser.concatFilesSpace(new String[]{tpedPath, dir+"gen1.out", dir+"gen2.out"}, dir+"sim4.tped", new int[][]{{0,1,2,3,4,5}, {4,5},{4,5,6,7}});
+		
+		
+		
+	}
 	
 
+
+	
+	public static void simulateCousins(SimulatorStreamPed sim, String tpedPath, int numGen, int startID) throws IOException{
+		
+		//first generation: make 2 children
+		sim.makeChildren(tpedPath, tpedPath, dir+"temp.0.out", startID, startID+1, rGen, 2);
+		startID+=2;
+		
+		//for each branching family
+		for(int i=0; i<2; i++){
+			
+			//make a child
+			sim.makeChildren(dir+"temp.0.out", tpedPath, String.format(dir+"temp.%d.1.out", i), i, startID, rGen, 1);
+			startID++;
+			
+			for(int j=2; j<numGen; j++){
+				//make a child
+				sim.makeChildren(String.format(dir+"temp.%d.%d.out", i, j-1), tpedPath, String.format(dir+"temp.%d.%d.out", i, j), 0, startID, rGen, 1);
+				startID++;
+			}
+					
+			
+		}
+		
+		DataParser.concatFilesSpace(new String[]{String.format(dir+"temp.0.%d.out", numGen-1), String.format(dir+"temp.1.%d.out", numGen-1)}, dir+"cousins.tped", new int[][]{{},{4,5}});
+		
+		
+		
+		
+	}
 	
 	
 	
@@ -318,28 +363,45 @@ public class TestSim2 {
 		//init simulator
 		SimulatorStreamPed sim = new SimulatorStreamPed(recomb);
 		double errorRate = .01;
-		String outDir = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/simPed3/";
-		
-		
-		int[] lengths = new int[]{10,20,30,40};
-		
-		for(int len : lengths){
-			
-			//input ped file
-			String tpedPath = String.format(dir + "msprime.%dmorgan.0.125.tped", len);
-			
-			
-			//simulate replicate pedigrees
-			for(int i=0; i<50; i++){
-				
-				System.out.println(i);
-				
-				//simulate
-				sim3(sim, tpedPath, 0, 9);
+		String outDir = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/cousins/";
 
+			
+		int[] chromLengths = new int[]{10,20,30,40};
+		String[] r_sqrs = new String[]{"0.013", "0.025", "0.050", "0.075", "0.100"};
+		
+		//for each recombination length
+		for(int cl : chromLengths){
+			
+			System.out.println(cl);
+			
+			//for each r_sqr
+			for(String r_sqr : r_sqrs){
 				
-				//add error and save
-				addError(dir+"sim3.out", String.format(outDir+"sim3.%dmorgan.0.125.%d.tped", len, i), errorRate);
+				System.out.println(r_sqr);
+				
+				//input ped file
+				String tpedPath = String.format(dir + "msprime.%dmorgan.%s.tped", cl, r_sqr);
+				
+				
+				//for each cousin type
+				for(int gen=2; gen<=4; gen++){
+					
+					//simulate replicate pedigrees
+					for(int i=0; i<50; i++){
+						
+						//simulate
+						simulateCousins(sim, tpedPath, gen, 0);
+
+						
+						
+						//add error and save
+						addError(dir+"cousins.tped", String.format(outDir+"cousins%d.%dmorgan.%s.%d.tped", gen, cl, r_sqr,i), errorRate);
+						
+						
+						
+					}
+					
+				}
 				
 				
 				
@@ -347,6 +409,14 @@ public class TestSim2 {
 			
 			
 		}
+		
+		
+
+		
+	
+			
+			
+		
 		
 
 

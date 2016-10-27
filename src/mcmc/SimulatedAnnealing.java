@@ -79,8 +79,8 @@ public class SimulatedAnnealing {
 					
 				/*
 				//TESTING			
-				if(!ped.sanityCheck() || i==9724){
-					System.out.println(String.format("(%s,%d)", move.name, i));
+				if(!ped.sanityCheck()){
+					System.out.println(String.format("(%s,%d, %d)", move.name, t, i));
 				
 					for(int k=0; k< ped.getNActiveNodes(); k++){
 						ped.getNode(k).print();
@@ -92,7 +92,7 @@ public class SimulatedAnnealing {
 					System.out.println();
 						
 				}
-				*/
+				 */
 
 				
 

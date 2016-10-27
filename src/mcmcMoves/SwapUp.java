@@ -5,7 +5,7 @@ import dataStructures.Node;
 import dataStructures.Pedigree;
 
 
-// 1) pick a random individual, 2) switch places with either its parent or child
+// 1) pick a random individual, 2) switch places with parent
 
 public class SwapUp extends Move {
 

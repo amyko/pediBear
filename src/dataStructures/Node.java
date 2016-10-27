@@ -140,6 +140,7 @@ public class Node {
 	
 	
 	
+	
 	public List<Node> getAncestors(List<Node> toReturn){
 
 		if(parents.size() == 0)
@@ -155,6 +156,8 @@ public class Node {
 		
 		return toReturn;
 	}
+	
+	
 	
 	
 	//get nodes connected to this node, including this node using DFS

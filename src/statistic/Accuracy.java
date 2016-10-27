@@ -569,6 +569,9 @@ public class Accuracy {
 			String[] fields = line.split("\t");
 			int i = Integer.parseInt(fields[IND1]);
 			int j = Integer.parseInt(fields[IND2]);
+			
+			if(i>=numIndiv || j>=numIndiv) continue;
+			
 			Path key = new Path(Integer.parseInt(fields[UP]) , Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[NUMVISIT]));
 			
 			for(int k=0; k<3; k++)

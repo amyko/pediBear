@@ -130,17 +130,20 @@ public class TestLikelihoodLD {
 	
 			
 			//dir
-			String simDir = dir + "simulations/simPed3/";
+			String simDir = dir + "simulations/cousins/";
 
 			
 			//individuals
-			int numIndiv = 18;
+			int numIndiv = 2;
 			int[] indCols = new int[numIndiv];
 			for(int i=0; i<numIndiv; i++) indCols[i] = i;			
 			
 
-			int[] myLengths = new int[]{10, 20, 30, 40};
-			String[] r_sqrs = new String[]{"0.050", "0.075", "0.100", "0.125"};
+			int[] myLengths = new int[]{40,30,20,10};
+			String[] r_sqrs = new String[]{"0.100", "0.075", "0.050", "0.025", "0.013"};
+			
+
+			
 			
 			//pairwise core
 			PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(seqError, recombRate, back, numIndiv);
@@ -151,32 +154,35 @@ public class TestLikelihoodLD {
 				for(String r_sqr : r_sqrs){
 
 					//compute info
-					System.out.println("Computing info");
+					//System.out.println("Computing info");
 					String infoPath = String.format(dir+"unrelated/msprime.%dmorgan.%s.info", myLength, r_sqr);
-					LDStreamPed.writeLdOutfile(String.format(dir+"unrelated/msprime.%dmorgan.%s", myLength, r_sqr), infoPath, back);	
+					//LDStreamPed.writeLdOutfile(String.format(dir+"unrelated/msprime.%dmorgan.%s", myLength, r_sqr), infoPath, back);	
 					
 					
+					for(int gen=4; gen>=2; gen--){
 					
-					for(int t=0; t<25; t++){
-						
-						System.out.println(String.format("%d %s %d", myLength, r_sqr, t));
-						
-						String testName = String.format("sim3.%dmorgan.%s", myLength, r_sqr);
-						
-						//compute marginal
-						//System.out.println("Computing marginals");
-						computeMarginals(core, simDir+testName, indCols, t, infoPath);
-						
-						
-						
-						//compute pairwise
-						//System.out.println("Computing pairwise likelihoods");
-						//long startTime = System.nanoTime();		
-						computePairwise(core, simDir+testName, indCols, relationships, t, infoPath);	
-						//System.out.println("Total time was " + (System.nanoTime() - startTime) / 1e9 / 60d/ 60d + " hours");
-						
-						
-						
+					
+						for(int t=0; t<50; t++){
+							
+							System.out.println(String.format("%d %d %s %d", gen, myLength, r_sqr, t));
+							
+							String testName = String.format("cousins%d.%dmorgan.%s", gen, myLength, r_sqr);
+							
+							//compute marginal
+							//System.out.println("Computing marginals");
+							computeMarginals(core, simDir+testName, indCols, t, infoPath);
+							
+							
+							
+							//compute pairwise
+							//System.out.println("Computing pairwise likelihoods");
+							//long startTime = System.nanoTime();		
+							computePairwise(core, simDir+testName, indCols, relationships, t, infoPath);	
+							//System.out.println("Total time was " + (System.nanoTime() - startTime) / 1e9 / 60d/ 60d + " hours");
+							
+							
+							
+						}
 					}
 					
 					

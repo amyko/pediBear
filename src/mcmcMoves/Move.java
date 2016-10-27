@@ -79,7 +79,7 @@ public abstract class Move {
 		boolean reject = false;
 		for(int i=0; i<currPedigree.numIndiv; i++){
 			
-			if(currPedigree.getNode(i).getDepth() > 1){
+			if(currPedigree.getNode(i).getDepth() > 2){
 				reject = true;
 				break;
 			}

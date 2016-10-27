@@ -32,6 +32,12 @@ import mcmcMoves.SwapUp;
 import mcmcMoves.SwitchSex;
 import mcmcMoves.ShiftClusterLevel;
 import mcmcMoves.GreatUncleToCousin;
+import mcmcMoves.SwapDescAnc;
+import mcmcMoves.Contract;
+import mcmcMoves.Stretch;
+import mcmcMoves.HalfSibstoFullUncle;
+import mcmcMoves.FullUncletoHalfSibs;
+import mcmcMoves.CutShiftLink;
 
 
 
@@ -56,21 +62,27 @@ public class RunSA {
 
 
 		//SA parameters
-		double[] heat = new double[200];
-		heat[0] = .1;
-		for(int i=1; i<heat.length; i++) heat[i] = heat[i-1]*1.02;
+		double[] heat = new double[800]; //200
+		heat[0] = .01; //.1
+		for(int i=1; i<heat.length; i++) heat[i] = heat[i-1]*1.01;
 		System.out.println(heat[heat.length-1]);
-		int coolingTime = 20000;
+		int coolingTime = 40000;
  		int runLength = 1;
- 		int numRun = 2;
-		Random rGen = new Random(19420838275L);
+ 		int numRun = 3;
+		Random rGen = new Random(1942083275L);
 		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .2), new Split("split", .02), new Split2("split2", 0.02), new SwapUp("swapUp", 0.02), new SwapDown("swapDown", 0.02), new SwitchSex("switchSex", 0.02), 
-				new CutLink("cutLink", 0.15), new SplitLink("splitLink", 0.15), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.15), new CutTwoLinkOne("cutTwoLinkOne", 0.02),
+				new CutLink("cutLink", 0.07), new SplitLink("splitLink", 0.07), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.15), new CutTwoLinkOne("cutTwoLinkOne", 0.02),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.02), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.02), new FStoPO("FStoPO", 0.02), new POtoFS("POtoFS",0.02), 
-				new HalfUncleToCousin("halfUncleToCousin", 0.02), new CousinToHalfUncle("cousinToHalfUncle", 0.02), new CousinToGreatUncle("cousinToGreatUncle", 0.02), new GreatUncleToCousin("greatUncleToCousin", 0.02)};
-		String testName = "sim2";
-		String truePath = dir + "results/sim2.true";
-		String accPath = dir + "results/"+testName+".prior.4gen";
+				new HalfUncleToCousin("halfUncleToCousin", 0.02), new CousinToHalfUncle("cousinToHalfUncle", 0.02), new CousinToGreatUncle("cousinToGreatUncle", 0.02), new GreatUncleToCousin("greatUncleToCousin", 0.02),
+				new SwapDescAnc("swapDescAnc", 0.04), new Contract("contract", 0.02), new Stretch("stretch", 0.02), new HalfSibstoFullUncle("halfSibstoFullUncle", 0.02), new FullUncletoHalfSibs("fullUncleToHalfSibs", 0.02),
+				new ShiftClusterLevel("shiftClusterLevel", 0.04)};
+		String testName = "test12.pruned.5k";
+		String truePath = dir + "results/test12.true";
+		String accPath = dir + "results/test12.0.025";
+		
+		double mySum = 0d;
+		for(Move mov : moves) mySum += mov.getProb();
+		System.out.println(mySum);
 		
 
 		//cooling schedule
@@ -90,11 +102,11 @@ public class RunSA {
 		PrintWriter distWriter = DataParser.openWriter(accPath+".kinshipDist");
 			
 			
-		for(int t=0; t<1; t++){
+		for(int t=0; t<100; t++){
 
 			System.out.println(t);       
 			
-			String fileName = dir + "simPed2/"+testName+"."+t;
+			String fileName = dir + "genotypes/"+testName+"."+t;
 			String outDir = dir + "results/mcmc";
 			
 			double bestLkhd = Double.NEGATIVE_INFINITY;
@@ -152,7 +164,7 @@ public class RunSA {
 					
 				}
 			}
-			ped.nSingletons[ped.curr] = 8;
+			ped.nSingletons[ped.curr] = 11;
 			
 			double trueLkhd = ped.likelihoodAllPedigrees();		
 			System.out.println(String.format("lkhd of true pedigree: %.2f", trueLkhd));

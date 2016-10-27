@@ -27,7 +27,9 @@ public class PairwiseLRT {
 		
 		String line;
 		Path path = null;
-
+		double toAdd = Math.log(numIndiv)/numIndiv;
+		toAdd = 1;
+		
 		
 		while((line=reader.readLine())!=null){
 
@@ -56,8 +58,16 @@ public class PairwiseLRT {
 			double lkhd = Double.parseDouble(fields[2]);
 
 			if(i<numIndiv && j<numIndiv){
-				toReturn.get(path)[i][j] = lkhd;
-				toReturn.get(path)[j][i] = lkhd;
+				
+				//penalty
+				double coeff = 1;
+				if(path.getNumVisit()==0){
+					 coeff = 5;
+				}
+				
+				
+				toReturn.get(path)[i][j] = lkhd + coeff*toAdd;
+				toReturn.get(path)[j][i] = lkhd + coeff*toAdd;
 			}
 	
 			
@@ -198,13 +208,11 @@ public class PairwiseLRT {
 	public static void main(String[] args) throws IOException{
 		
 		//param
-		int numIndiv = 18;
+		int numIndiv = 13;
 		double c = 0;
 		
 		//files
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String testName = "sim3";
-		String outPath = dir + "results/" +testName + ".pairwise";
 		String pathToOmegaPath = dir + "pathToOmega.txt";
 		String truePath = dir + "results/sim3.true";
 
@@ -213,15 +221,21 @@ public class PairwiseLRT {
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		double[][][] trueOmega = Accuracy.getTrueOmega(truePath, numIndiv, pathToKinship);
 
+			
+		//test name
+		String testName = "test12.pruned.5k";
+		
+		
 		//open outfiles
+		String outPath = dir + "results/" +testName + ".pairwise";
 		PrintWriter mapWriter = DataParser.openWriter(outPath+".mapAcc");
 		PrintWriter outWriter = DataParser.openWriter(outPath+".out");
 		PrintWriter distWriter = DataParser.openWriter(outPath+".kinshipDist");
 		
 		//run pairwise test
-		for(int t=0; t<1; t++){
+		for(int t=0; t<100; t++){
 			
-			String lkhdPath = dir + "simPed3/sim3.10morgan.0.050."+t+".pairwise";
+			String lkhdPath = String.format(dir + "genotypes/test12.pruned.5k.%d.pairwise", t);
 			
 			//write header
 			outWriter.write(String.format(">\t%d\n", t));
@@ -235,6 +249,12 @@ public class PairwiseLRT {
 		mapWriter.close();
 		outWriter.close();
 		distWriter.close();
+			
+			
+	
+		
+		
+
 		
 
 		
