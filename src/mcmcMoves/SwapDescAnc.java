@@ -51,6 +51,19 @@ public class SwapDescAnc extends Move {
 		if(child.getParents().contains(anc))
 			return REJECT;
 		
+		//check sex compatibility
+		if(child.getSex() != anc.getSex()){
+			
+			for(Node c : child.getChildren()){
+				if(c.getParents().size()==2) return REJECT;
+			}
+			
+			for(Node c : anc.getChildren()){
+				if(c.getParents().size()==2) return REJECT;
+			}
+			
+		}
+		
 
 		
 		//copy pedigree

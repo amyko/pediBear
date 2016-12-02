@@ -183,7 +183,7 @@ public class TestLikelihood {
 		public static void computeMarginals(PairwiseLikelihoodCoreStreamPed core, String fileName, int[] ids, int t) throws IOException{
 			
 			//compute
-			double[] marginals = core.computeMarginal(fileName+"."+t+".tped", dir+ "simulations/genotypes/test12.all.pruned.5k.info", ids);
+			double[] marginals = core.computeMarginal(fileName+"."+t+".tped", dir+ "unrelated/msprime.unrel.try2.pruned.info", ids);
 			
 			
 			//open outfile
@@ -205,7 +205,7 @@ public class TestLikelihood {
 			//likelihood
 			PrintWriter writer = DataParser.openWriter(fileName+"."+t+".pairwise");
 				
-			double[][][] lkhd = core.forwardAlgorithm(fileName+"."+t+".tped", dir+ "simulations/genotypes/test12.all.pruned.5k.info", ids, relationships);
+			double[][][] lkhd = core.forwardAlgorithm(fileName+"."+t+".tped", dir+ "unrelated/msprime.unrel.try2.pruned.info", ids, relationships);
 
 			//write to file
 			for(int k=0; k<numRel; k++){
@@ -290,11 +290,11 @@ public class TestLikelihood {
 	
 			
 			//dir
-			String simDir = dir + "simulations/genotypes/";
+			String simDir = dir + "simulations/simPed4/";
 
 			
 			//individuals
-			int numIndiv = 20;
+			int numIndiv = 18;
 			int[] indCols = new int[numIndiv];
 			for(int i=0; i<numIndiv; i++) indCols[i] = i;			
 			
@@ -307,7 +307,7 @@ public class TestLikelihood {
 			int nChildren = 5;
 			int nGen = 4;
 			int howManyUnrelated = 10;
-			String testName = "test12.pruned.5k";
+			String testName = "sim4";
 			
 			
 			//pairwise core
@@ -317,8 +317,8 @@ public class TestLikelihood {
 			
 			
 			//compute info
-			System.out.println("Computing info");
-			LDStreamPed.writeLdOutfile(dir+"simulations/genotypes/test12.all.pruned.5k", simDir+"test12.all.pruned.5k.info", back);	
+			//System.out.println("Computing info");
+			//LDStreamPed.writeLdOutfile(dir+"simulations/genotypes/msprime.unrel.try2.pruned.tped", simDir+"msprime.unrel.try2.pruned.tped.info", back);	
 			
 			
 	
@@ -351,7 +351,7 @@ public class TestLikelihood {
 					start+=2;
 					
 					//later gen
-					String[] fileNames = new String[nSmallCluster];
+					String[] fil[`Names = new String[nSmallCluster];
 					int[][] cols = new int[nSmallCluster][nChildren];
 					for(int j=0; j<nSmallCluster; j++){
 						

@@ -620,7 +620,10 @@ public class Accuracy {
 		double[] omega1 = pathToOmega.get(i);
 		double[] omega2 = pathToOmega.get(j);
 		
-		if(omega1[0]==omega2[0] && omega1[1]==omega2[1] && omega1[2]==omega2[2])
+		if(i.getNumVisit()==-1 || j.getNumVisit()==-1)
+			return false;
+		
+		else if(omega1[0]==omega2[0] && omega1[1]==omega2[1] && omega1[2]==omega2[2])
 			return true;
 		
 		return false;

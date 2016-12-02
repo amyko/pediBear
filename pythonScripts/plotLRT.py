@@ -40,39 +40,6 @@ def lkhd(fileName, up, down, nVisit):
 
 if __name__=="__main__":
     
-    '''
-    #plot likelihood surface comparison
-    x = [1,2,3,4,5]
-    tickMarks = ['.07','.20','.40','.67','1']
-    full = [-18716.360,-17410.471,-14504.051,-11584.392,-8545.180]
-    pair = [-18716.362569, -18507.8639172,-18118.430455,-17453.2292502,-16946.5014504]
-    cond = [-18716.362569,-17673.869308999998,-15726.701997999999,-12400.695975000002,-9867.056975999993]
-    
-    
-    fig = plt.figure(facecolor='white')
-    ax = fig.add_subplot(111)
-    
-    #plt.plot(x,full,color='red', label='Full likelihood')
-    #plt.plot(x,cond,color='blue', label='Composite likelihood given by Eq (1)')
-    #plt.plot(x,pair,color='green', label='Composite likelihood given by Eq (2)')
-    
-    plt.plot(x,full,color='red')
-    plt.plot(x,cond,color='blue')
-    plt.plot(x,pair,color='green')
-    
-    plt.legend(loc='upper left')
-    plt.xlabel("Proportion of correct pairwise relationships")
-    plt.ylabel("Log likelihood")
-    ax.set_xticks(x)
-    ax.set_xticklabels(tickMarks)
-    plt.setp(tickMarks)
-    
-    plt.show()
-    
-    pdb.set_trace()
-    '''
-    
-    
     
     fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/genotypes/test12.all.pruned.10k.dep.pairwise"
 
@@ -93,11 +60,50 @@ if __name__=="__main__":
     
     fig = plt.figure(facecolor='white')
     plt.ylabel("Frequency")
-    plt.xlabel("Difference in log likelihood")
+    plt.xlabel("L(unrelated) - L(third cousins)", style='italic')
     weights = np.ones_like(diff)/len(diff)
-    #plt.hist(diff,bins=15,color='blue',weights=weights)
-    plt.hist(diff2,bins=50,weights=weights)
+    weights2 = np.ones_like(diff2)/len(diff2)
+    bins = np.linspace(-10, 5, 100)
+    plt.hist(diff,bins,color='blue', label='Unlinked markers', weights=weights)
+    plt.hist(diff2,bins,color='green', label='Linked markers', weights=weights2)
+    plt.legend(loc='upper left')
     plt.show()
+    
+    pdb.set_trace()
+    
+    
+    #plot likelihood surface comparison
+    x = [1,2,3,4,5]
+    tickMarks = ['.07','.20','.40','.67','1']
+    full = [-18716.360,-17410.471,-14504.051,-11584.392,-8545.180]
+    pair = [-18716.362569, -18507.8639172,-18118.430455,-17453.2292502,-16946.5014504]
+    cond = [-18716.362569,-17673.869308999998,-15726.701997999999,-12400.695975000002,-9867.056975999993]
+    
+    
+    fig = plt.figure(facecolor='white')
+    ax = fig.add_subplot(111)
+    
+    plt.plot(x,full,color='red', label='Full likelihood')
+    plt.plot(x,cond,color='blue', label='Composite likelihood A')
+    plt.plot(x,pair,color='green', label='Composite likelihood B')
+    
+    #plt.plot(x,full,color='red')
+    #plt.plot(x,cond,color='blue')
+    #plt.plot(x,pair,color='green')
+    
+    plt.legend(loc='upper left')
+    plt.xlabel("Proportion of correct pairwise relationships")
+    plt.ylabel("Log likelihood")
+    ax.set_xticks(x)
+    ax.set_xticklabels(tickMarks)
+    plt.setp(tickMarks)
+    
+    plt.show()
+    
+    pdb.set_trace()
+    
+    
+
 
     
     

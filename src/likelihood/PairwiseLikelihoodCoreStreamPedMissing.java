@@ -26,14 +26,13 @@ import dataStructures.SimplePair;
 
 
 
-public class PairwiseLikelihoodCoreStreamPed {
+public class PairwiseLikelihoodCoreStreamPedMissing {
 	
 	
 	//machine precision
 	private static final double TOL = 1e-12;
 
 	//info file columns
-	private static final int DIST = 2;
 	private static final int POS = 1;
 	private static final int LDPOS = 2;
 	private static final int U = 3;
@@ -55,9 +54,9 @@ public class PairwiseLikelihoodCoreStreamPed {
 	private static final int NUMVISIT = 3;
 	
 	// model parameters and data structures
-	private double back;
+	private int back;
 	private final double genotypingErrorRate;
-	//private final double recombRate;
+	private final double recombRate;
 	private int numIndiv;
 	
 	//output
@@ -68,22 +67,24 @@ public class PairwiseLikelihoodCoreStreamPed {
 	private final Map<String, Genotype> genotypeKey = new HashMap<String, Genotype>();
 	private final Map<String, String[]> possibleGenotypes = new HashMap<String, String[]>(); // Aa --> (AA, Aa, aa)
 	private final Map<String, String[]> possibleTwoLocusAlleles = new HashMap<String, String[]>(); //UuVv --> (uv, uV, Uv, UV)
-	private final Map<SimplePair<Genotype,Genotype>, Integer> ibs = new HashMap<SimplePair<Genotype,Genotype>, Integer>(); //(geno1 , geno2) --> ibs state
-	private final Map<SimplePair<Genotype,Genotype>, Double> errorProb = new HashMap<SimplePair<Genotype,Genotype>, Double>(); //(geno1, geno2) --> error probability
+	//private final Map<SimplePair<Genotype,Genotype>, Integer> ibs = new HashMap<SimplePair<Genotype,Genotype>, Integer>(); //(geno1 , geno2) --> ibs state
+	//private final Map<SimplePair<Genotype,Genotype>, Double> errorProb = new HashMap<SimplePair<Genotype,Genotype>, Double>(); //(geno1, geno2) --> error probability
 	private final double[] oneLocusFreq = new double[4];
 	private final double[] twoLocusFreq = new double[4];
-
-
+	
+	private final double[][] errorProbMat = new double[3][3];
 
 	
-	public PairwiseLikelihoodCoreStreamPed(double genotypingErrorRate, double back, int numIndiv){
+	public PairwiseLikelihoodCoreStreamPedMissing(double errorRate, double recombRate, int back, int numIndiv){
 		
-		this.genotypingErrorRate = genotypingErrorRate;
-		//this.recombRate = recombRate;
+		this.genotypingErrorRate = errorRate;
+		this.recombRate = recombRate;
 		this.back = back;
 		this.numIndiv = numIndiv;
+
 		
-		//genotype at one locus
+		
+		//possible genotypes at one locus (AA, Aa, aa)
 		String[] nucleotides = new String[]{"A","T","C","G"};
 		for(String n1 : nucleotides){
 			for(String n2 : nucleotides){
@@ -97,7 +98,17 @@ public class PairwiseLikelihoodCoreStreamPed {
 			}
 		}
 		
-		//possible two-locus alleles, ibs
+		
+		//add missing key
+		Genotype missingKey = new Genotype("missing");
+		for(String n1 : nucleotides){
+			genotypeKey.put(n1+"0", missingKey);	
+			genotypeKey.put("0"+n1, missingKey);
+		}
+		genotypeKey.put("00", missingKey);
+		
+		
+		//possible two-locus alleles
 		for(String n1 : nucleotides){
 			for(String n2 : nucleotides){
 				for(String n3 : nucleotides){
@@ -105,14 +116,21 @@ public class PairwiseLikelihoodCoreStreamPed {
 						String key = n1+n2+n3+n4;
 						possibleTwoLocusAlleles.put(key, new String[]{n2+n4, n2+n3, n1+n4 , n1+n3});
 						
-						SimplePair<Genotype,Genotype> twoLocusKey = new SimplePair<Genotype, Genotype>(genotypeKey.get(n1+n2), genotypeKey.get(n3+n4));
-						ibs.put(twoLocusKey, getIBS(n1+n2, n3+n4));
-						errorProb.put(twoLocusKey, errorProbability(n1+n2, n3+n4));
+						//SimplePair<Genotype,Genotype> twoLocusKey = new SimplePair<Genotype, Genotype>(genotypeKey.get(n1+n2), genotypeKey.get(n3+n4));
+						//ibs.put(twoLocusKey, getIBS(n1+n2, n3+n4));
+						//errorProb.put(twoLocusKey, errorProbability(n1+n2, n3+n4));
 					}
 				}
 			}
 		}
 		
+		
+		//error probabilties
+		errorProbMat[0][0] = errorProbMat[2][2] = Math.pow(1- genotypingErrorRate, 2);
+		errorProbMat[0][2] = errorProbMat[2][0] = Math.pow(genotypingErrorRate, 2);
+		errorProbMat[0][1] = errorProbMat[2][1] = 2 * (1-genotypingErrorRate) * genotypingErrorRate;
+		errorProbMat[1][0] = errorProbMat[1][2] = (1-genotypingErrorRate) * genotypingErrorRate;
+		errorProbMat[1][1] = Math.pow(1-genotypingErrorRate, 2) + Math.pow(genotypingErrorRate, 2);
 		
 		
 	}
@@ -273,6 +291,9 @@ public class PairwiseLikelihoodCoreStreamPed {
 				
 				for (int i=0; i<numIndiv; i++){
 					String g = geno[2*ids[i]+4] + geno[2*ids[i]+5];
+					
+					if(g.equals(genotypeKey.get("missing"))) continue; //skip snp if missing
+					
 					toReturn[i] += Math.log(oneLocusGenoProbMap.get(genotypeKey.get(g)));
 				}
 				
@@ -281,54 +302,61 @@ public class PairwiseLikelihoodCoreStreamPed {
 
 			
 			else{ //for every snp
-				
-				//read current
-				int ldPos = Integer.parseInt(info[LDPOS]);
-				
+	
 				//read ld
+				int ldPos = Integer.parseInt(info[LDPOS]);
 				String[] ldGeno = posToGeno.get(ldPos);
 				String[] ldInfo = posToInfo.get(ldPos);
 				
-				//compute all possible genotype probs
+				//compute all possible conditional genotype probs
 				Map<SimplePair<Genotype,Genotype>, Double> conditionalGenoProbMap = computePossibleConditionalGenotypeProbWithError(ldInfo, info);
+				
+				//compute all possible unconditional genotype probs
+				Map<Genotype, Double> oneLocusGenoProbMap = computePossibleGenotypeProbWithError(info);
+				
 				
 				
 				//compute likelihood
 				for (int i=0; i<numIndiv; i++){
+					
 					int col = 2*ids[i]+4;
 					
 					String geno1 = ldGeno[col] + ldGeno[col+1];
 					String geno2 = geno[col] + geno[col+1];
 					
-					//compute conditional allele probability
-					double lkhd = conditionalGenoProbMap.get(new SimplePair<Genotype,Genotype>(genotypeKey.get(geno1), genotypeKey.get(geno2)));
-
+					//skip missing individual
+					if(geno2.equals(genotypeKey.get("missing"))) continue;
 					
+					//if ld marker is missing, treat current marker as independent 
+					double lkhd = 0;
+					if(geno1.equals(genotypeKey.get("missing")))
+						lkhd = oneLocusGenoProbMap.get(geno2);
+					
+					//conditional
+					else lkhd = conditionalGenoProbMap.get(new SimplePair<Genotype,Genotype>(genotypeKey.get(geno1), genotypeKey.get(geno2)));
+	
 					toReturn[i] += Math.log(lkhd);
 						
 				}
-				
-				
-			}
-		
 
-			
-			//remove useless info
-			int minPos = Collections.min(posToGeno.keySet());
-			double minDist = Double.parseDouble(posToGeno.get(minPos)[DIST]);
-			double currDist = Double.parseDouble(geno[DIST]);
-			while(currDist - minDist > back){
-				posToGeno.remove(minPos);
-				posToInfo.remove(minPos);
-				minPos = Collections.min(posToGeno.keySet());
-				minDist = Double.parseDouble(posToGeno.get(minPos)[DIST]);
+				
+				
 			}
 			
-			
-			//update prev info & add current info to list
+			//update prev info
 			int prevPos = Integer.parseInt(info[POS]);
 			posToGeno.put(prevPos, geno);
 			posToInfo.put(prevPos, info);
+
+			
+			//remove useless info
+			int minKey = Collections.min(posToGeno.keySet());
+			int currPos = Integer.parseInt(info[POS]);
+			while(currPos - minKey > back){
+				posToGeno.remove(minKey);
+				posToInfo.remove(minKey);
+				minKey = Collections.min(posToGeno.keySet());
+			}
 			
 			
 		}
@@ -396,8 +424,8 @@ public class PairwiseLikelihoodCoreStreamPed {
 	
 		int currChrom = -9;
 		int prevChrom = -9;	
-		double currDist = 0;
-		double prevDist = 0;
+		int currPos = 0;
+		int prevPos = 0;
 		String genoLine;
 		String infoLine;
 		
@@ -413,8 +441,8 @@ public class PairwiseLikelihoodCoreStreamPed {
 			//update chrom and pos
 			prevChrom = currChrom;
 			currChrom = Integer.parseInt(geno[0]);
-			prevDist = currDist;
-			currDist = Double.parseDouble(geno[DIST]);
+			prevPos = currPos;
+			currPos = Integer.parseInt(info[POS]);
 			Map<EmissionKey, Double> emissionMap = computePossibleOneLocusEmissionWithError(info);
 		
 			
@@ -477,7 +505,7 @@ public class PairwiseLikelihoodCoreStreamPed {
 				
 				
 				//read relevant data
-				double dist = currDist - prevDist;
+				double dist = (currPos - prevPos) * recombRate;
 	
 				
 				for (int ibdNew = 0; ibdNew < numIBD; ibdNew++){
@@ -578,15 +606,14 @@ public class PairwiseLikelihoodCoreStreamPed {
 		infoFile.readLine(); //skip header
 		
 		// data structures
-		Map<Integer,String[]> posToGeno = new HashMap<Integer,String[]>(); //holds genotypes for the last 50 snps
-		Map<Integer, String[]> posToInfo = new HashMap<Integer, String[]>(); //holds info line for the last 50 snps
+		Map<Integer,String[]> posToGeno = new HashMap<Integer,String[]>(back); //holds genotypes for the last 50 snps
+		Map<Integer, String[]> posToInfo = new HashMap<Integer, String[]>(back); //holds info line for the last 50 snps
 
 		
 		int currChrom = -9;
 		int prevChrom = -9;	
 		int currPos = 0;
-		double currDist = 0;
-		double prevDist = 0;
+		int prevPos = 0;
 		String genoLine;
 		String infoLine;
 		
@@ -602,9 +629,8 @@ public class PairwiseLikelihoodCoreStreamPed {
 			//update chrom and pos
 			prevChrom = currChrom;
 			currChrom = Integer.parseInt(geno[0]);
+			prevPos = currPos;
 			currPos = Integer.parseInt(info[POS]);
-			prevDist = currDist;
-			currDist = Double.parseDouble(geno[DIST]);
 		
 			
 			////// FIRST SNP /////
@@ -679,7 +705,7 @@ public class PairwiseLikelihoodCoreStreamPed {
 				String[] ldGeno = posToGeno.get(ldPos);
 				
 				//read relevant data
-				double dist = currDist - prevDist;
+				double dist = (currPos - prevPos) * recombRate;
 	
 				
 				//compute all possible emission probs
@@ -756,23 +782,17 @@ public class PairwiseLikelihoodCoreStreamPed {
 			
 			}
 			
-
-			
-			//remove useless info
-			int minKey = Collections.min(posToGeno.keySet());
-			double minDist = Double.parseDouble(posToGeno.get(minKey)[DIST]);
-			while(currDist - minDist > back){
-				posToGeno.remove(minKey);
-				posToInfo.remove(minKey);
-				minKey = Collections.min(posToGeno.keySet());
-				minDist = Double.parseDouble(posToGeno.get(minKey)[DIST]);
-			}
-			
-			
 			//update previous data
 			posToGeno.put(currPos, geno);
 			posToInfo.put(currPos, info);
 			
+			//remove useless info
+			int minKey = Collections.min(posToGeno.keySet());
+			while(currPos - minKey > back){
+				posToGeno.remove(minKey);
+				posToInfo.remove(minKey);
+				minKey = Collections.min(posToGeno.keySet());
+			}
 			
 		}
 		
@@ -832,7 +852,7 @@ public class PairwiseLikelihoodCoreStreamPed {
 	//no marginalizing assume genotype1 and genotype2 are the real deal; individuals are ordered
 	private double emissionDensityWithoutError(double[] oneLocusFreq, String genotype1, String genotype2, int ibd){//works
 		
-		int ibs = this.ibs.get(new SimplePair<Genotype, Genotype>(genotypeKey.get(genotype1), genotypeKey.get(genotype2)));
+		int ibs = getIBS(genotype1, genotype2);
 		
 		if( ibs < ibd){
 			return 0d;
@@ -893,12 +913,8 @@ public class PairwiseLikelihoodCoreStreamPed {
 		
 		double toReturn = 0d;
 		for(String ind1TrueGenotype : possibleGenotypes){
-			SimplePair<Genotype,Genotype> errorKey1 = new SimplePair<Genotype,Genotype>(new Genotype(ind1TrueGenotype), new Genotype(genotype1));
-			
 			for(String ind2TrueGenotype: possibleGenotypes){
-				SimplePair<Genotype,Genotype> errorKey2 = new SimplePair<Genotype,Genotype>(new Genotype(ind2TrueGenotype), new Genotype(genotype2));
-				
-				toReturn += errorProb.get(errorKey1) * errorProb.get(errorKey2) * oneLocusEmissionWithoutError.get(new EmissionKey(new SimplePair<Genotype,Genotype>(new Genotype(ind1TrueGenotype), new Genotype(ind2TrueGenotype)), null, ibd));
+				toReturn += errorProbability(ind1TrueGenotype, genotype1) * errorProbability(ind2TrueGenotype, genotype2) * oneLocusEmissionWithoutError.get(new EmissionKey(new SimplePair<Genotype,Genotype>(new Genotype(ind1TrueGenotype), new Genotype(ind2TrueGenotype)), null, ibd));
 			}
 		}
 
@@ -980,8 +996,8 @@ public class PairwiseLikelihoodCoreStreamPed {
 	//no marginalizing assume genotype1 and genotype2 are the real deal; individuals are ordered
 	public double twoLocusEmissionDensityWithoutError(double[] twoLocusFreq, String[] possibleTwoLocusAlleles, String genotypeInd1CurrPos, String genotypeInd2CurrPos, String genotypeInd1PrevPos, String genotypeInd2PrevPos, int ibd){
 		
-		int ibsCurrPos = this.ibs.get(new SimplePair<Genotype, Genotype>(genotypeKey.get(genotypeInd1CurrPos), genotypeKey.get(genotypeInd2CurrPos)));
-		int ibsPrevPos = this.ibs.get(new SimplePair<Genotype, Genotype>(genotypeKey.get(genotypeInd1PrevPos), genotypeKey.get(genotypeInd2PrevPos)));
+		int ibsCurrPos = getIBS(genotypeInd1CurrPos, genotypeInd2CurrPos);
+		int ibsPrevPos = getIBS(genotypeInd1PrevPos, genotypeInd2PrevPos);
 
 		
 		if (ibsCurrPos < ibd || ibsPrevPos < ibd){
@@ -1130,21 +1146,17 @@ public class PairwiseLikelihoodCoreStreamPed {
 		double twoLocusEmissionDensity = 0d;
 		
 		for(String trueGenotypeInd1CurrPos : possibleGenotypesCurrPos){
-			SimplePair<Genotype,Genotype> errorKey1 = new SimplePair<Genotype,Genotype>(genotypeKey.get(trueGenotypeInd1CurrPos), genotypeKey.get(genotypeInd1CurrPos));
-			double errorProbInd1CurrPos = errorProb.get(errorKey1);
+			double errorProbInd1CurrPos = errorProbability(trueGenotypeInd1CurrPos, genotypeInd1CurrPos);
 			
 			for(String trueGenotypeInd2CurrPos: possibleGenotypesCurrPos){
-				SimplePair<Genotype,Genotype> errorKey2 = new SimplePair<Genotype,Genotype>(genotypeKey.get(trueGenotypeInd2CurrPos), genotypeKey.get(genotypeInd2CurrPos));
-				double errorProbInd2CurrPos = errorProb.get(errorKey2);
+				double errorProbInd2CurrPos = errorProbability(trueGenotypeInd2CurrPos, genotypeInd2CurrPos);
 				SimplePair<Genotype,Genotype> genoCurrPos = new SimplePair<Genotype,Genotype>(genotypeKey.get(trueGenotypeInd1CurrPos), genotypeKey.get(trueGenotypeInd2CurrPos));
 				
 				for(String trueGenotypeInd1PrevPos: possibleGenotypesPrevPos){
-					SimplePair<Genotype,Genotype> errorKey3 = new SimplePair<Genotype,Genotype>(genotypeKey.get(trueGenotypeInd1PrevPos), genotypeKey.get(genotypeInd1PrevPos));
-					double errorProbInd1PrevPos  = errorProb.get(errorKey3);
+					double errorProbInd1PrevPos  = errorProbability(trueGenotypeInd1PrevPos, genotypeInd1PrevPos);
 					
 					for(String trueGenotypeInd2PrevPos: possibleGenotypesPrevPos){
-						SimplePair<Genotype,Genotype> errorKey4 = new SimplePair<Genotype,Genotype>(genotypeKey.get(trueGenotypeInd2PrevPos), genotypeKey.get(genotypeInd2PrevPos));
-						double errorProbInd2PrevPos  = errorProb.get(errorKey4);
+						double errorProbInd2PrevPos  = errorProbability(trueGenotypeInd2PrevPos, genotypeInd2PrevPos);
 						
 						SimplePair<Genotype,Genotype> genoPrevPos = new SimplePair<Genotype,Genotype>(genotypeKey.get(trueGenotypeInd1PrevPos), genotypeKey.get(trueGenotypeInd2PrevPos));
 						
@@ -1176,22 +1188,44 @@ public class PairwiseLikelihoodCoreStreamPed {
 	}
 	
 	
-	
+	/*
 	//likelihood of the observedGenotype given the true genotype 
 	private double errorProbability(String trueGenotype, String observedGenotype){
 
 		double delta = observedGenotype.charAt(0) == observedGenotype.charAt(1) ? 1d : 0d;
-		int ibs = this.ibs.get(new SimplePair<Genotype, Genotype>(genotypeKey.get(trueGenotype), genotypeKey.get(observedGenotype)));
+		int ibs = getIBS(trueGenotype, observedGenotype);
 		
 		if (trueGenotype.charAt(0) == trueGenotype.charAt(1)){//correct
-			return (2d - delta) * Math.pow(this.genotypingErrorRate / 3d, 2 - ibs) * Math.pow(1 - this.genotypingErrorRate, ibs);
-		} else {
+			return (2d - delta) * Math.pow(this.genotypingErrorRate, 2 - ibs) * Math.pow(1 - this.genotypingErrorRate, ibs);
+		} 
+		
+		else {
 			if(ibs == 2){
-				return Math.pow(1 - this.genotypingErrorRate, 2) + Math.pow(this.genotypingErrorRate / 3d, 2);
+				return Math.pow(1 - this.genotypingErrorRate, 2) + Math.pow(this.genotypingErrorRate, 2);
 			} else {
-				return (2d-delta)* Math.pow(this.genotypingErrorRate / 3d, 2 - ibs) * Math.pow(1 - this.genotypingErrorRate, ibs);
+				return (2d-delta)* Math.pow(this.genotypingErrorRate, 2 - ibs) * Math.pow(1 - this.genotypingErrorRate, ibs);
 			}
 		}
+	}
+	*/
+	
+	private double errorProbability(String trueGenotype, String observedGenotype){
+
+		int same1 = trueGenotype.charAt(0) == trueGenotype.charAt(1) ? 1 : 0;
+		int same2 = observedGenotype.charAt(0) == observedGenotype.charAt(1) ? 1 : 0;
+		int ibs = getIBS(trueGenotype, observedGenotype);
+		
+		
+		if(same1==1){
+			if(ibs==0) return errorProbMat[0][2];
+			else if(ibs==1) return errorProbMat[0][1];
+			else return errorProbMat[0][0];
+		}
+		else{
+			if(same2==1) return errorProbMat[1][0];
+			else return errorProbMat[1][1];
+		}
+
 	}
 	
 	
@@ -1202,13 +1236,13 @@ public class PairwiseLikelihoodCoreStreamPed {
 		String[] possibleGenotypes = this.possibleGenotypes.get(info[V] + info[v]);
 		double[] oneLocusFreq = getOneLocusFreq(info);
 		
-		//genotype probability without any error for all possible genotypes
+		//genotype probability without any error for all possible true genotypes
 		Map<Genotype, Double> genotypeProbWithoutError = new HashMap<Genotype, Double>(3);
 		for(String geno : possibleGenotypes){
 			genotypeProbWithoutError.put(genotypeKey.get(geno), genotypeProbWithoutError(oneLocusFreq, geno));
 		}
 		
-		//genotype probability with error for all possible genotypes
+		//genotype probability with error for all possible observed genotypes
 		Map<Genotype, Double> genotypeProbWithError = new HashMap<Genotype, Double>(3);
 		for(String geno: possibleGenotypes){
 			genotypeProbWithError.put(genotypeKey.get(geno), genotypeProbWithError(genotypeProbWithoutError, possibleGenotypes, geno));
@@ -1232,7 +1266,7 @@ public class PairwiseLikelihoodCoreStreamPed {
 		
 		double toReturn = 0d;
 		for(String trueGenotype : possibleGenotypes){
-				toReturn += this.errorProb.get(new SimplePair<Genotype, Genotype>(genotypeKey.get(trueGenotype), genotypeKey.get(genotype))) *  genotypeProbWithoutError.get(genotypeKey.get(trueGenotype));
+				toReturn += errorProbability(trueGenotype, genotype) *  genotypeProbWithoutError.get(genotypeKey.get(trueGenotype));
 		}
 
 		return toReturn;
@@ -1303,13 +1337,13 @@ public class PairwiseLikelihoodCoreStreamPed {
 	}
 	
 	
-	//conditional 
+	//gentoype prob conditioned on ld marker
 	private double twoLocusGenotypeProbWithError (Map<SimplePair<Genotype, Genotype>, Double> twoLocusGenotypeProbWithoutError, Map<Genotype, Double> oneLocusGenotypeProbWithError, String[] possibleGenotypes1, String[] possibleGenotypes2, String genotypeLoc1, String genotypeLoc2){ 
 		
 		double twoLocusGenotypeProb = 0d;
 		for(String trueGenotypeLoc1 : possibleGenotypes1){
 			for(String trueGenotypeLoc2: possibleGenotypes2){
-				twoLocusGenotypeProb += this.errorProb.get(new SimplePair<Genotype,Genotype>(genotypeKey.get(trueGenotypeLoc1), genotypeKey.get(genotypeLoc1))) * this.errorProb.get(new SimplePair<Genotype,Genotype>(genotypeKey.get(trueGenotypeLoc2), genotypeKey.get(genotypeLoc2))) * twoLocusGenotypeProbWithoutError.get(new SimplePair<Genotype,Genotype>(genotypeKey.get(trueGenotypeLoc1), genotypeKey.get(trueGenotypeLoc2)));
+				twoLocusGenotypeProb += errorProbability(trueGenotypeLoc1, genotypeLoc1) * errorProbability(trueGenotypeLoc2, genotypeLoc2) * twoLocusGenotypeProbWithoutError.get(new SimplePair<Genotype,Genotype>(genotypeKey.get(trueGenotypeLoc1), genotypeKey.get(trueGenotypeLoc2)));
 			}
 		}
 		
@@ -1350,7 +1384,7 @@ public class PairwiseLikelihoodCoreStreamPed {
 	}	
 	
 	
-	
+	//returns frequency of reference allele (i.e. allele with the smallest rank (A,C,G,T))
 	private double[] getOneLocusFreq(String[] info){
 		
 		this.oneLocusFreq[0] = Double.parseDouble(info[pA]);
@@ -1361,7 +1395,7 @@ public class PairwiseLikelihoodCoreStreamPed {
 		return this.oneLocusFreq;
 		
 	}
-	
+
 	
 	private double[] getTwoLocusFreq(String[] info){
 		
@@ -1375,7 +1409,6 @@ public class PairwiseLikelihoodCoreStreamPed {
 	
 	
 	
-	//returns the number of characters the two strings have in common (unorders them, first)
 	private int getIBS(String genotype1, String genotype2){
 		if(genotype1.charAt(0) == genotype2.charAt(0)){
 			if(genotype1.charAt(1) == genotype2.charAt(1)){
@@ -1420,7 +1453,7 @@ public class PairwiseLikelihoodCoreStreamPed {
 		
 		//bilineal
 		else if(rel.getPath().getNumVisit()==2){
-			return transitionDensityBilineal(ibdNew, ibdOld, rhoBetween, rel); 
+			return transitionDensityBilineal(ibdNew, ibdOld, rhoBetween, rel); //TODO testing
 		}
 		
 		else throw new RuntimeException("something wrong in trans density");
@@ -1536,7 +1569,4 @@ public class PairwiseLikelihoodCoreStreamPed {
 		
 		
 	}
-
-	 
 }
-	

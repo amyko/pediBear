@@ -26,11 +26,13 @@ public class TestLikelihoodLD {
 		public static void computeMarginals(PairwiseLikelihoodCoreStreamPed core, String fileName, int[] ids, int t, String infoPath) throws IOException{
 			
 			//compute
-			double[] marginals = core.computeMarginal(fileName+"."+t+".tped", infoPath, ids);
-			
+			//double[] marginals = core.computeMarginal(fileName+"."+t+".tped", infoPath, ids);
+			double[] marginals = core.computeMarginal(fileName+".tped", infoPath, ids);
 			
 			//open outfile
-			PrintWriter writer = DataParser.openWriter(fileName+"."+t+".marginal");				
+			//PrintWriter writer = DataParser.openWriter(fileName+"."+t+".marginal");	
+			PrintWriter writer = DataParser.openWriter(fileName+".marginal");	
+			
 			
 			//write marginals to file
 			for (double item : marginals){
@@ -46,9 +48,11 @@ public class TestLikelihoodLD {
 			int numRel = relationships.size();
 			
 			//likelihood
-			PrintWriter writer = DataParser.openWriter(fileName+"."+t+".pairwise");
+			//PrintWriter writer = DataParser.openWriter(fileName+"."+t+".pairwise");
+			PrintWriter writer = DataParser.openWriter(fileName+".pairwise");
 				
-			double[][][] lkhd = core.forwardAlgorithm(fileName+"."+t+".tped", infoPath, ids, relationships);
+			//double[][][] lkhd = core.forwardAlgorithm(fileName+"."+t+".tped", infoPath, ids, relationships);
+			double[][][] lkhd = core.forwardAlgorithm(fileName+".tped", infoPath, ids, relationships);
 
 			//write to file
 			for(int k=0; k<numRel; k++){
@@ -134,13 +138,13 @@ public class TestLikelihoodLD {
 
 			
 			//individuals
-			int numIndiv = 2;
+			int numIndiv = 100;
 			int[] indCols = new int[numIndiv];
 			for(int i=0; i<numIndiv; i++) indCols[i] = i;			
 			
 
-			int[] myLengths = new int[]{40,30,20,10};
-			String[] r_sqrs = new String[]{"0.100", "0.075", "0.050", "0.025", "0.013"};
+			int[] myLengths = new int[]{10,20,30,40};
+			String[] r_sqrs = new String[]{"0.100", "0.075", "0.050", "0.025"};
 			
 
 			
@@ -155,13 +159,33 @@ public class TestLikelihoodLD {
 
 					//compute info
 					//System.out.println("Computing info");
-					String infoPath = String.format(dir+"unrelated/msprime.%dmorgan.%s.info", myLength, r_sqr);
-					//LDStreamPed.writeLdOutfile(String.format(dir+"unrelated/msprime.%dmorgan.%s", myLength, r_sqr), infoPath, back);	
+					String infoPath = String.format(simDir+"msprime.%dmorgan.%s.info", myLength, r_sqr);
+					LDStreamPed.writeLdOutfile(String.format(simDir+"msprime.%dmorgan.%s", myLength, r_sqr), infoPath, back);	
+					
+					
+					//String testName = String.format(simDir+"msprime.%dmorgan.%s", myLength, r_sqr);
+					
+					//computeMarginals(core, testName, indCols, 0, infoPath);
+					//computePairwise(core, testName, indCols, relationships, 0, infoPath);
+					
 					
 					
 					for(int gen=4; gen>=2; gen--){
+						
+						System.out.println(String.format("%d %s %d", myLength, r_sqr, gen));
+						
+						
+						String testName = String.format(simDir+"cousins%d.%dmorgan.%s", gen, myLength, r_sqr);
+						
+						if(r_sqr.equals("0.100")){
+							testName += ".all";
+						}
+						
+						computeMarginals(core, testName, indCols, 0, infoPath);
+						computePairwise(core, testName, indCols, relationships, 0, infoPath);
 					
 					
+						/*
 						for(int t=0; t<50; t++){
 							
 							System.out.println(String.format("%d %d %s %d", gen, myLength, r_sqr, t));
@@ -183,7 +207,11 @@ public class TestLikelihoodLD {
 							
 							
 						}
+						*/
+						
+						
 					}
+					
 					
 					
 				}

@@ -15,6 +15,7 @@ import dataStructures.Node;
 import dataStructures.Path;
 import dataStructures.Pedigree;
 import likelihood.PairwiseLikelihoodCoreStream2;
+import likelihood.PairwiseLikelihoodCoreStreamPed;
 import mcmc.SimulatedAnnealing;
 import mcmcMoves.Contract;
 import mcmcMoves.CousinToGreatUncle;
@@ -24,8 +25,10 @@ import mcmcMoves.CutLink;
 import mcmcMoves.CutOneLinkTwo;
 import mcmcMoves.CutTwoLinkOne;
 import mcmcMoves.FStoPO;
+import mcmcMoves.FullUncletoHalfSibs;
 import mcmcMoves.HalfCousinToHalfGreatUncle;
 import mcmcMoves.HalfGreatUncleToHalfCousin;
+import mcmcMoves.HalfSibstoFullUncle;
 import mcmcMoves.HalfToFullSibs;
 import mcmcMoves.HalfUncleToCousin;
 import mcmcMoves.Link;
@@ -35,6 +38,7 @@ import mcmcMoves.Split;
 import mcmcMoves.Split2;
 import mcmcMoves.SplitLink;
 import mcmcMoves.Stretch;
+import mcmcMoves.SwapDescAnc;
 import mcmcMoves.SwapDown;
 import mcmcMoves.SwapUp;
 import mcmcMoves.SwitchSex;
@@ -54,42 +58,37 @@ public class RunJays {
 		
 
 		//pedigree parameters
-		int depth = 5;
-		int maxDepthForSamples = depth;
+		int depth = 4;
 		int numIndiv = 75;
 		int totalIndiv = 75;
 		double seqError = 0.01;
 		double r = 1.5e-8;
 		int back = 30000;
 		int maxNumNodes = 500;
-		int genTime = 16;
-		double marginalAdj = 0;
-		PairwiseLikelihoodCoreStream2 core = new PairwiseLikelihoodCoreStream2(seqError, r, back, numIndiv);
+		int prior = numIndiv/2;
+		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(seqError, r, back, numIndiv);
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/jays/";
 		String pathToOmega = dir + "pathToOmega.txt";
 
 		//SA parameters
-		double[] heat = new double[800];
-		heat[0] = .01;
+		double[] heat = new double[800]; //200
+		heat[0] = .01; //.1
 		for(int i=1; i<heat.length; i++) heat[i] = heat[i-1]*1.01;
-
-
-		int coolingTime = 10000;
+		System.out.println(heat[heat.length-1]);
+		int coolingTime = 100000;
  		int runLength = 1;
+ 		int numRun = 1;
+
+
 		Random rGen = new Random(1942038275L);
-		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .06), new Split("split", .02), new Split2("split2", 0.02), new SwapUp("swapUp", 0.05), new SwapDown("swapDown", 0.02), new SwitchSex("switchSex", 0.02), 
-				new CutLink("cutLink", 0.05), new SplitLink("splitLink", 0.05), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.1), new CutTwoLinkOne("cutTwoLinkOne", 0.05),
-				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.05), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.05), new FStoPO("FStoPO", 0.02), new POtoFS("POtoFS",0.02), 
-				new HalfUncleToCousin("halfUncleToCousin", 0.05), new CousinToHalfUncle("cousinToHalfUncle", 0.05), new CousinToGreatUncle("cousinToGreatUncle", 0.05), new GreatUncleToCousin("greatUncleToCousin", 0.05), 
-				new HalfToFullSibs("halfToFullSibs", 0.05), new Stretch("stretch", 0.05), new Contract("contract", 0.05)};
+		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .1), new Split("split", .02), new Split2("split2", 0.02), new SwapUp("swapUp", 0.02), new SwapDown("swapDown", 0.02), new SwitchSex("switchSex", 0.02), 
+				new CutLink("cutLink", 0.17), new SplitLink("splitLink", 0.07), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.15), new CutTwoLinkOne("cutTwoLinkOne", 0.02),
+				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.02), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.02), new FStoPO("FStoPO", 0.02), new POtoFS("POtoFS",0.02), 
+				new HalfUncleToCousin("halfUncleToCousin", 0.02), new CousinToHalfUncle("cousinToHalfUncle", 0.02), new CousinToGreatUncle("cousinToGreatUncle", 0.02), new GreatUncleToCousin("greatUncleToCousin", 0.02),
+				new SwapDescAnc("swapDescAnc", 0.04), new Contract("contract", 0.02), new Stretch("stretch", 0.02), new HalfSibstoFullUncle("halfSibstoFullUncle", 0.02), new FullUncletoHalfSibs("fullUncleToHalfSibs", 0.02),
+				new ShiftClusterLevel("shiftClusterLevel", 0.04)};
 		
-		double prob = 0d;
-		for(Move i : moves){
-			prob += i.getProb();
-		}
-		System.out.println(prob);
-		
-		
+
 		//cooling schedule
 		int[] coolingSchedule = new int[heat.length-1];
 		for(int i=0; i<heat.length-1; i++){
@@ -100,18 +99,18 @@ public class RunJays {
 		
 		
 		//files
-		String testName = "75jays";
-		String truePath = dir + testName + ".true";
+		String testName = "75jays.geno0.prune10.0.1";
+		String truePath = dir + "75jays.true";
 		String indexPath = dir + testName + ".index2name";
-		String marginalPath = dir +testName+".pruned.50_1.marginal";
-		String lkhdPath = dir + testName+".pruned.50_1.pairwise";
-		String convPath = dir + testName + ".pruned.conv";
+		String marginalPath = dir +testName+".marginal";
+		String lkhdPath = dir + testName+".pairwise";
+		String convPath = dir + testName + ".conv";
 		
 
 		//true path
 		Path[][] trueRel = Accuracy.getTruePath(truePath, totalIndiv);
 		
-		
+		/*
 		// samples
 		BufferedReader reader = DataParser.openReader(indexPath);
 		reader.readLine();
@@ -121,27 +120,28 @@ public class RunJays {
 			inds[i] = new Node(true, i, sex, 0, -1);
 		}
 		reader.close();
+		*/
 		
 			
 		//convergence
 		PrintWriter convWriter = DataParser.openWriter(convPath);
 		
 			
-		for(int t=0; t<5; t++){
+		for(int t=0; t<numRun; t++){
 
 			System.out.println(t);  
 			String outPath = dir + "mcmc.sample."+t;
 			
 			//open accuracy path
-			String mapAccPath = dir + testName+".sa.map.acc.50indiv."+t;
+			String mapAccPath = dir + testName+".sa.mapAcc."+t;
 			PrintWriter mapWriter = DataParser.openWriter(mapAccPath);
 
 			//initialize pedigree
-			Pedigree ped = new Pedigree(depth, maxDepthForSamples, inds, core, marginalPath, lkhdPath, rGen, maxNumNodes, genTime, marginalAdj);
+			Pedigree ped = new Pedigree(dir+testName, core, depth, rGen, maxNumNodes, prior, numIndiv);
 
 		
 			//initialize SA
-			SimulatedAnnealing sa = new SimulatedAnnealing(ped, heat, coolingSchedule, moves, runLength, rGen, outPath, convWriter);
+			SimulatedAnnealing sa = new SimulatedAnnealing(ped, heat, coolingSchedule, moves, runLength, rGen, dir+testName+"."+t);
 
 			
 			
@@ -154,7 +154,7 @@ public class RunJays {
 			System.out.println(String.format("Running time: %.1f seconds", duration));
 
 			
-			
+			/*
 			//sanity check
 			for(int k=0; k<numIndiv; k++){
 				ped.updateAdjMat(ped.getNode(k));
@@ -177,15 +177,15 @@ public class RunJays {
 			
 			double trueLkhd = ped.likelihoodAllPedigrees();		
 			System.out.println(String.format("lkhd of true pedigree: %.2f", trueLkhd));
-
+			 */
 			
 
 			
 			//kinship accuracy
-			double[][] mapAcc = Accuracy.mapAccuracy(outPath, truePath, totalIndiv, numIndiv, pathToKinship);
+			double[][] mapAcc = Accuracy.mapAccuracy(dir+testName+"."+t+".pair", truePath, totalIndiv, numIndiv, pathToKinship);
 			
 			//write header for output path
-			mapWriter.write(String.format(">\t%d\t%.2f\n", t, trueLkhd - sa.bestLkhd));
+			mapWriter.write(String.format(">\t%d\t%.2f\n", t, sa.bestLkhd));
 			
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){

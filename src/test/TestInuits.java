@@ -24,7 +24,7 @@ public class TestInuits {
 	public static void computeMarginals(PairwiseLikelihoodCoreStreamPed core, String fileName, int[] ids) throws IOException{
 		
 		//compute
-		double[] marginals = core.computeMarginalIndep(fileName+".tped", fileName+".info", ids);
+		double[] marginals = core.computeMarginal(fileName+".tped", fileName+".info", ids);
 
 		//open outfile
 		PrintWriter writer = DataParser.openWriter(fileName+".marginal");				
@@ -45,7 +45,7 @@ public class TestInuits {
 		//likelihood
 		PrintWriter writer = DataParser.openWriter(fileName+".pairwise");
 			
-		double[][][] lkhd = core.forwardAlgorithmIndep(fileName+".tped", fileName+".info", ids, relationships);
+		double[][][] lkhd = core.forwardAlgorithm(fileName+".tped", fileName+".info", ids, relationships);
 		
 
 		//write to file
@@ -128,7 +128,7 @@ public class TestInuits {
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(seqError, recombRate, back, numIndiv);
 		
 		//String fileName =  "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/nucFam";
-		String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/genotypes/test12.all.pruned.10k";
+		String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/inuits/100tasiilaq.admixed0.05.pruned0.05";
 		
 		//compute info
 		System.out.println("Computing info");
@@ -138,7 +138,7 @@ public class TestInuits {
 		//compute marginal
 		System.out.println("Computing marginals");
 		computeMarginals(core, fileName, indCols);
-		core.setMarginals(fileName+".marginal");
+		//core.setMarginals(fileName+".marginal");
 		 
 		
 		//compute pairwise

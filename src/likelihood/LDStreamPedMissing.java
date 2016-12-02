@@ -11,39 +11,31 @@ import utility.Cubic;
 import utility.DataParser;
 
 //input
-//transposed ped file (tped), fam, bim
+//tped, tfam
 
 //output
 // currPos ldPos U u V v pA pC pG pT A B C D
 //U = a1 at ldPos
 //V = a1 at currPos
 
-public class LDStreamPed {
+public class LDStreamPedMissing {
 
 	//input data columns
 	private static int CHROM = 0;
-	private static int POS = 3;
-	private static int A1 = 4;
-	private static int A2 = 5;
-
+	private static int GENPOS = 2;
+	private static int PHYPOS = 3;
 
 	
-	//input: tped, fam, bim files
-	//output: info file
-	public static void writeLdOutfile(String fileName, String outPath, int back) throws IOException{
+	public static void writeLdOutfile(String fileName, String outPath, double back, boolean conditional) throws IOException{
 		
-		//TODO fix this!!
-		//int numIndiv = 100;
-		//num indiv
 		int numIndiv = DataParser.countLines(fileName+".tfam"); 
 
 		//open files
 		BufferedReader tpedfile = DataParser.openReader(fileName+".tped");
-		BufferedReader bimfile = DataParser.openReader(fileName+".bim");
 		PrintWriter writer = DataParser.openWriter(fileName+".info");
 		
 		//write header for outfile
-		writer.write("CHROM\tPOS\tLDPOS\tU\tu\tV\tv\tpA\tpC\tpG\tpT\tA\tB\tC\tD\n");
+		writer.write("CHROM\tPOS\tLDPOS\tA\ta\tB\tb\tp_A\tp_C\tp_G\tp_T\tp_ab\tp_aB\tp_Ab\tp_AB\n");
 		
 
 		
@@ -52,6 +44,7 @@ public class LDStreamPed {
 		
 		//data structures
 		List<Integer> prevPosList = new ArrayList<Integer>();
+		List<Double> prevDistList = new ArrayList<Double>();
 		List<String[]> prevGenotypeList = new ArrayList<String[]>();
 		List<double[]> prevStationaryDistList = new ArrayList<double[]>();
 		List<char[]> prevAlleleTypeList = new ArrayList<char[]>();
@@ -59,19 +52,20 @@ public class LDStreamPed {
 		
 		//read data
 		String tpedline;
-		String bimline;
 		int prevChrom = 1;
 		int currChrom = 1;
-		while ((tpedline = tpedfile.readLine())!=null && (bimline = bimfile.readLine())!=null){
-		//while ((tpedline = tpedfile.readLine())!=null){
+		while ((tpedline = tpedfile.readLine())!=null){
+
 			String[] tpedFields = tpedline.split("\\s");
-			String[] bimFields = bimline.split("\\s");
+
 			
 			// update current info
 			prevChrom = currChrom;
 			currChrom = Integer.parseInt(tpedFields[CHROM]);
-			int currPos = Integer.parseInt(tpedFields[POS]);
+			int currPos = Integer.parseInt(tpedFields[PHYPOS]);
+			double currDist = Double.parseDouble(tpedFields[GENPOS]);
 			if(currChrom!=prevChrom){
+				prevDistList.clear();
 				prevPosList.clear();
 				prevGenotypeList.clear();
 				prevStationaryDistList.clear();
@@ -80,56 +74,65 @@ public class LDStreamPed {
 					
 			if(prevPosList.contains(currPos)) continue; //skip if it was already processed
 			
-			
-			//TODO fix this!
-			char[] currAlleleTypes = new char[]{bimFields[A1].charAt(0), bimFields[A2].charAt(0)};
-			//char[] currAlleleTypes = new char[]{'A','T'};
-			
-			
+					
 			String[] currGenotypes = new String[numIndiv];
 			for (int i=0; i<numIndiv; i++){				
 				currGenotypes[i] = tpedFields[2*i+4] + tpedFields[2*i+5];
 			}
 			double[] currStationaryDist = estimateStationaryDist(currGenotypes);
 			
+			
+			char[] currAlleleTypes = getAlleles(currStationaryDist);
+			
+			
 			// process this line; write to outfile
 			processInfo(solver, writer, back, currChrom, currPos, prevPosList, currGenotypes, prevGenotypeList, currStationaryDist, prevStationaryDistList, currAlleleTypes, prevAlleleTypeList);
 			
-			// update previous info			
-			while(prevPosList.size()>0){
-				
-				if(currPos - prevPosList.get(0) > back){
-					prevPosList.remove(0);
-					prevGenotypeList.remove(0);
-					prevStationaryDistList.remove(0);
-					prevAlleleTypeList.remove(0);
-				}
-				
-				else
-					break;
-				
-			}
-
 			
-			//add new info
-			prevPosList.add(currPos);
-			prevGenotypeList.add(currGenotypes);
-			prevStationaryDistList.add(currStationaryDist);
-			prevAlleleTypeList.add(currAlleleTypes);
+			//do LD conditioning
+			if(conditional){
+			
+				// update previous info			
+				while(prevDistList.size()>0){
+					
+					if(currDist - prevDistList.get(0) > back){
+						prevDistList.remove(0);
+						prevPosList.remove(0);
+						prevGenotypeList.remove(0);
+						prevStationaryDistList.remove(0);
+						prevAlleleTypeList.remove(0);
+					}
+					
+					else
+						break;
+					
+				}
+	
+				
+				
+				//add new info
+				prevDistList.add(currDist);
+				prevPosList.add(currPos);
+				prevGenotypeList.add(currGenotypes);
+				prevStationaryDistList.add(currStationaryDist);
+				prevAlleleTypeList.add(currAlleleTypes);
+		
+			}
+			
+		
 		}
 		
+		
 		tpedfile.close();
-		//bimfile.close();
 		writer.close();
 		
 		
 	}
 	
 	
-	private static void processInfo (Cubic solver, PrintWriter writer, int back, int currChrom, int currPos, List<Integer> prevPosList, String[] currGenotypes, List<String[]> prevGenotypeList, double[] currStationaryDist, List<double[]> prevStationaryDistList, char[] currAlleleTypes, List<char[]> prevAlleleTypeList){
+	private static void processInfo (Cubic solver, PrintWriter writer, double back, int currChrom, int currPos, List<Integer> prevPosList, String[] currGenotypes, List<String[]> prevGenotypeList, double[] currStationaryDist, List<double[]> prevStationaryDistList, char[] currAlleleTypes, List<char[]> prevAlleleTypeList){
 		
 		
-		assert prevPosList.size() <= back; // make sure we don't go back farther than specified
 		if (prevGenotypeList.size()==0){
 			writeResults(writer, currChrom, currPos, -1, new char[]{'X','X'}, currAlleleTypes, currStationaryDist, new double[]{-1,-1,-1,-1}); //return if there is no previous snps to condition on
 			return;
@@ -153,7 +156,6 @@ public class LDStreamPed {
 			
 			//estimate two locus freq {uv, uV, Uv, UV}
 			double[] twoLocusFreq = estimateTwoLocusFreq(solver, prevGenotypes, currGenotypes, prevAlleleTypes[0], prevAlleleTypes[1], currAlleleTypes[0], currAlleleTypes[1]);
-			//double[] twoLocusFreq = estimateTwoLocusFreqPhased(prevGenotypes, currGenotypes,prevAlleleTypes[0], prevAlleleTypes[1], currAlleleTypes[0], currAlleleTypes[1]);
 
 			
 			//compute LD
@@ -179,54 +181,18 @@ public class LDStreamPed {
 		
 	}
 	
-	
-	private static double[] estimateTwoLocusFreqPhased(String[] genotypesAtLocus1, String[] genotypesAtLocus2, char U, char u, char V, char v){
-	
-		double[] toReturn = new double[4];
-		int numIndiv = genotypesAtLocus1.length;
-		
-		String A = ""+u+v;
-		String B = ""+u+V;
-		String C = ""+U+v;
-		String D = ""+U+V;
-		
-		for(int i=0; i<numIndiv; i++){
-			String h1 = ""+genotypesAtLocus1[i].charAt(0) + genotypesAtLocus2[i].charAt(0);
-			String h2 = ""+genotypesAtLocus1[i].charAt(1) + genotypesAtLocus2[i].charAt(1);
-			
-			if(h1.equals(A)) toReturn[0]++;
-			else if(h1.equals(B)) toReturn[1]++;
-			else if(h1.equals(C)) toReturn[2]++;
-			else if(h1.equals(D)) toReturn[3]++;
-			else throw new RuntimeException("Illegal haplotype!");
-			
-			if(h2.equals(A)) toReturn[0]++;
-			else if(h2.equals(B)) toReturn[1]++;
-			else if(h2.equals(C)) toReturn[2]++;
-			else if(h2.equals(D)) toReturn[3]++;
-			else throw new RuntimeException("Illegal haplotype!");
-			
-		}
-		
-		for(int i=0; i<toReturn.length; i++){
-			toReturn[i] = toReturn[i]/(numIndiv*2.0);
-		}
-		
-		if (Math.abs(toReturn[0]+toReturn[1]+toReturn[2]+toReturn[3]-1d)>1e-12){
-			System.out.println("TWO LOCUS PHASE WRONG");
-		}
-		
-		return toReturn;
-	
-	}
+
 	
 	
 	private static double[] estimateTwoLocusFreq(Cubic solver, String[] genotypesAtLocus1, String[] genotypesAtLocus2, char U, char u, char V, char v){
 
 
-		int numGeneCopies = 2 * genotypesAtLocus1.length;
-
 		int[] genotypeCounts = countGenotypes(genotypesAtLocus1, genotypesAtLocus2, U, u, V, v);
+		
+
+		int numGeneCopies = 0;
+		for(int cnt : genotypeCounts) numGeneCopies += cnt;
+		numGeneCopies  = 2 * numGeneCopies;
 
 		double cA = 2*genotypeCounts[0] + genotypeCounts[1] + genotypeCounts[3];
 		double cB = 2*genotypeCounts[2] + genotypeCounts[1] + genotypeCounts[5];	
@@ -296,7 +262,8 @@ public class LDStreamPed {
 		}
 		
 		//freq
-		for(double f : freq){
+		for(double f:freq){
+			
 			writer.write(String.format("%f\t",f));
 		}
 		for(double f : twoLocusFreq){
@@ -312,24 +279,29 @@ public class LDStreamPed {
 
 		
 		int numIndiv = genotypes.length;
-		int numAlleleCopies = 2*numIndiv;
+		int numAlleleCopies = 0;
 		double[] toReturn = new double[4];
 		
 		// count alleles
 		for (int ind=0; ind<numIndiv; ind++){
 			char g1 = genotypes[ind].charAt(0);
 			char g2 = genotypes[ind].charAt(1);
+			
+			//increment copies
+			numAlleleCopies += 2;
 				
 			if (g1=='A') toReturn[0]++;
 			else if (g1=='C') toReturn[1]++;
 			else if (g1=='G') toReturn[2]++;
 			else if (g1=='T') toReturn[3]++;
+			else if(g1=='0') numAlleleCopies--;
 			else throw new RuntimeException("Illegal allele in LD");
 				
 			if (g2=='A') toReturn[0]++;
 			else if (g2=='C') toReturn[1]++;
 			else if (g2=='G') toReturn[2]++;
 			else if (g2=='T') toReturn[3]++;	
+			else if(g2=='0') numAlleleCopies--;
 			else throw new RuntimeException("Illegal allele in LD");
 			}
 
@@ -344,6 +316,7 @@ public class LDStreamPed {
 	}
 	
 	
+	//counts different genotype combinations
 	private static int[] countGenotypes(String[] genotypesAtLocus1, String[] genotypesAtLocus2, char U, char u, char V, char v){
 		
 		int numIndiv = genotypesAtLocus1.length;
@@ -353,6 +326,7 @@ public class LDStreamPed {
 		String vv = ""+v+v;
 		String UU = ""+U+U;
 		String VV = ""+V+V;
+
 		
 		int[] genotypeCounts = new int[9];
 		
@@ -360,6 +334,11 @@ public class LDStreamPed {
 			
 			String g1 = genotypesAtLocus1[ind];
 			String g2 = genotypesAtLocus2[ind];
+			
+			//skip if missing data
+			if(g1.charAt(0)=='0' || g1.charAt(1)=='0' || g2.charAt(0)=='0' || g2.charAt(1)=='0')
+				continue;
+			
 			
 			if (g1.equals(uu)){
 				if (g2.equals(vv)) genotypeCounts[0]++;
@@ -378,6 +357,8 @@ public class LDStreamPed {
 				else if (g2.equals(VV)) genotypeCounts[5]++;
 				else genotypeCounts[4]++;
 			}
+			
+			
 		}
 		
 
@@ -450,10 +431,14 @@ public class LDStreamPed {
 	}
 	
 	
+	//TODO what about for fixed sites???
 	private static double computeLD (double pA, double pB, double pAB){
+		
+		if(pA==0 || pB==0 || pA==1 || pB==1) return 0;
 		
 		double D = pAB - pA*pB;
 		if (D==0d) return 0;
+	
 		
 		double denom = pA * (1-pA) * pB * (1-pB);
 
@@ -473,9 +458,28 @@ public class LDStreamPed {
 		else if (a=='C') return af[1];
 		else if (a=='G') return af[2];
 		else if (a=='T') return af[3];
+		else if(a=='X') return 0;
 		else throw new RuntimeException("Illegal allele");
 	}
 	
+
+	//given frequencies, return alleles with nonzero entries
+	private static char[] getAlleles(double[] freq){
+		
+		char[] toReturn = new char[2];
+		int i=0;
+		
+		if(freq[0] > 0) toReturn[i++] = 'A';
+		if(freq[1] > 0) toReturn[i++] = 'C';
+		if(freq[2] > 0) toReturn[i++] = 'G';
+		if(freq[3] > 0) toReturn[i++] = 'T';
+		
+		//if only one allele is observed, add X for the alternate allele
+		if(i==1) toReturn[i] = 'X';
+		
+		return toReturn;
+		
+	}
 
 
 	

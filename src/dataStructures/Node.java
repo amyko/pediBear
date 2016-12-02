@@ -1,7 +1,9 @@
 package dataStructures;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Node {
 	
@@ -42,6 +44,8 @@ public class Node {
 		this.parents = new ArrayList<Node>(2);
 		this.children = new ArrayList<Node>();
 		this.index = index;
+		
+		
 		
 	}	
 	
@@ -229,6 +233,11 @@ public class Node {
 	
 	///// SETTERS /////// WORKS
 	public void setIndex(int index){
+		
+		if(index < 0){
+			throw new RuntimeException("Negative index");
+		}
+		
 		this.index = index;
 	}
 	
@@ -328,20 +337,28 @@ public class Node {
 	//////// RECORD PATH /////////
 	public boolean recordPath(int up, int down){
 		
-		if (numVisit>0){ //make sure there are no multiple paths
-			if(this.up!=up || this.down!=down){ 
-				//System.out.println(this.index);
-				//throw new RuntimeException("Multiple paths to this node");
-				return true;
-			}
+		if (numVisit>0 && (this.up!=up || this.down!=down)){ //make sure there are no multiple paths
+			//System.out.println(this.index);
+			//throw new RuntimeException("Multiple paths to this node");
+			this.numVisit=-1;
+			return true;
+
 		}
 
 		if(numVisit >= 2){
 			//System.out.println(this.index);
 			//throw new RuntimeException("Too many visits");
+			this.numVisit = -1;
 			return true;
 		}
 		
+		if(numVisit==1 && (up==0 || down==0)){ //direct ancestor visited twice
+		
+			this.numVisit = -1;
+			return true;
+			
+		}
+			
 		this.up = up;
 		this.down = down;
 		this.numVisit++;

@@ -8,7 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.commons.math3.distribution.NormalDistribution;
+//import org.apache.commons.math3.distribution.NormalDistribution;
+
+
 
 import utility.ArrayUtility;
 import utility.DataParser;
@@ -2626,12 +2628,40 @@ public class Pedigree {
 	}
 	
 	
+	//returns true if the parent's sex cannot be changed
+	public boolean sexLocked(Node parent){
 
-	
+		parent.setNumVisit(parent.getNumVisit()+1);
+		
+		if(parent.sampled) 
+			return true;
+		
+		//recurse on neighbor parents
+		else{
+		
+			for(Node c : parent.getChildren()){
+				
+				if(c.getNumVisit() > 0) continue;
+				c.setNumVisit(c.getNumVisit()+1);
+				
+				
+				for(Node p : c.getParents()){
+					
+					if(p.getNumVisit() > 0) continue;
+					
+					if(sexLocked(p))
+						return true;
+					
+				}
+				
+								
+			}
+			
+			return false;
+		}
 
-
-
-
+		
+	}
  
  	
 

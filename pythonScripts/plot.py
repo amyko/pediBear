@@ -89,7 +89,7 @@ def getMeanErrorSortByMeisosis(inPath, trueDict, pathToOmega, nIndiv):
         i = int(fields[0])
         j = int(fields[1])
         acc = 1 - float(fields[2])
-        acc = np.sqrt(float(fields[2]))
+        #acc = np.sqrt(float(fields[2]))
 
 
         k1k2 = pathToOmega[trueDict[(i,j)]]
@@ -194,14 +194,15 @@ if __name__ == "__main__":
     
     #accuracy
     priorPath = resultDir + testName + ".pruned.2k.prior.4gen.mapAcc"
-    noPriorPath = resultDir + testName + ".pruned.2k.noPrior.4gen.mapAcc"
-    pairwisePath = resultDir + testName + ".pruned.2k.prior2.4gen.mapAcc"
+    priorPath = resultDir + "sim1.n2.mapAcc"
+    noPriorPath = resultDir + testName + ".pruned.2k.noPrior.mapAcc"
+    #pairwisePath = resultDir + testName + ".pruned.2k.pairwise.mapAcc"
     #plinkPath = resultDir + testName + ".pruned.10k.primus.mapAcc"
 
     #kinship distance
-    priorPath = resultDir + testName + ".pruned.2k.prior.4gen.kinshipDist"
-    noPriorPath = resultDir + testName + ".pruned.2k.noPrior.4gen.kinshipDist"
-    pairwisePath = resultDir + testName + ".pruned.2k.prior2.4gen.kinshipDist"
+    priorPath = resultDir + testName + ".pruned.2k.prior.4gen.mapAcc"
+    noPriorPath = resultDir + testName + ".pruned.2k.noPrior.4gen.mapAcc"
+    pairwisePath = resultDir + testName + ".pruned.2k.prior2.4gen.mapAcc"
     
     #get true path and path2Omega
     trueDict = getTruePath(truePath)
@@ -226,13 +227,13 @@ if __name__ == "__main__":
     #noPriorMeans[5] = .46
     plt.scatter(xdata, priorMeans, color='blue', label='Poi(n)')
     plt.scatter(xdata, pairwiseMeans, color='red', marker='^', label='Poi(n/2)') 
-    plt.scatter(xdata, noPriorMeans, color='green', marker='>', label='no prior')
+    plt.scatter(xdata, noPriorMeans, color='green', marker='>', label='No regularization')
     
     plt.legend(loc='upper left')
     #plt.ylim([-.1,1.1])
     plt.xlim([-1,len(xdata)+1])
     plt.xlabel("True kinship coefficient")
-    plt.ylabel("Distance")
+    plt.ylabel("Error")
     ax.set_xticks(xdata)
     ax.set_xticklabels(tickMarks)
     plt.setp(tickMarks)

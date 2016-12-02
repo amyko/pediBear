@@ -360,57 +360,64 @@ public class TestSim2 {
 	
 	public static void main(String[] args) throws IOException{
 		
-		//init simulator
-		SimulatorStreamPed sim = new SimulatorStreamPed(recomb);
-		double errorRate = .01;
-		String outDir = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/cousins/";
-
-			
-		int[] chromLengths = new int[]{10,20,30,40};
-		String[] r_sqrs = new String[]{"0.013", "0.025", "0.050", "0.075", "0.100"};
+		/*
+		int[] cls = new int[]{40,30,20,10};
 		
-		//for each recombination length
-		for(int cl : chromLengths){
-			
-			System.out.println(cl);
-			
-			//for each r_sqr
-			for(String r_sqr : r_sqrs){
+		for(int cl : cls){
+			for(int gen=4; gen>=2; gen--){
 				
-				System.out.println(r_sqr);
+				System.out.println(String.format("%d %d", cl, gen));
 				
-				//input ped file
-				String tpedPath = String.format(dir + "msprime.%dmorgan.%s.tped", cl, r_sqr);
+				String[] fileNames = new String[50];
+				String myDir = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/cousins/";
+				for(int i=0; i<50; i++){
+					fileNames[i] = String.format(myDir + "cousins%d.%dmorgan.0.100.%d.tped", gen, cl, i);
+				}
 				
-				
-				//for each cousin type
-				for(int gen=2; gen<=4; gen++){
-					
-					//simulate replicate pedigrees
-					for(int i=0; i<50; i++){
-						
-						//simulate
-						simulateCousins(sim, tpedPath, gen, 0);
-
-						
-						
-						//add error and save
-						addError(dir+"cousins.tped", String.format(outDir+"cousins%d.%dmorgan.%s.%d.tped", gen, cl, r_sqr,i), errorRate);
-						
-						
-						
-					}
-					
+				int[][] cols = new int[50][];
+				cols[0] = new int[]{0,1,2,3,4,5,6,7};
+				for(int i=1; i<50; i++){
+					cols[i] = new int[]{4,5,6,7};
 				}
 				
 				
+				DataParser.concatFilesSpace(fileNames, String.format(myDir+"cousins%d.%dmorgan.0.100.all.tped", gen, cl), cols);
+				
 				
 			}
+		}\*/
+		
+
+		
+		
+		
+		
+		//init simulator
+		SimulatorStreamPed sim = new SimulatorStreamPed(recomb);
+		double errorRate = .01;
+		String outDir = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/simPed4/";
+
+
+		String tpedPath = String.format(dir + "msprime.unrel.try2.pruned.tped");
+		
+		
+		//simulate replicate pedigrees
+		for(int i=0; i<100; i++){
+			
+			System.out.println(i);
+			
+			//simulate
+			sim3(sim, tpedPath, 0, 9);
+			
+			
+			//add error and save
+			addError(dir+"sim3.out", String.format(outDir+"sim4.%d.tped",i), errorRate);
+			
 			
 			
 		}
-		
-		
+
+
 
 		
 	

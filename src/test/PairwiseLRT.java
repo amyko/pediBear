@@ -62,7 +62,7 @@ public class PairwiseLRT {
 				//penalty
 				double coeff = 1;
 				if(path.getNumVisit()==0){
-					 coeff = 5;
+					 coeff = 1;
 				}
 				
 				
@@ -95,12 +95,19 @@ public class PairwiseLRT {
 		
 		for(Path nullRel : path2lkhd.keySet()){
 			
+			//TODO
+			if(nullRel.getDown() + nullRel.getUp() > 8) continue;
+			
 			double nullLkhd = path2lkhd.get(nullRel)[i][j];
 			
 			//get the supremum of L(H1)
 			double maxL1 = Double.NEGATIVE_INFINITY;
 			
 			for(Path altRel : path2lkhd.keySet()){
+				
+				//TODO
+				if(altRel.getDown() + altRel.getUp() > 8) continue;
+				
 				
 				double altLkhd = path2lkhd.get(altRel)[i][j];
 			
@@ -208,26 +215,25 @@ public class PairwiseLRT {
 	public static void main(String[] args) throws IOException{
 		
 		//param
-		int numIndiv = 13;
+		int numIndiv = 18;
 		double c = 0;
 		
 		//files
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
 		String pathToOmegaPath = dir + "pathToOmega.txt";
-		String truePath = dir + "results/sim3.true";
+		String truePath = dir + "results/sim4.true";
 
 		
 		//get true omega
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmegaPath);
 		double[][][] trueOmega = Accuracy.getTrueOmega(truePath, numIndiv, pathToKinship);
-
-			
+		
 		//test name
-		String testName = "test12.pruned.5k";
+		String testName = "sim4";
 		
 		
 		//open outfiles
-		String outPath = dir + "results/" +testName + ".pairwise";
+		String outPath = dir + "results/" +testName + ".12.pairwise";
 		PrintWriter mapWriter = DataParser.openWriter(outPath+".mapAcc");
 		PrintWriter outWriter = DataParser.openWriter(outPath+".out");
 		PrintWriter distWriter = DataParser.openWriter(outPath+".kinshipDist");
@@ -235,7 +241,7 @@ public class PairwiseLRT {
 		//run pairwise test
 		for(int t=0; t<100; t++){
 			
-			String lkhdPath = String.format(dir + "genotypes/test12.pruned.5k.%d.pairwise", t);
+			String lkhdPath = String.format(dir + "simPed4/sim4.%d.pairwise", t);
 			
 			//write header
 			outWriter.write(String.format(">\t%d\n", t));
@@ -249,6 +255,63 @@ public class PairwiseLRT {
 		mapWriter.close();
 		outWriter.close();
 		distWriter.close();
+
+		/*
+		int[] myLengths = new int[]{10,20,30,40};
+		String[] r_sqrs = new String[]{"0.100", "0.075", "0.050", "0.025"};
+		
+		for(int cl : myLengths){
+			
+			for(String rsqr : r_sqrs){
+				
+				System.out.println(String.format("%d %s", cl, rsqr));
+				
+				
+				
+				for(int gen=2; gen<=4; gen++){
+					
+					//test name
+					String testName = String.format("cousins%d.%dmorgan.%s", gen,cl, rsqr);
+					
+					//open outfiles
+					String outPath = dir + "results/" +testName + ".pairwise";
+					PrintWriter mapWriter = DataParser.openWriter(outPath+".mapAcc");
+					PrintWriter outWriter = DataParser.openWriter(outPath+".out");
+					PrintWriter distWriter = DataParser.openWriter(outPath+".kinshipDist");
+				
+					//true
+					truePath = String.format(dir + "results/cousins%d.true", gen);
+					trueOmega = Accuracy.getTrueOmega(truePath, numIndiv, pathToKinship);
+					
+					//lkhd test					
+					String lkhdPath = String.format(dir + "cousins/cousins%d.%dmorgan.%s.pairwise", gen, cl, rsqr);
+					
+					//write header
+					outWriter.write(String.format(">\t%d\n", 0));
+					mapWriter.write(String.format(">\t%d\n", 0));
+					distWriter.write(String.format(">\t%d\n", 0));
+					
+					LRT(lkhdPath, trueOmega, pathToKinship, outWriter, mapWriter, distWriter, numIndiv, c);
+				
+					
+					
+					mapWriter.close();
+					outWriter.close();
+					distWriter.close();
+					
+				}
+				
+				
+	
+				
+			}
+			
+		}
+		*/
+		
+		
+		
+		
 			
 			
 	

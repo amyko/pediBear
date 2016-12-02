@@ -3,32 +3,36 @@ import matplotlib.pyplot as plt
 import pdb
 import os.path
 
-def getLkhds(inPath, sampleRate, plotInterval):
+def getLkhds(inPath, plotInterval):
 
     infile = open(inPath)
     
     n=0
     lkhds = []
+    xdata = []
     
     for line in infile:
         
         fields = line.split()
         
-        if(fields[0]=='>'):
+        if(fields[0]=='>'): continue
+        
+        #if(int(fields[0]) < 1e7): continue
             
             #increment
-            n+=1
+        n+=1
             
-            if(n%plotInterval==0):
+        if(n%plotInterval==0):
             
-                lkhd = float(fields[1])
+            lkhd = float(fields[1])
                 
-                lkhds.append(lkhd)
+            lkhds.append(lkhd)
+            xdata.append(int(fields[0]))
             
 
 
 
-    return lkhds
+    return xdata,lkhds
 
 
 def getPosteriorProp(inPath, plotInterval):
@@ -111,38 +115,34 @@ if __name__ == "__main__":
 
 
     #file names
-    testName = "test11"
+    testName = "100tasiilaq.admixed0.05.pruned0.05.n2.sampleDepth2."
     samplePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/mcmc.sample.dist."
-    convPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/mcmc.sample.conv"
+    convPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/inuits/"+testName
     truePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".true"
     nIndiv = 20
     nPairs = nIndiv*(nIndiv-1)/2
 
     
     # get likelihood
-    xdata = [i for i in range(1,20000000, 100000)]
-    lkhd1 = getDistFromTruth(samplePath+str(0), 10)
-    lkhd2 = getDistFromTruth(samplePath+str(1), 10)
-    lkhd3 = getDistFromTruth(samplePath+str(2), 10)
-    lkhd4 = getDistFromTruth(samplePath+str(3), 10)
-    
-    #conv = getPosteriorProp(convPath, 100)
-    #expected = [4.98 for i in range(len(xdata))]
-    #lkhd1 = getLkhds(samplePath+str(0), 50, 10)
-    #lkhd2 = getLkhds(samplePath+str(1), 50, 10)
-    #lkhd3 = getLkhds(samplePath+str(2), 50, 10)
-    #lkhd4 = getLkhds(samplePath+str(3), 50, 10)
+    xdata, lkhd1 = getLkhds(convPath+str(0)+".lkhd", 2)
+    xdata, lkhd2 = getLkhds(convPath+str(1)+".lkhd", 2)
+    xdata, lkhd3 = getLkhds(convPath+str(2)+".lkhd", 2)
+    xdata, lkhd4 = getLkhds(convPath+str(3)+".lkhd", 2)
+    xdata, lkhd5 = getLkhds(convPath+str(4)+".lkhd", 2)
+    #pdb.set_trace()
+
     
     #pdb.set_trace()
     
     
     #plot
-    plt.figure()
-    plt.plot(xdata, lkhd1, xdata, lkhd2, xdata, lkhd3, xdata, lkhd4)
+    plt.figure(facecolor='white')
+    plt.plot(xdata, lkhd1, xdata, lkhd2, xdata, lkhd3, xdata, lkhd4, xdata, lkhd5)
+    plt.plot(xdata, lkhd1)
     #plt.plot(xdata, conv, xdata, expected)
-    plt.ylim([-.0001,.001])
+    plt.ylim([min(lkhd1)-100, max(lkhd1)+100])
     #plt.xlim([-1,len(xdata)+1])
-    plt.xlabel("# iterations")
-    plt.ylabel("distance from truth")
-    plt.title("convergence")
+    plt.xlabel("Iteration")
+    plt.ylabel("Composite likelihood")
+    #plt.title("convergence")
     plt.show()   

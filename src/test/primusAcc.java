@@ -1,6 +1,7 @@
 package test;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -18,31 +19,42 @@ public class primusAcc {
 	
 	public static void main(String[] args) throws IOException{
 		
+		int numIndiv = 20;
+		
 		//directories
-		String testName = "test12.pruned.10k";
+		String testName = "sim2";
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
-		String outPath = dir + "results/test12.pruned.10k.plink";
-		String truePath = dir + "results/test12.true";
+		String outPath = dir + "results/testing";
+		String truePath = dir + "results/sim2.true";
 		
 		//open files
 		PrintWriter accWriter = DataParser.openWriter(outPath+".mapAcc");
 		PrintWriter distWriter = DataParser.openWriter(outPath+".kinshipDist");
-		Path[][] trueRel = Accuracy.getTruePath(truePath, 20);
+		Path[][] trueRel = Accuracy.getTruePath(truePath, numIndiv);
 		Map<Path, double[]> pathToOmega = Accuracy.getPathToOmega(dir + "pathToOmega.txt");
 		
-		for(int t=0; t<100; t++){
+		for(int t=0; t<1; t++){
 			
 			System.out.println(t);
 			
-			String resultPath = dir + String.format("test12.10k.primus.plink.results/result.%d/", t);
+			String resultPath = dir + String.format("sim2PrimusResults/result.%d/", t);
+			
+			//if didn't finish running, skip
+			try{
+				DataParser.openReader(String.format(resultPath + "Summary_sim2.plink.%d.genome.txt",t));
+			}
+			catch(FileNotFoundException e){
+				System.out.println(String.format("Did not complete: %d", t));
+				continue;
+			}
 			
 			//accuracy matrix (i,j,acc)
-			double[][] accMat = new double[20][20];
-			double[][] distMat = new double[20][20];
+			double[][] accMat = new double[numIndiv][numIndiv];
+			double[][] distMat = new double[numIndiv][numIndiv];
 			
 			//////////////////////////////////////////////////////////////
 			//write accuracy for unrelated individuals
-			BufferedReader reader = DataParser.openReader(resultPath + String.format("%s.%d.genome_unrelated_samples.txt", testName, t));
+			BufferedReader reader = DataParser.openReader(resultPath + String.format("%s.plink.%d.genome_unrelated_samples.txt", testName, t));
 			reader.readLine();
 			
 			String line;
@@ -53,10 +65,14 @@ public class primusAcc {
 			}
 			reader.close();
 			
+			System.out.println("Unrelated: ");
+			
 			for(int ind1 : unrel){
 				for(int ind2 : unrel){
 		
 					if(ind1>=ind2) continue;
+					
+					System.out.println(String.format("%d %d", ind1, ind2 ));
 					
 					//accuracy
 					int acc = 0;
@@ -79,7 +95,7 @@ public class primusAcc {
 			// analyze networks
 			
 			//get number of networks
-			reader = DataParser.openReader(resultPath + String.format("Summary_%s.%d.genome.txt", testName, t));
+			reader = DataParser.openReader(resultPath + String.format("Summary_%s.plink.%d.genome.txt", testName, t));
 			reader.readLine();
 			int nNetworks = Integer.parseInt(reader.readLine().split(": ")[1]);
 			reader.close();
@@ -88,10 +104,10 @@ public class primusAcc {
 			for(int net=1; net<=nNetworks; net++){
 				
 				//network directory
-				String netDir = resultPath + String.format("%s.%d.genome_network%d/", testName, t, net);
+				String netDir = resultPath + String.format("%s.plink.%d.genome_network%d/", testName, t, net);
 				
 				//get num max score pedigrees and indiv names
-				reader = DataParser.openReader(netDir + String.format("Summary_%s.%d.genome_network%d.txt", testName, t, net));
+				reader = DataParser.openReader(netDir + String.format("Summary_%s.plink.%d.genome_network%d.txt", testName, t, net));
 				int nPed = 1;
 				List<String> names = new ArrayList<String>();
 				
@@ -115,16 +131,20 @@ public class primusAcc {
 				
 				
 				//score unrelated between this network and others
+				System.out.println("Between networks: ");
+				
 				for(String name1 : names){
 					
 					int rid1 = Integer.parseInt(name1.split("__")[1]) - 1;
 					
-					for(int rid2=0; rid2<20; rid2++){
+					for(int rid2=0; rid2<numIndiv; rid2++){
 						
 						if(names.contains(String.format("%d__%d", 1, rid2+1)) || rid1==rid2) continue;
+						
+						System.out.println(String.format("%d %d", rid1, rid2));
 
 						//acc
-						int acc = 0;
+						double acc = 0;
 						if(trueRel[rid1][rid2].getNumVisit()==0) acc = 1;		
 						accMat[rid1][rid2] = acc;
 						
@@ -143,9 +163,11 @@ public class primusAcc {
 				
 				//get number of good pedigrees
 				int numGoodPed = nPed;
+				
+				/*
 				for(int p=1; p<=nPed; p++){
 					
-					String famDir = netDir + String.format("%s.%d.genome_network%d_%d.fam",testName,t,net,p);
+					String famDir = netDir + String.format("%s.plink.%d.genome_network%d_%d.fam",testName,t,net,p);
 					
 					//make name2Index map
 					Map<String, Integer> name2Index = new HashMap<String, Integer>();
@@ -161,20 +183,29 @@ public class primusAcc {
 					
 					//build pedigree
 					Pedigree ped = new Pedigree(famDir, name2Index);
+					
+					//TODO don't skip looped
 					
 					//skip if pedigree is looped
 					if(ped.looped){
 						numGoodPed--;
 					}
+					
+				}
+				*/
+			
+				
+				if(numGoodPed==0){
+					System.out.println("Looped");
+					continue;
 				}
 				
-				if(numGoodPed==0) continue;
+				System.out.println("Within networks: ");
 				
-				
-				//for each max score pedigree
+				//for each max score pedigree (within network)
 				for(int p=1; p<=nPed; p++){
 					
-					String famDir = netDir + String.format("%s.%d.genome_network%d_%d.fam",testName,t,net,p);
+					String famDir = netDir + String.format("%s.plink.%d.genome_network%d_%d.fam",testName,t,net,p);
 					
 					//make name2Index map
 					Map<String, Integer> name2Index = new HashMap<String, Integer>();
@@ -191,10 +222,13 @@ public class primusAcc {
 					//build pedigree
 					Pedigree ped = new Pedigree(famDir, name2Index);
 					
+					//TODO don't skip looped
+					/*
 					//skip if pedigree is looped
 					if(ped.looped){
 						continue;
 					}
+					*/
 					
 					Path[][] rel = ped.getRelationships();
 					
@@ -206,6 +240,11 @@ public class primusAcc {
 							int id2 = name2Index.get(name2);
 							
 							if(id1 >= id2) continue;
+							
+							if(p==1){
+								System.out.println(String.format("%s %s", name1, name2));
+							}
+							
 							
 							Path inferred = rel[id1][id2];
 							
@@ -221,8 +260,15 @@ public class primusAcc {
 							
 							//dist
 							double trueKinship = .25*pathToOmega.get(truth)[1] + .5*pathToOmega.get(truth)[2];
-							double inferredKinship = .25*pathToOmega.get(inferred)[1] + .5*pathToOmega.get(inferred)[2];
-							distMat[rid1][rid2] += Math.abs(trueKinship - inferredKinship)/numGoodPed;
+							
+							if(inferred.getNumVisit()==-1){
+								distMat[rid1][rid2] = -1;
+							}
+							
+							else{
+								double inferredKinship = .25*pathToOmega.get(inferred)[1] + .5*pathToOmega.get(inferred)[2];
+								distMat[rid1][rid2] += Math.abs(trueKinship - inferredKinship)/numGoodPed;
+							}
 							
 							
 							

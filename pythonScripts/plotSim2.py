@@ -23,6 +23,20 @@ class myPath(object):
         return not(self == other)
 
 
+def getResult(nIndiv, truePath, saPath, otherPath, pathToOmega):
+    
+    nPairs = nIndiv*(nIndiv-1)/2
+    
+    #get true path
+    trueDict = getTruePath(truePath)
+
+    saErrors = getMeanErrorSortByMeisosis(saPath, trueDict, pathToOmega, nIndiv)
+    otherErrors = getMeanErrorSortByMeisosis(otherPath, trueDict, pathToOmega, nIndiv)
+    
+    
+    return saErrors, otherErrors
+
+
 def getMeanErrorSortByMeisosis(inPath, trueDict, pathToOmega, nIndiv):
 
     #dictionary to store accuracy rates
@@ -30,9 +44,8 @@ def getMeanErrorSortByMeisosis(inPath, trueDict, pathToOmega, nIndiv):
 
     #read data
     infile = open(inPath)
-    mylist = [34,89]
-    #mylist = []
-   # mylist = np.array([ 35,  40,  75,  89, 127, 170, 174, 191])/2
+    mylist = []
+
 
     
     for line in infile:
@@ -47,13 +60,16 @@ def getMeanErrorSortByMeisosis(inPath, trueDict, pathToOmega, nIndiv):
     
         i = int(fields[0])
         j = int(fields[1])
+
+        
         acc = 1 - float(fields[2])
-        #acc = np.sqrt(float(fields[2]))
+        
+        #acc = float(fields[2])
 
 
         k1k2 = pathToOmega[trueDict[(i,j)]]
         key = .25*k1k2[0] + .5*k1k2[1]
-
+        
     
         if key in accDict:
             accDict[key].append(acc)
@@ -76,6 +92,7 @@ def getMeanErrorSortByMeisosis(inPath, trueDict, pathToOmega, nIndiv):
     data.append(accDict[0.0])
     
     
+    
     for k in keys:
         data.append(accDict[k])
 
@@ -83,8 +100,7 @@ def getMeanErrorSortByMeisosis(inPath, trueDict, pathToOmega, nIndiv):
     means = [np.mean(x) for x in data]
 
 
-    return np.array(accDict[0.0625]), means
-
+    return means
 
 
 def getTruePath(truePath):
@@ -142,42 +158,42 @@ def path2k1k2(pathToOmega):
 
 if __name__ == "__main__":
 
-    nIndiv = 20
-    nPairs = nIndiv*(nIndiv-1)/2
-
-
-    #file names
-    resultDir = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" 
-    testName = "sim2.0.025"
-    truePath = resultDir + "sim2.true"
+    #path2omega
     omegaPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/pathToOmega.txt" 
-    
-    #accuracy
-    priorPath = resultDir + testName + ".prior.4gen.mapAcc"
-    noPriorPath = resultDir + testName + ".noPrior.4gen.mapAcc"
-    pairwisePath = resultDir + testName + ".pairwise.mapAcc"
-    priorPath = resultDir + "testing.mapAcc"
-
-
-    #kinship distance
-    #priorPath = resultDir + testName + ".newMoves.4gen.kinshipDist"
-    #noPriorPath = resultDir + testName + ".noPrior.4gen.kinshipDist"
-    #pairwisePath = resultDir + testName + ".pairwise.kinshipDist"
-    #priorPath = resultDir + "testing.prior.4gen.kinshipDist"
-    
-    #get true path and path2Omega
-    trueDict = getTruePath(truePath)
     pathToOmega = path2k1k2(omegaPath)
     
+    #dir
+    resultDir = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/"
+
+    #test A
+    nIndiv = 20
+    testName = "sim2"
+    saPath = resultDir + testName + ".n1.mapAcc"
+    otherPath = resultDir + testName + ".5.pairwise.mapAcc"
+    truePath = resultDir + "sim2.true"
+    saB, otherB = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
+
+
+    #test B
+    nIndiv = 20
+    saPath = resultDir + "sim1.n1.mapAcc"
+    otherPath = resultDir + "sim1.5.pairwise.mapAcc"
+    truePath = resultDir + "test12.true"
+    saA, otherA = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
     
-    data1, pairwiseMeans = getMeanErrorSortByMeisosis(pairwisePath, trueDict, pathToOmega, nIndiv)
-    data2, priorMeans = getMeanErrorSortByMeisosis(priorPath, trueDict, pathToOmega, nIndiv)
-    #noPriorMeans = getMeanErrorSortByMeisosis(noPriorPath, trueDict, pathToOmega, nIndiv)
-    xdata = [i for i in range(0,len(pairwiseMeans))]
-
-
-    print(priorMeans)
-    print(pairwiseMeans)
+    
+    
+    #test C
+    nIndiv = 18
+    saPath = resultDir + "sim4.n1.mapAcc"
+    otherPath = resultDir + "sim4.5.pairwise.mapAcc"
+    truePath = resultDir + "sim4.true"
+    saC, otherC = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
+    
+    
+ 
+    #PLOT
+    xdata = [i for i in range(1,len(saA)+1)]
 
     tickMarks = ['0', '1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256']
 
@@ -185,19 +201,47 @@ if __name__ == "__main__":
     #plot
     fig = plt.figure(facecolor='white')
     ax = fig.add_subplot(111)
+    ax3 = fig.add_subplot(313)
+    ax1 = fig.add_subplot(311, sharex=ax3)
+    ax2 = fig.add_subplot(312, sharex=ax3)
 
-    #noPriorMeans[5] = .46
-    plt.scatter(xdata, pairwiseMeans, color='red', marker='^', label='Pairwise') 
-    plt.scatter(xdata, priorMeans, color='blue', label='Our method')
-    #plt.scatter(xdata, noPriorMeans, color='green', marker='>', label='SA with no prior')
+    # Turn off axis lines and ticks of the big subplot
+    ax.spines['top'].set_color('none')
+    ax.spines['bottom'].set_color('none')
+    ax.spines['left'].set_color('none')
+    ax.spines['right'].set_color('none')
+    ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
+
+
+    ax1.scatter(xdata, saA, color='blue', label='SA')
+    ax1.scatter(xdata, otherA, color='red', marker='>', label='PRIMUS + PLINK')
+    ax2.scatter(xdata, saB, color='blue')
+    ax2.scatter(xdata, otherB, color='red', marker='>')
+    ax3.scatter(xdata, saC, color='blue')
+    ax3.scatter(xdata, otherC, color='red', marker='>')
     
-    plt.legend(loc='upper left')
-    #plt.ylim([-.1,1.1])
-    plt.xlim([-1,len(xdata)+1])
-    plt.xlabel("True kinship coefficient")
-    plt.ylabel("Error")
-    ax.set_xticks(xdata)
-    ax.set_xticklabels(tickMarks)
-    plt.setp(tickMarks)
-
+    #ax1.boxplot(saA)
+    #ax2.boxplot(saB)
+    #ax3.boxplot(saC)
+    #ax1.set_ylim([-.01,.04])
+    #ax2.set_ylim([-.01,.04])
+    #ax3.set_ylim([-.01,.14])
+    
+    
+    ax1.text(.98, .95, "A", transform=ax1.transAxes,fontsize=16, fontweight='bold', va='top', ha="right")
+    ax2.text(.98, .95, "B", transform=ax2.transAxes,fontsize=16, fontweight='bold', va='top', ha='right')
+    ax3.text(.98, .95, "C", transform=ax3.transAxes,fontsize=16, fontweight='bold', va='top', ha='right')
+    
+    
+    
+    ax1.legend(loc='upper left')
+    plt.xlim([0,len(xdata)+1])
+    ax.set_xlabel("True kinship coefficient ($\phi$)")
+    ax.set_ylabel("Average error rate ($ \\bar e $)")
+    #fig.text(0.04, 0.5, 'Kinship coefficient distance ($d$)', va='center', rotation='vertical')
+    ax3.set_xticks(xdata)
+    ax3.set_xticklabels(tickMarks)
+    plt.setp(ax1.get_xticklabels(), visible=False)
+    plt.setp(ax2.get_xticklabels(), visible=False)
+    
     plt.show()   

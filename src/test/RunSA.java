@@ -49,8 +49,8 @@ public class RunSA {
 
 		//pedigree parameters
 		int maxDepth = 4;
-		int numIndiv = 20;
-		int totalIndiv = 20;
+		int numIndiv = 18;
+		int totalIndiv = 18;
 		double seqError = 0.01;
 		double r = 1.3e-8;
 		int back = 30000;
@@ -66,19 +66,19 @@ public class RunSA {
 		heat[0] = .01; //.1
 		for(int i=1; i<heat.length; i++) heat[i] = heat[i-1]*1.01;
 		System.out.println(heat[heat.length-1]);
-		int coolingTime = 40000;
+		int coolingTime = 100000;
  		int runLength = 1;
- 		int numRun = 3;
+ 		int numRun = 1;
 		Random rGen = new Random(1942083275L);
-		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .2), new Split("split", .02), new Split2("split2", 0.02), new SwapUp("swapUp", 0.02), new SwapDown("swapDown", 0.02), new SwitchSex("switchSex", 0.02), 
-				new CutLink("cutLink", 0.07), new SplitLink("splitLink", 0.07), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.15), new CutTwoLinkOne("cutTwoLinkOne", 0.02),
+		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .1), new Split("split", .02), new Split2("split2", 0.02), new SwapUp("swapUp", 0.02), new SwapDown("swapDown", 0.02), new SwitchSex("switchSex", 0.02), 
+				new CutLink("cutLink", 0.2), new SplitLink("splitLink", 0.04), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.15), new CutTwoLinkOne("cutTwoLinkOne", 0.02),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.02), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.02), new FStoPO("FStoPO", 0.02), new POtoFS("POtoFS",0.02), 
 				new HalfUncleToCousin("halfUncleToCousin", 0.02), new CousinToHalfUncle("cousinToHalfUncle", 0.02), new CousinToGreatUncle("cousinToGreatUncle", 0.02), new GreatUncleToCousin("greatUncleToCousin", 0.02),
 				new SwapDescAnc("swapDescAnc", 0.04), new Contract("contract", 0.02), new Stretch("stretch", 0.02), new HalfSibstoFullUncle("halfSibstoFullUncle", 0.02), new FullUncletoHalfSibs("fullUncleToHalfSibs", 0.02),
 				new ShiftClusterLevel("shiftClusterLevel", 0.04)};
-		String testName = "test12.pruned.5k";
-		String truePath = dir + "results/test12.true";
-		String accPath = dir + "results/test12.0.025";
+		String testName = "sim4";
+		String truePath = dir + "results/sim4.true";
+		String accPath = dir + "results/sim4.4gen.n";
 		
 		double mySum = 0d;
 		for(Move mov : moves) mySum += mov.getProb();
@@ -106,7 +106,7 @@ public class RunSA {
 
 			System.out.println(t);       
 			
-			String fileName = dir + "genotypes/"+testName+"."+t;
+			String fileName = dir + "simPed4/"+testName+"."+t;
 			String outDir = dir + "results/mcmc";
 			
 			double bestLkhd = Double.NEGATIVE_INFINITY;
@@ -164,7 +164,7 @@ public class RunSA {
 					
 				}
 			}
-			ped.nSingletons[ped.curr] = 11;
+			ped.nSingletons[ped.curr] = 10;
 			
 			double trueLkhd = ped.likelihoodAllPedigrees();		
 			System.out.println(String.format("lkhd of true pedigree: %.2f", trueLkhd));

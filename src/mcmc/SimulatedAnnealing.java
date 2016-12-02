@@ -28,9 +28,10 @@ public class SimulatedAnnealing {
 	
 	
 	public double bestLkhd = Double.NEGATIVE_INFINITY;
+	public double stopThresh = 5;
 	
 
-	public SimulatedAnnealing(Pedigree ped, double[] heat, int[] coolingSchedule, Move[] moves, int runLength, Random rGen, String outPath) throws IOException{
+	public SimulatedAnnealing(Pedigree ped, double[] heat, int[] coolingSchedule, Move[] moves, int runLength, Random rGen, String outPath, double stopThresh) throws IOException{
 
 		this.ped = ped;
 		this.runLength = runLength;
@@ -42,7 +43,7 @@ public class SimulatedAnnealing {
 		this.rGen = rGen;
 		this.heat = heat;
 		this.coolingSchedule = coolingSchedule;
-		
+		this.stopThresh = stopThresh;
 		
 	}
 	
@@ -61,14 +62,17 @@ public class SimulatedAnnealing {
 	
 	private void runBurnIn(){
 		
-		System.out.println("Burn in...");
+		System.out.println("Running simulated annealing");
 		
 		convWriter.write(">\n");
 
 		
 		int iter = 0;
 		
+		//for each temperature
 		for(int t=0; t<heat.length-1; t++){
+			
+			double initLkhd = ped.getLogLikelihood();
 
 			//run burn-in
 			//while(moves[0].nTried < 100 && moves[0].nAccept <50){
@@ -76,6 +80,7 @@ public class SimulatedAnnealing {
 			
 
 				Move move = chooseMove();
+			
 					
 				/*
 				//TESTING			
@@ -90,9 +95,11 @@ public class SimulatedAnnealing {
 					System.out.println(ped.getNActiveNodes());
 					ped.printAdjMat();
 					System.out.println();
+					
+					
 						
 				}
-				 */
+				*/
 
 				
 
@@ -114,6 +121,10 @@ public class SimulatedAnnealing {
 			//record likelihood
 			convWriter.write(String.format("%d\t%f\n", coolingSchedule[t]*(t+1), ped.getLogLikelihood()));
 			
+			//if the end lkhd did not change much, complete run
+			if(Math.abs(initLkhd - ped.getLogLikelihood()) < stopThresh)
+				break;
+			
 			
 		}
 		
@@ -127,7 +138,7 @@ public class SimulatedAnnealing {
 	
 	private void runSample(){
 		
-		System.out.println("Sampling...");
+		//System.out.println("Sampling...");
 		
 		//now start sampling
 		for(int i = 0; i < runLength; i++){
@@ -204,32 +215,35 @@ public class SimulatedAnnealing {
 		
 		//write family relationship
 		famWriter.write(String.format("NAME\tFATHER\tMOTHER\tSEX\tSAMPLED\n"));
-		currPedigree.clearVisit();
-		for(int i=0; i<currPedigree.numIndiv; i++){
-			recordFam(currPedigree.getNode(i));
+		//currPedigree.clearVisit();
+		for(int i=0; i<currPedigree.getNActiveNodes(); i++){
+			recordFam(currPedigree.getNode(i), currPedigree);
 		}
 		
 	
 	}
 	
 	
-	private void recordFam(Node ind){
+	private void recordFam(Node ind, Pedigree currPedigree){
 		
 		//visit
-		if(ind.getNumVisit()!=0) return;
-		ind.setNumVisit(1);
+		//if(ind.getNumVisit()!=0) return;
+		//ind.setNumVisit(1);
 		
 		String name = ind.fid + "_" + ind.iid;
 		String pa = "0";
 		String ma = "0";
-		String sex = ind.getSex()==1 ? "M" : "F";
 		String sampleStatus = ind.sampled ? "000000" : "999999";
+		String sex = ind.getSex()==1 ? "7" : "1";
 		
+		//if missing individual and sex not constrained
+		currPedigree.clearVisit();
+		if(currPedigree.sexLocked(ind)==false) sex = "4";
 			
 		//get parent ids
 		for(Node parent : ind.getParents()){
 			
-			recordFam(parent);
+			//recordFam(parent);
 		
 			if(parent.getSex()==0)
 				ma = parent.fid + "_" + parent.iid;
@@ -243,12 +257,14 @@ public class SimulatedAnnealing {
 		//if only one parent is present
 		if(ind.getParents().size()==1){
 			
-			int missingParentSex = ind.getParents().get(0).getSex()==1 ? 0 : 1;
-			
 			//make missing parent
+			int missingParentSex = ind.getParents().get(0).getSex()==1 ? 0 : 1;
 			Node missingParent = new Node("missingParent", ind.iid, missingParentSex, false, -1);
 			
-			recordFam(missingParent);
+			//connect temporarily
+			currPedigree.connect(missingParent, ind);
+			recordFam(missingParent, currPedigree);
+			currPedigree.disconnect(missingParent, ind);
 			
 			if(missingParentSex==0) ma = "missingParent_" + ind.iid;
 			else pa = "missingParent_" + ind.iid;

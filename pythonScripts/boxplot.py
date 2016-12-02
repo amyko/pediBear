@@ -4,87 +4,244 @@ import pdb
 import os.path
 
 
+class myPath(object):
+    
+    def __init__(self, up, down, visit):
+        self.up = up
+        self.down = down
+        self.visit = visit
+        
+    def __hash__(self):
+        return hash((self.up, self.down, self.visit))
+
+    def __eq__(self, other):
+        return (self.up, self.down, self.visit) == (other.up, other.down,other.visit)
+
+    def __ne__(self, other):
+        # Not strictly necessary, but to avoid having both x==y and x!=y
+        # True at the same time
+        return not(self == other)
 
 
-def getMeanError(inPath):
+def getResult(nIndiv, truePath, saPath, otherPath, pathToOmega):
+    
+    nPairs = nIndiv*(nIndiv-1)/2
+    
+    #get true path
+    trueDict = getTruePath(truePath)
+
+    saErrors = getMeanErrorSortByMeisosis(saPath, trueDict, pathToOmega, nIndiv)
+    otherErrors = getMeanErrorSortByMeisosis(otherPath, trueDict, pathToOmega, nIndiv)
+    
+    
+    return saErrors, otherErrors
+
+
+def getMeanErrorSortByMeisosis(inPath, trueDict, pathToOmega, nIndiv):
 
     #dictionary to store accuracy rates
     accDict = dict()
 
     #read data
     infile = open(inPath)
+    mylist = []
+
+
     
     for line in infile:
-        
-        #pdb.set_trace()
-    
+
         fields = line.split()
-        if(fields[0]=='>'): continue
+        if(fields[0]=='>'): 
+            iter = float(fields[1])
+            continue
+    
+        if(iter in mylist): 
+            continue
     
         i = int(fields[0])
         j = int(fields[1])
-        acc = 1 - float(fields[2])
+
+        
+        #acc = 1 - float(fields[2])
+        acc = float(fields[2])
+
+
+        k1k2 = pathToOmega[trueDict[(i,j)]]
+        key = .25*k1k2[0] + .5*k1k2[1]
+
     
-        if (i,j) in accDict:
-            accDict[(i,j)].append(acc)
+        if key in accDict:
+            accDict[key].append(acc)
         else:
-            accDict[(i,j)] = [acc]
+            accDict[key] = [acc]
+            
+ 
+            
+    
+
+    infile.close()
+
+
+    keys = -np.sort(-np.array(accDict.keys()))
+    keys = keys[0:-1]
+    print keys
+
+    
+    data = []
+    data.append(accDict[0.0])
+    
+
+    
+    for k in keys:
+        data.append(accDict[k])
+
+
+    #means = [np.mean(x) for x in data]
+
+
+    return data
+
+
+def getTruePath(truePath):
+    
+    infile = open(truePath)
+    
+    trueDict = dict()
+    
+    for line in infile:
+
+        fields = line.split()
+
+        i = int(fields[0])
+        j = int(fields[1])
+        up = int(fields[2])
+        down = int(fields[3])
+        numVisit = int(fields[4])
+    
+
+        trueDict[(i,j)] = myPath(up, down, numVisit)
     
     
     infile.close()
     
-    
-    #make box plot
-    data = [accDict[key] for key in accDict.keys()]
-    means = [np.mean(x) for x in data]
+    return trueDict
 
-    return data, means
+
+def path2k1k2(pathToOmega):
+
+    path2k1k2 = dict()
+    
+    infile = open(pathToOmega)
+    
+    for line in infile:
+        
+        fields = line.split()
+
+        
+        key = myPath(int(fields[0]), int(fields[1]), int(fields[2]))
+        key2 = myPath(int(fields[1]), int(fields[0]), int(fields[2]))
+        k1 = float(fields[5].split('/')[0]) / int(fields[5].split('/')[1])
+        k2 = 0
+        if(key.up==1 and key.down==1 and key.visit==2):
+            k2 = .25
+        
+        
+        path2k1k2[key] = [k1, k2]
+        path2k1k2[key2] = [k1,k2]
+        
+        
+    infile.close()
+    
+    return path2k1k2
 
 
 if __name__ == "__main__":
 
-    #file names
-    testName = "test"
-    inPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/"+testName
+    #path2omega
+    omegaPath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/pathToOmega.txt" 
+    pathToOmega = path2k1k2(omegaPath)
+    
+    #dir
+    resultDir = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/"
+
+    #test A
+    nIndiv = 20
+    testName = "sim2"
+    saPath = resultDir + testName + ".n1.kinshipDist"
+    otherPath = resultDir + testName + ".primus.mapAcc"
+    truePath = resultDir + "sim2.true"
+    saB, otherB = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
+
+
+    #test B
+    nIndiv = 20
+    saPath = resultDir + "sim1.n1.kinshipDist"
+    otherPath = resultDir + "test12.pruned.10k.primus.mapAcc"
+    truePath = resultDir + "test12.true"
+    saA, otherA = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
     
     
-    pairData, pairMeans = getMeanError(inPath+".pairwise.map.acc")
-    mcmcData, mcmcMeans = getMeanError(inPath+".mcmc.map.acc")
-    xdata = np.array([i for i in range(0,len(mcmcMeans))])+1
-    xdata = [1,2,7,8,3,9,10,11,12,13,14,15,4,5,6]
     
-    print mcmcMeans
+    #test C
+    nIndiv = 18
+    saPath = resultDir + "sim4.n1.kinshipDist"
+    otherPath = resultDir + "sim4.primus.mapAcc"
+    truePath = resultDir + "sim4.true"
+    saC, otherC = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
     
-    #pdb.set_trace()
+
+    #PLOT
+    xdata = [i for i in range(0,len(saA))]
+    
     
     fig = plt.figure(facecolor='white')
-    ax = fig.add_subplot(111)
-    #fig, ax = plt.figure(facecolor='white')
-   #plt.boxplot(mcmcData)
-    plt.scatter(xdata, mcmcMeans, color='blue', label='pedigree')
-    plt.scatter(xdata, pairMeans, color='red', label='pairwise', marker='^')
-    plt.legend(loc='upper left')
-    #plt.ylim([-.1,1.1])
-    plt.xlim([0,len(xdata)+1])
-    plt.xlabel("pair")
-    plt.ylabel("error rate")
-    ax.set_xticks(xdata)
-    #ax.set_xticklabels(tickMarks)
+    #plt.boxplot(saA)
+    plt.boxplot(saB)
+    #plt.boxplot(saC)
+    plt.ylim([-.01, .05])
     plt.show()
     
     pdb.set_trace()
+    
+
+    tickMarks = ['0', '1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256']
 
     
-    #get data
-    x = np.loadtxt(inPath+str(0),usecols=[0], dtype=int)
-    y0 = np.loadtxt(inPath+str(0),usecols=[1], dtype=float)
-    y1 = np.loadtxt(inPath+str(1),usecols=[1], dtype=float)
-    
-    #pdb.set_trace()
-    
     #plot
-    plt.figure()
-    plt.plot(x[0::50],y0[0::50])
-    plt.plot(x[0::50],y1[0::50])
-    #plt.plot(x,y1)
-    plt.show()
+    fig = plt.figure(facecolor='white')
+    ax = fig.add_subplot(111)
+    ax3 = fig.add_subplot(313)
+    ax1 = fig.add_subplot(311, sharex=ax3)
+    ax2 = fig.add_subplot(312, sharex=ax3)
+
+    # Turn off axis lines and ticks of the big subplot
+    ax.spines['top'].set_color('none')
+    ax.spines['bottom'].set_color('none')
+    ax.spines['left'].set_color('none')
+    ax.spines['right'].set_color('none')
+    ax.tick_params(labelcolor='w', top='off', bottom='off', left='off', right='off')
+
+
+    ax1.scatter(xdata, saA, color='blue', label='SA')
+    ax1.scatter(xdata, otherA, color='red', marker='>', label='PRIMUS + PLINK')
+    ax2.scatter(xdata, saB, color='blue')
+    ax2.scatter(xdata, otherB, color='red', marker='>')
+    ax3.scatter(xdata, saC, color='blue')
+    ax3.scatter(xdata, otherC, color='red', marker='>')
+    
+    ax1.text(.98, .95, "A", transform=ax1.transAxes,fontsize=16, fontweight='bold', va='top', ha="right")
+    ax2.text(.98, .95, "B", transform=ax2.transAxes,fontsize=16, fontweight='bold', va='top', ha='right')
+    ax3.text(.98, .95, "C", transform=ax3.transAxes,fontsize=16, fontweight='bold', va='top', ha='right')
+    
+    
+    
+    ax1.legend(loc='upper left')
+    plt.xlim([-1,len(xdata)+1])
+    ax.set_xlabel("True kinship coefficient")
+    ax.set_ylabel("Error rate")
+    ax3.set_xticks(xdata)
+    ax3.set_xticklabels(tickMarks)
+    plt.setp(ax1.get_xticklabels(), visible=False)
+    plt.setp(ax2.get_xticklabels(), visible=False)
+    
+    plt.show()  
