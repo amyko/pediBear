@@ -67,6 +67,10 @@ public class PreProcess {
 				else{		
 					if(key.equals("filename")) Run.fileName = fields[0];
 					else if(key.equals("refpopfilename")) Run.refPopFileName = fields[0];
+					
+					//set numIndiv
+					Run.numIndiv = DataParser.countLines(Run.fileName+".tfam");
+					
 				}
 				
 			}
@@ -83,9 +87,9 @@ public class PreProcess {
 				}
 				
 				else{		
-					if(key.equals("filename")) Run.fileName = fields[0];
-					else if(key.equals("refpopfilename")) Run.refPopFileName = fields[0];
+					Run.ageFileName = fields[0];
 				}
+				
 				
 			}
 			
@@ -155,7 +159,7 @@ public class PreProcess {
 					System.out.println("Invalid back given. Using default value 0.04");
 				}
 				else{
-					Run.back = 0.04;
+					Run.back = Double.parseDouble(fields[0]);
 				}
 				
 			}
@@ -255,7 +259,36 @@ public class PreProcess {
 					System.out.println("Invalid numRun given. Using default value 3");
 				}
 				else{
-					Run.conditional = Integer.parseInt(fields[0])==1 ? true : false;
+					Run.numRun = Integer.parseInt(fields[0]);
+				}
+				
+			}
+			
+			
+			else if(key.equals("poissonmean")){
+				
+				if(fields.length < 2){
+					System.out.println("poissonMean not given. Using default value of numIndiv");
+				}
+				else if(!checkNumeric(fields[0], 0, Double.POSITIVE_INFINITY)){
+					System.out.println("Invalid numRun given. Using default value numIndiv");
+				}
+				else{
+					Run.poissonMean = Double.parseDouble(fields[0]);
+				}
+				
+			}
+			
+			else if(key.equals("numthreads")){
+				
+				if(fields.length < 2){
+					System.out.println("numThreads not given. Using default value of 1");
+				}
+				else if(!checkNumeric(fields[0], 0, Double.POSITIVE_INFINITY)){
+					System.out.println("Invalid numThread given. Using default value 1");
+				}
+				else{
+					Run.numThreads = Integer.parseInt(fields[0]);
 				}
 				
 			}
@@ -285,6 +318,10 @@ public class PreProcess {
 		if(Run.sampleDepth > Run.maxDepth){
 			System.out.println("Number of generations spanned by samples exceeds max generation. Setting sampleGen = maxGen.");
 			Run.sampleDepth = Run.maxDepth;
+		}
+		//check poisson mean
+		if(Run.poissonMean == 0){
+			Run.poissonMean = Run.numIndiv;
 		}
 		
 		
@@ -379,8 +416,7 @@ public class PreProcess {
 		
 		//get number of individuals
 		boolean correctNumIndiv = false;
-		int numIndiv = DataParser.countLines(testPath+".tfam");
-		Run.numIndiv = numIndiv;
+
 		
 		
 		//check line-by-line
@@ -397,6 +433,7 @@ public class PreProcess {
 			String[] fields = line.split("\\s");
 			currChrom = fields[0];
 			currPos = Double.parseDouble(fields[2]);
+			for(int k=0; k<count.length; k++) count[k] = 0;
 			
 			//if new chromosome
 			if(!currChrom.equals(prevChrom)){
@@ -405,6 +442,9 @@ public class PreProcess {
 			
 			//check numIndiv matches num genotypes
 			if(correctNumIndiv==false){	
+				
+				int numIndiv = DataParser.countLines(testPath+".tfam");
+				
 				if((fields.length - 4)/2 != numIndiv){
 					System.out.println(String.format("Number of individuals in %s does not match number of genotypes in %s.", testPath+".tfam", testPath+".tped"));	
 					System.exit(1);
@@ -431,9 +471,9 @@ public class PreProcess {
 				else if(g.equals("C")) count[1]++;
 				else if(g.equals("G")) count[2]++;
 				else if(g.equals("T")) count[3]++;
-				else if(g.equals("0")){}
+				//else if(g.equals("0")){}
 				else{
-					System.out.println(String.format("Illegal allele present in %s. All entires must be either A,C,G,T, or 0. Exiting program.", testPath+".tped"));
+					System.out.println(String.format("Illegal allele present in %s. All entires must be either A,C,G, or T. Exiting program.", testPath+".tped"));
 					System.exit(1);
 				}
 				

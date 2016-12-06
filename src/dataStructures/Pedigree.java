@@ -4,11 +4,13 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 //import org.apache.commons.math3.distribution.NormalDistribution;
+
 
 
 
@@ -24,7 +26,7 @@ public class Pedigree {
 
 	//pedigree variables
 	public final int maxDepth;
-	//public final int maxDepthForSamples;
+	public final int maxSampleDepth;
 	public final int numIndiv;
 	private final PairwiseLikelihoodCoreStreamPed core;
 	public final Random rGen;
@@ -57,7 +59,8 @@ public class Pedigree {
 		
 		
 		this.numIndiv = name2Index.size();
-		this.maxDepth = 5;
+		this.maxDepth = 4;
+		this.maxSampleDepth = 4;
 		this.core = null;
 		this.rGen = null;
 		this.curr = 0;
@@ -136,7 +139,7 @@ public class Pedigree {
 		this.logLambda = 0;
 		this.nSingletons = null;
 		logFact = null;
-		
+
 		//relationship
 		this.relationships = new Path[2][184][184];
 
@@ -150,6 +153,7 @@ public class Pedigree {
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = 5;
+		this.maxSampleDepth = this.maxDepth;
 		this.core = null;
 		this.rGen = null;
 		this.curr = 0;
@@ -259,11 +263,12 @@ public class Pedigree {
 	
 	
 	
-	//TODO handle known relationships, age
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv) throws IOException{
+	//TODO handle known relationships
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age) throws IOException{
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = maxDepth;
+		this.maxSampleDepth = maxSampleDepth;
 		this.lambda = lambda;
 		this.logLambda = lambda;
 		this.core = core;
@@ -309,8 +314,15 @@ public class Pedigree {
 			String iid = fields[1];
 			int sex = Integer.parseInt(fields[4]) - 1;
 			
-			nodes.get(0).add(new Node(fid, iid, sex, true, index));
-			nodes.get(1).add(new Node(fid, iid, sex, true, index));
+			//get age
+			double age = -1;
+			String name = fid+iid;
+			if(name2Age!=null && name2Age.containsKey(name)){
+				age = name2Age.get(name);
+			}
+			
+			nodes.get(0).add(new Node(fid, iid, sex, true, age, 0, index));
+			nodes.get(1).add(new Node(fid, iid, sex, true, age, 0, index));
 			index++;
 			
 			//TODO fix
@@ -353,6 +365,13 @@ public class Pedigree {
 	}
 	
 	
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv) throws IOException{
+	
+		this(fileName, core, maxDepth, maxSampleDepth, rGen, maxNumNodes, lambda, numIndiv, null);
+		
+	}
+
+	
 	////// SETTERS ////////
 	public void setLogLikelihood(double lkhd){
 		//this.logLikelihood = lkhd;
@@ -385,7 +404,6 @@ public class Pedigree {
 		return nodes.get(curr).get(index);
 	}
 
-	
 	public Node getRandomNode(){ //works
 		return nodes.get(curr).get(rGen.nextInt(nActiveNodes[curr]));
 	}
@@ -2530,6 +2548,20 @@ public class Pedigree {
  			if(!node.sampled && node.getNumEdges()<2){
  				System.out.println("ghost error!");
  				return false;
+ 			}
+ 			
+ 			//age consistency
+ 			if(node.getAge() != -1){
+ 				
+ 				for(Node p : node.getParents()){
+ 					
+ 					if(p.getAge()!=-1 && p.getAge() < node.getAge()){
+ 						System.out.println("Age error!");
+ 						return false;
+ 					}
+ 
+ 				}
+ 				
  			}
  			
  			

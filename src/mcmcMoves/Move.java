@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Random;
 
 import dataStructures.Pedigree;
-
+import dataStructures.Node;
 
 //generic MCMC move
 public abstract class Move {
@@ -75,14 +75,32 @@ public abstract class Move {
 		}
 		
 		
-		//TODO TESTING depth constraint
 		boolean reject = false;
+		
+		//check depth and age //TODO make this better
 		for(int i=0; i<currPedigree.numIndiv; i++){
 			
-			if(currPedigree.getNode(i).getDepth() > 2){
+			Node myNode = currPedigree.getNode(i);
+			
+			//depth
+			if(myNode.getDepth() > currPedigree.maxSampleDepth){
 				reject = true;
 				break;
 			}
+			
+			//age
+			if(myNode.getAge() != -1){
+				for(Node p : myNode.getParents()){
+					
+					if(p.getAge() != -1 && p.getAge() < myNode.getAge()){
+						reject = true;
+						break;
+					}
+					
+				}
+			}
+			
+			
 		}
 		if(reject==true){
 			reverseMove(currPedigree);

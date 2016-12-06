@@ -100,7 +100,7 @@ public class SwapDescAnc extends Move {
 
 
 	
-
+	/*
 	private boolean ageIncompatible(Pedigree currPedigree, Node child, Node parent){
 
 		//both are ghost nodes
@@ -151,6 +151,7 @@ public class SwapDescAnc extends Move {
 		return false;
 		
 	}
+	*/
 
 	
 }

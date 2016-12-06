@@ -63,6 +63,7 @@ public class SwapDown extends Move {//works for 3 sampled nodes (2 parents, 1 ch
 		
 		
 		//bad case
+		/*
 		if(ageIncompatible(currPedigree, child, parent)){
 			
 			if(nBefore < currPedigree.getNActiveNodes()){ //if a ghost node was created, destroy it
@@ -72,6 +73,7 @@ public class SwapDown extends Move {//works for 3 sampled nodes (2 parents, 1 ch
 			
 			return REJECT;
 		}
+		*/
 
 		
 		//old to new
@@ -129,7 +131,7 @@ public class SwapDown extends Move {//works for 3 sampled nodes (2 parents, 1 ch
 	
 
 	
-
+	/*
 	private boolean ageIncompatible(Pedigree currPedigree, Node child, Node parent){
 
 		//both are ghost nodes
@@ -180,6 +182,7 @@ public class SwapDown extends Move {//works for 3 sampled nodes (2 parents, 1 ch
 		return false;
 		
 	}
+	*/
 
 	
 }

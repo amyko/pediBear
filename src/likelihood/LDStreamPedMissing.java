@@ -32,7 +32,7 @@ public class LDStreamPedMissing {
 
 		//open files
 		BufferedReader tpedfile = DataParser.openReader(fileName+".tped");
-		PrintWriter writer = DataParser.openWriter(fileName+".info");
+		PrintWriter writer = DataParser.openWriter(outPath);
 		
 		//write header for outfile
 		writer.write("CHROM\tPOS\tLDPOS\tA\ta\tB\tb\tp_A\tp_C\tp_G\tp_T\tp_ab\tp_aB\tp_Ab\tp_AB\n");
@@ -83,34 +83,34 @@ public class LDStreamPedMissing {
 			
 			
 			char[] currAlleleTypes = getAlleles(currStationaryDist);
+
 			
+			//before processing current position, remove any previous candidate markers that are too far away
+			//if only one markers is left, use that no matter what
+		
+			// update previous info			
+			while(prevDistList.size()>1){
+				
+				if(currDist - prevDistList.get(0) > back){
+					prevDistList.remove(0);
+					prevPosList.remove(0);
+					prevGenotypeList.remove(0);
+					prevStationaryDistList.remove(0);
+					prevAlleleTypeList.remove(0);
+				}
+				
+				else
+					break;
+				
+			}
+				
 			
 			// process this line; write to outfile
-			processInfo(solver, writer, back, currChrom, currPos, prevPosList, currGenotypes, prevGenotypeList, currStationaryDist, prevStationaryDistList, currAlleleTypes, prevAlleleTypeList);
+			processInfo(solver, writer, currChrom, currPos, prevPosList, currGenotypes, prevGenotypeList, currStationaryDist, prevStationaryDistList, currAlleleTypes, prevAlleleTypeList);
 			
 			
-			//do LD conditioning
+			//add current info
 			if(conditional){
-			
-				// update previous info			
-				while(prevDistList.size()>0){
-					
-					if(currDist - prevDistList.get(0) > back){
-						prevDistList.remove(0);
-						prevPosList.remove(0);
-						prevGenotypeList.remove(0);
-						prevStationaryDistList.remove(0);
-						prevAlleleTypeList.remove(0);
-					}
-					
-					else
-						break;
-					
-				}
-	
-				
-				
-				//add new info
 				prevDistList.add(currDist);
 				prevPosList.add(currPos);
 				prevGenotypeList.add(currGenotypes);
@@ -130,7 +130,7 @@ public class LDStreamPedMissing {
 	}
 	
 	
-	private static void processInfo (Cubic solver, PrintWriter writer, double back, int currChrom, int currPos, List<Integer> prevPosList, String[] currGenotypes, List<String[]> prevGenotypeList, double[] currStationaryDist, List<double[]> prevStationaryDistList, char[] currAlleleTypes, List<char[]> prevAlleleTypeList){
+	private static void processInfo (Cubic solver, PrintWriter writer, int currChrom, int currPos, List<Integer> prevPosList, String[] currGenotypes, List<String[]> prevGenotypeList, double[] currStationaryDist, List<double[]> prevStationaryDistList, char[] currAlleleTypes, List<char[]> prevAlleleTypeList){
 		
 		
 		if (prevGenotypeList.size()==0){

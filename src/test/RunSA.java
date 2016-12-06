@@ -49,6 +49,7 @@ public class RunSA {
 
 		//pedigree parameters
 		int maxDepth = 4;
+		int sampleDepth = maxDepth;
 		int numIndiv = 18;
 		int totalIndiv = 18;
 		double seqError = 0.01;
@@ -56,7 +57,8 @@ public class RunSA {
 		int back = 30000;
 		int maxNumNodes = 200;
 		double prior = numIndiv;
-		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(seqError, r, back, numIndiv);
+		int stopThresh = 5;
+		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(seqError, back, numIndiv);
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
 		String pathToOmega = dir + "pathToOmega.txt";
 
@@ -117,11 +119,11 @@ public class RunSA {
 				//System.out.println(run);
 				
 				//initialize pedigree
-				Pedigree ped = new Pedigree(fileName, core, maxDepth, rGen, maxNumNodes, prior, numIndiv);
+				Pedigree ped = new Pedigree(fileName, core, maxDepth, sampleDepth, rGen, maxNumNodes, prior, numIndiv);
 
 			
 				//initialize SA
-				SimulatedAnnealing sa = new SimulatedAnnealing(ped, heat, coolingSchedule, moves, runLength, rGen, outDir+"."+run);
+				SimulatedAnnealing sa = new SimulatedAnnealing(ped, heat, coolingSchedule, moves, runLength, rGen, outDir+"."+run, stopThresh);
 
 				
 				//run MCMC
@@ -154,7 +156,7 @@ public class RunSA {
 			//likelihood for true pedigree
 
 			//copy relationship
-			Pedigree ped = new Pedigree(fileName, core, maxDepth, rGen, maxNumNodes, prior, numIndiv);
+			Pedigree ped = new Pedigree(fileName, core, maxDepth, sampleDepth, rGen, maxNumNodes, prior, numIndiv);
 			Path[][] mcmcmcRel = ped.getRelationships();
 			for(int i=0; i<numIndiv; i++){
 				for(int j=i+1; j<numIndiv; j++){

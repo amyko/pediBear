@@ -109,11 +109,13 @@ public class Link extends Move{ //WORKS; special merge not tested
 
 		
 		//reject bad cases
+		/*
 		if(violatesAgeConstraints(currPedigree, donor, recipient)){
 			currPedigree.clean(iAnc);
 			currPedigree.clean(jAnc);
 			return REJECT;
 		}
+		*/
 
 		
 		
@@ -285,6 +287,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 	}
 	
 
+	/*
 	private boolean violatesAgeConstraints(Pedigree currPedigree, Node donor, Node recipient){
 
 		//check maxD < minR
@@ -324,6 +327,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 		
 		
 	}
+	*/
 
 	
 	

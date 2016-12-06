@@ -1,6 +1,7 @@
 package test;
 
 import java.io.IOException;
+import java.util.Map;
 
 import likelihood.LDStreamPedMissing;
 
@@ -9,15 +10,8 @@ public class SoftwareTest {
 	
 	public static void main(String[] args) throws IOException{
 		
-		String dir = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/softwareTest/";
-		String fileName = dir + "test";
-		String outPath = dir + "test.info";
-		int back = 100;
-		boolean conditional = true;
+		Map<String, Double> test = null;
 
-
-		LDStreamPedMissing.writeLdOutfile(fileName, outPath, back, conditional);
 	}
-	
 	
 }

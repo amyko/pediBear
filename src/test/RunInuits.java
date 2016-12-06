@@ -47,6 +47,7 @@ public class RunInuits {
 
 		//pedigree parameters
 		int maxDepth = 4;
+		int sampleDepth = maxDepth;
 		int numIndiv = 100;
 		double seqError = 0.01;
 		int back = 30000;
@@ -89,7 +90,7 @@ public class RunInuits {
 		for(int run=0; run<numRun; run++){
 			
 			//initialize pedigree
-			Pedigree ped = new Pedigree(dir+testName, core, maxDepth, rGen, maxNumNodes, prior, numIndiv);
+			Pedigree ped = new Pedigree(dir+testName, core, maxDepth, sampleDepth, rGen, maxNumNodes, prior, numIndiv);
 
 			/*
 			//FOR TESTING ONLY

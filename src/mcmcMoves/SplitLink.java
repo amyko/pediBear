@@ -204,10 +204,12 @@ public class SplitLink extends Move {//WORKS
 		
 		
 		//reject bad cases
+		/*
 		if(violatesAgeConstraints(currPedigree, donor, recipient)){
 			reverseMove(currPedigree);
 			return REJECT;
 		}
+		*/
 
 		
 		
@@ -365,7 +367,7 @@ public class SplitLink extends Move {//WORKS
 		
 	}
 	
-
+	/*
 	private boolean violatesAgeConstraints(Pedigree currPedigree, Node donor, Node recipient){
 
 		//check maxD < minR
@@ -405,6 +407,7 @@ public class SplitLink extends Move {//WORKS
 		
 		
 	}
+	*/
 
 	
 	

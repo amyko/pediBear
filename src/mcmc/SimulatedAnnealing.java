@@ -28,7 +28,7 @@ public class SimulatedAnnealing {
 	
 	
 	public double bestLkhd = Double.NEGATIVE_INFINITY;
-	public double stopThresh = 5;
+	public double stopThresh;;
 	
 
 	public SimulatedAnnealing(Pedigree ped, double[] heat, int[] coolingSchedule, Move[] moves, int runLength, Random rGen, String outPath, double stopThresh) throws IOException{
@@ -62,17 +62,22 @@ public class SimulatedAnnealing {
 	
 	private void runBurnIn(){
 		
-		System.out.println("Running simulated annealing");
+		//System.out.println("Running simulated annealing");
 		
 		convWriter.write(">\n");
 
 		
 		int iter = 0;
+		double initLkhd = 0;
+		double counter = 0;
 		
 		//for each temperature
 		for(int t=0; t<heat.length-1; t++){
 			
-			double initLkhd = ped.getLogLikelihood();
+			if(iter%100000==0){
+				initLkhd = ped.getLogLikelihood();
+				counter = 0;
+			}
 
 			//run burn-in
 			//while(moves[0].nTried < 100 && moves[0].nAccept <50){
@@ -106,6 +111,7 @@ public class SimulatedAnnealing {
 				move.mcmcMove(ped, heat[t]);
 				
 				iter++;
+				counter++;
 					
 			
 			}
@@ -118,11 +124,9 @@ public class SimulatedAnnealing {
 			moves[0].nAccept = 0;
 			moves[0].nTried = 0;
 			
-			//record likelihood
-			convWriter.write(String.format("%d\t%f\n", coolingSchedule[t]*(t+1), ped.getLogLikelihood()));
-			
+	
 			//if the end lkhd did not change much, complete run
-			if(Math.abs(initLkhd - ped.getLogLikelihood()) < stopThresh)
+			if(counter%100000==0 && Math.abs(initLkhd - ped.getLogLikelihood()) < stopThresh)
 				break;
 			
 			
@@ -234,7 +238,7 @@ public class SimulatedAnnealing {
 		String pa = "0";
 		String ma = "0";
 		String sampleStatus = ind.sampled ? "000000" : "999999";
-		String sex = ind.getSex()==1 ? "7" : "1";
+		String sex = ind.getSex()==1 ? "7" : "1"; //TODO change this
 		
 		//if missing individual and sex not constrained
 		currPedigree.clearVisit();

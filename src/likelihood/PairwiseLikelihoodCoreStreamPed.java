@@ -312,6 +312,11 @@ public class PairwiseLikelihoodCoreStreamPed {
 			}
 		
 
+			//update prev info & add current info to list
+			int prevPos = Integer.parseInt(info[POS]);
+			posToGeno.put(prevPos, geno);
+			posToInfo.put(prevPos, info);
+			
 			
 			//remove useless info
 			int minPos = Collections.min(posToGeno.keySet());
@@ -325,10 +330,6 @@ public class PairwiseLikelihoodCoreStreamPed {
 			}
 			
 			
-			//update prev info & add current info to list
-			int prevPos = Integer.parseInt(info[POS]);
-			posToGeno.put(prevPos, geno);
-			posToInfo.put(prevPos, info);
 			
 			
 		}
@@ -757,6 +758,9 @@ public class PairwiseLikelihoodCoreStreamPed {
 			}
 			
 
+			//update previous data
+			posToGeno.put(currPos, geno);
+			posToInfo.put(currPos, info);
 			
 			//remove useless info
 			int minKey = Collections.min(posToGeno.keySet());
@@ -769,9 +773,6 @@ public class PairwiseLikelihoodCoreStreamPed {
 			}
 			
 			
-			//update previous data
-			posToGeno.put(currPos, geno);
-			posToInfo.put(currPos, info);
 			
 			
 		}

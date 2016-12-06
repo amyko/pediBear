@@ -49,8 +49,8 @@ public class Contract extends Move{ //WORKS; special merge not tested
 			return REJECT;
 
 		//reject bad cases
-		if(violatesAgeConstraints(currPedigree, child, parent))
-			return REJECT;
+		//if(violatesAgeConstraints(currPedigree, child, parent))
+			//return REJECT;
 
 
 		
@@ -82,7 +82,7 @@ public class Contract extends Move{ //WORKS; special merge not tested
 	}
 	
 
-
+	/*
 	private boolean violatesAgeConstraints(Pedigree currPedigree, Node child, Node parent){
 
 		if(parent.getChildren().size()==1 || child.getAge()==-1)
@@ -103,6 +103,7 @@ public class Contract extends Move{ //WORKS; special merge not tested
 		
 		
 	}
+	*/
 
 	
 	

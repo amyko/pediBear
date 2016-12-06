@@ -49,6 +49,7 @@ public class SwapUp extends Move {
 		}
 		
 		//bad case
+		/*
 		if(ageIncompatible(currPedigree, child, parent)){
 			
 			if(nBefore < currPedigree.getNActiveNodes()){ //if a ghost node was created, destroy it
@@ -57,6 +58,7 @@ public class SwapUp extends Move {
 			
 			return REJECT;
 		}
+		*/
 
 		
 		//old to new
@@ -144,6 +146,7 @@ public class SwapUp extends Move {
 	}
 	
 
+	/*
 	private boolean ageIncompatible(Pedigree currPedigree, Node child, Node parent){
 
 		//both are ghost nodes
@@ -194,6 +197,7 @@ public class SwapUp extends Move {
 		return false;
 		
 	}
+	*/
 
 	
 }
