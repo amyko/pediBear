@@ -2665,7 +2665,7 @@ public class Pedigree {
 
 		parent.setNumVisit(parent.getNumVisit()+1);
 		
-		if(parent.sampled) 
+		if(parent.getSex()!=-1) 
 			return true;
 		
 		//recurse on neighbor parents

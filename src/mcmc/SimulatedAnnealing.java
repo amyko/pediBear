@@ -16,8 +16,8 @@ public class SimulatedAnnealing {
 	final Pedigree ped;
 	final int runLength;
 	final Move[] moves; 
-	final PrintWriter famWriter;
-	final PrintWriter pairWriter;
+	final PrintWriter cranefootFamWriter;
+	//final PrintWriter pairWriter;
 	PrintWriter convWriter;
 	final Random rGen;
 	
@@ -36,8 +36,8 @@ public class SimulatedAnnealing {
 		this.ped = ped;
 		this.runLength = runLength;
 		this.moves = moves;		
-		this.famWriter = DataParser.openWriter(outPath+".fam");
-		this.pairWriter = DataParser.openWriter(outPath+".pair");
+		this.cranefootFamWriter = DataParser.openWriter(outPath+".fam");
+		//this.pairWriter = DataParser.openWriter(outPath+".pair");
 		this.convWriter = DataParser.openWriter(outPath+".lkhd");
 		
 		this.rGen = rGen;
@@ -169,9 +169,9 @@ public class SimulatedAnnealing {
 		
 		
 		//close outfile
-		famWriter.close();
+		cranefootFamWriter.close();
 		convWriter.close();
-		pairWriter.close();
+		//pairWriter.close();
 		
 	}
 	
@@ -205,6 +205,7 @@ public class SimulatedAnnealing {
 		
 		//pairwise relationship
 		//header for this sample
+		/*
 		pairWriter.write(String.format(">\t%.5f\n", currPedigree.getLogLikelihood()));
 		
 		for(int i=0; i<currPedigree.numIndiv; i++){
@@ -216,29 +217,26 @@ public class SimulatedAnnealing {
 				
 			}
 		}
+		*/
 		
 		//write family relationship
-		famWriter.write(String.format("NAME\tFATHER\tMOTHER\tSEX\tSAMPLED\n"));
+		cranefootFamWriter.write(String.format("NAME\tFATHER\tMOTHER\tSEX\tSAMPLED\n"));
 		//currPedigree.clearVisit();
 		for(int i=0; i<currPedigree.getNActiveNodes(); i++){
-			recordFam(currPedigree.getNode(i), currPedigree);
+			recordCranefootFam(currPedigree.getNode(i), currPedigree);
 		}
 		
 	
 	}
 	
 	
-	private void recordFam(Node ind, Pedigree currPedigree){
-		
-		//visit
-		//if(ind.getNumVisit()!=0) return;
-		//ind.setNumVisit(1);
+	private void recordCranefootFam(Node ind, Pedigree currPedigree){
 		
 		String name = ind.fid + "_" + ind.iid;
 		String pa = "0";
 		String ma = "0";
 		String sampleStatus = ind.sampled ? "000000" : "999999";
-		String sex = ind.getSex()==1 ? "7" : "1"; //TODO change this
+		String sex = ind.getSex()==1 ? "7" : "1"; 
 		
 		//if missing individual and sex not constrained
 		currPedigree.clearVisit();
@@ -267,7 +265,7 @@ public class SimulatedAnnealing {
 			
 			//connect temporarily
 			currPedigree.connect(missingParent, ind);
-			recordFam(missingParent, currPedigree);
+			recordCranefootFam(missingParent, currPedigree);
 			currPedigree.disconnect(missingParent, ind);
 			
 			if(missingParentSex==0) ma = "missingParent_" + ind.iid;
@@ -280,7 +278,7 @@ public class SimulatedAnnealing {
 		
 		
 		//write to file
-		famWriter.write(String.format("%s\t%s\t%s\t%s\t%s\n", name, pa, ma, sex, sampleStatus));
+		cranefootFamWriter.write(String.format("%s\t%s\t%s\t%s\t%s\n", name, pa, ma, sex, sampleStatus));
 		
 		
 	}

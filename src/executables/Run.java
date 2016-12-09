@@ -49,8 +49,6 @@ import utility.DataParser;
 
 public class Run{
 	
-	//private static String[] validOptions = new String[]{ "iterpertemp","tempfact","maxiter","conv"};
-
 	//SA parameters
 	public static String fileName = "";
 	public static String refPopFileName = "";
@@ -70,7 +68,7 @@ public class Run{
 	public static boolean conditional = true;
 	public static int numRun = 2;
 	public static int runLength = 1;
-	public static int numThreads = 2;
+	public static int numThreads = 1;
 	
 	//misc
 	public static int maxNumNodes = 200;
@@ -93,13 +91,13 @@ public class Run{
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
 		
 		//compute marginal likelihood
-		System.out.println("Computing marginal likelihoods");
+		System.out.println("Computing marginal likelihoods...");
 		int[] indCols = new int[numIndiv];
 		for(int i=0; i<numIndiv; i++) indCols[i] = i;
 		computeMarginals(core, fileName, indCols);
 		
 		//compute pairwise likelihood
-		System.out.println("Computing pairwise likelihoods");
+		System.out.println("Computing pairwise likelihoods...");
 		computePairwise(core, fileName, indCols, relationships);
 		
 
@@ -242,11 +240,14 @@ public class Run{
 			coolingSchedule[i] = iterPerTemp;
 		}
 		
-		System.out.println(heat[heat.length-1]);
+
+		//System.out.println(heat[heat.length-1]);
 		
 		
 		//executor
-		ExecutorService executor = Executors.newFixedThreadPool(numThreads);	
+		ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+		
+		System.out.println(String.format("Number of runs: %d", numRun));
 		
 		for(int i=0; i<numRun; i++){
 			
@@ -292,16 +293,12 @@ public class Run{
 		PreProcess.processOptionfile(args);
 		PreProcess.checkInputFiles(fileName, refPopFileName);
 		
-		//TODO use plink to filter maf & geno and prune
-		
-		
-		System.out.println(numIndiv);
-		
+
 		
 		//read files
 		setName2age();
 		
-		//computeLikelihoods();
+		computeLikelihoods();
 		
 
 		

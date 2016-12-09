@@ -25,7 +25,7 @@ public class MyRunnable implements Runnable{
 	
 	public void run(){
 		
-		System.out.println(String.format("Running thread %d", threadNum));
+		System.out.println(String.format("Running SA: thread %d", threadNum));
 		
 		//run MCMC
 		//double startTime = System.nanoTime();
@@ -37,7 +37,7 @@ public class MyRunnable implements Runnable{
 		//System.out.println(String.format("Number of singletons: %d", ped.nSingletons[ped.curr]));
 		//System.out.println(String.format("Running time: %.1f seconds", duration));
 		
-		System.out.println(String.format("Finished thread %d", threadNum));
+		System.out.println(String.format("Finished SA: thread %d", threadNum));
 
 		
 	}

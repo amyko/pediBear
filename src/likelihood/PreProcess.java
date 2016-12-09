@@ -47,8 +47,7 @@ public class PreProcess {
 		while((line=infile.readLine())!=null){
 			
 			String[] fields = line.split("\\s#");
-			String key = fields[1].split("\\s")[0].toLowerCase();
-			
+			String key = fields[1].split("\\s+")[0].toLowerCase();
 			
 			//error checking
 			if(key.equals("filename") || key.equals("refpopfilename")){
@@ -135,7 +134,7 @@ public class PreProcess {
 				
 			}
 			
-			else if(key.equals("samplegen")){
+			else if(key.equals("maxsampledepth")){
 				
 				if(fields.length < 2){
 					System.out.println("sampleGen not given. Using default value of 5");
@@ -438,6 +437,10 @@ public class PreProcess {
 			//if new chromosome
 			if(!currChrom.equals(prevChrom)){
 				prevPos = -1;
+				
+				if(currChrom=="X" || currChrom=="Y"){
+					System.out.println(String.format("Sex chromosome detected in %s. Please remove them.", testPath+".tped"));
+				}
 			}
 			
 			//check numIndiv matches num genotypes
