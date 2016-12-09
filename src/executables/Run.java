@@ -301,8 +301,6 @@ public class Run{
 		computeLikelihoods();
 		
 
-		
-
 		//run
 		runThreads();
 		

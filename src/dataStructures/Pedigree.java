@@ -23,6 +23,8 @@ import likelihood.PairwiseLikelihoodCoreStreamPed;
 //a sort of adjacency matrix, where instead of binary adjacencies, only the individuals are represented
 //and the i,j^th entry represents the relationship between the i^th and j^th individuals
 public class Pedigree {
+	
+	//hello
 
 	//pedigree variables
 	public final int maxDepth;
