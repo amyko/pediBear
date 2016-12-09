@@ -24,7 +24,6 @@ import likelihood.PairwiseLikelihoodCoreStreamPed;
 //and the i,j^th entry represents the relationship between the i^th and j^th individuals
 public class Pedigree {
 	
-	//hello
 
 	//pedigree variables
 	public final int maxDepth;
@@ -267,6 +266,8 @@ public class Pedigree {
 	
 	//TODO handle known relationships
 	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age) throws IOException{
+		
+		System.out.println("HELLO??");
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = maxDepth;
