@@ -2,11 +2,8 @@ package likelihood;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Map;
+
 
 import executables.Run;
 import utility.DataParser;
@@ -14,11 +11,7 @@ import utility.DataParser;
 // 1) has tped, tfam files, 2) valid allele characters, 3) increasing distance
 
 public class PreProcess {
-	
-	private static int pA = 7;
-	private static int pC = 8;
-	private static int pG = 9;
-	private static int pT = 10;
+
 	
 	
 	//check if options are valid and set values
@@ -369,9 +362,15 @@ public class PreProcess {
 			sameMarkers(testPath, popPath);
 		
 		//check tped/tfam files
-		checkInput(testPath);
+		checkTpedFile(testPath);
 		if(!sameFile)
-			checkInput(popPath);
+			checkTpedFile(popPath);
+		
+		
+		//check tfam file
+		checkTfamFile(testPath);
+		
+		
 	}
 	
 	
@@ -410,13 +409,8 @@ public class PreProcess {
 	
 	
 	//check that tped & tfam files are kosher
-	public static void checkInput(String testPath) throws IOException{
+	public static void checkTpedFile(String testPath) throws IOException{
 
-		
-		//get number of individuals
-		boolean correctNumIndiv = false;
-
-		
 		
 		//check line-by-line
 		BufferedReader infile = DataParser.openReader(testPath+".tped");
@@ -444,17 +438,11 @@ public class PreProcess {
 			}
 			
 			//check numIndiv matches num genotypes
-			if(correctNumIndiv==false){	
-				
-				int numIndiv = DataParser.countLines(testPath+".tfam");
-				
-				if((fields.length - 4)/2 != numIndiv){
-					System.out.println(String.format("Number of individuals in %s does not match number of genotypes in %s.", testPath+".tfam", testPath+".tped"));	
-					System.exit(1);
-				}
-				else correctNumIndiv = true;
+			if((fields.length - 4)/2 != Run.numIndiv){
+				System.out.println(String.format("Number of individuals in %s does not match number of genotypes in %s.", testPath+".tfam", testPath+".tped"));	
+				System.exit(1);
 			}
-			
+	
 			//check distance
 			if(currPos==prevPos){	
 				System.out.println(String.format("Thre are more than one markers in the same position in %s! Every marker must have a unique position.", testPath+".tped"));
@@ -500,6 +488,30 @@ public class PreProcess {
 			
 		}
 		
+		
+	}
+	
+	
+	public static void checkTfamFile(String testPath) throws IOException{
+	
+		//check that sex of each individual is known
+		BufferedReader reader = DataParser.openReader(testPath+".tfam");
+		
+		String line;
+		while((line=reader.readLine()) != null){
+			
+			int sex = Integer.parseInt(line.split("\\s+")[4]);
+			
+			if(sex!=1 && sex!=2){
+				
+				System.out.println(String.format("Unknown sex encountered in %s. Only 1 for male and 2 for female are allowed. Unknown sex is not supported in this version."));
+				System.exit(1);
+				
+			}
+			
+		}
+		
+		reader.close();
 		
 	}
 	

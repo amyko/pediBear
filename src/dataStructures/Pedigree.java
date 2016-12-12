@@ -267,8 +267,6 @@ public class Pedigree {
 	//TODO handle known relationships
 	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age) throws IOException{
 		
-		System.out.println("HELLO??");
-		
 		this.numIndiv = numIndiv;
 		this.maxDepth = maxDepth;
 		this.maxSampleDepth = maxSampleDepth;
@@ -1028,20 +1026,11 @@ public class Pedigree {
 	
 	public void shiftCluster(List<Node> cluster, int offset){
 		
-		//subtract old likelihood
-		//this.logLikelihood[curr] -= ageLikelihood(cluster);
-		
 		//shift cluster
 		for(Node i : cluster){
 			i.setDepth(i.getDepth() + offset);
 		}
-		
-
-		//add new likelihood
-		//this.logLikelihood[curr] += ageLikelihood(cluster);
-		
-		
-		
+	
 	}
 	
 	
@@ -2217,6 +2206,7 @@ public class Pedigree {
 			this.nodes.get(curr).get(i).setNumVisit(0);
 		}
 	}
+	
 	
 	
 	//marks reachable nodes as visited

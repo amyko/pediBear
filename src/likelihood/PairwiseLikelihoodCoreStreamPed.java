@@ -163,7 +163,7 @@ public class PairwiseLikelihoodCoreStreamPed {
 		while((line=reader.readLine())!=null){
 
 			
-			String[] fields = line.split("\t");
+			String[] fields = line.split("\\s+");
 			
 			//update relationship
 			if(fields[0].equals(">")){

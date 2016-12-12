@@ -3,6 +3,7 @@ package mcmcMoves;
 import java.util.ArrayList;
 import java.util.List;
 
+import mcmc.MCMCMC;
 import mcmc.SimulatedAnnealing;
 import dataStructures.Pedigree;
 import dataStructures.Node;
@@ -60,18 +61,17 @@ public class ShiftClusterLevel extends Move {
 		
 		
 		//accept ratio
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, heat);
+		//return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		
 	}
 	
 	
 	@Override
-	protected void reverseMove(Pedigree currPedigree) {
-		
+	protected void reverseMove(Pedigree currPedigree) {		
 		
 		currPedigree.shiftCluster(cluster, -offset);
 		
-
 	}
 	
 	
@@ -81,6 +81,8 @@ public class ShiftClusterLevel extends Move {
 		return;	
 		
 	}
+	
+	
 	
 	
 	private int getLowestLevel(Pedigree currPedigree){
@@ -117,6 +119,8 @@ public class ShiftClusterLevel extends Move {
 		
 		
 	}
+	
+
 	
 }
 	

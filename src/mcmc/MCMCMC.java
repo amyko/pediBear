@@ -28,7 +28,7 @@ public class MCMCMC {
 	final int sampleRate;
 	final Move[] moves; 
 	final PrintWriter writer;
-	final PrintWriter writer2;
+	//final PrintWriter writer2;
 	final Random rGen;
 	final int nChain;
 	public int nSwapSuccess;
@@ -55,7 +55,7 @@ public class MCMCMC {
 		this.sampleRate = sampleRate;
 		this.moves = moves;		
 		this.writer = DataParser.openWriter(outPath);
-		this.writer2 = DataParser.openWriter(outPath+".2");
+		//this.writer2 = DataParser.openWriter(outPath+".2");
 		this.rGen = rGen;
 		this.nChain = chains.size();
 		this.nSwapAttempt = 0;
@@ -263,7 +263,7 @@ public class MCMCMC {
 			//sample from cold chain
 			if(i % sampleRate == 0){
 				sample(chains.get(this.coldChain));
-				sample2(chains.get(this.coldChain));
+				//sample2(chains.get(this.coldChain));
 			}
 			
 			
@@ -365,14 +365,17 @@ public class MCMCMC {
 	private void sample(Pedigree currPedigree){
 		
 		//header for this sample
-		writer.write(String.format(">\t%.5f\n", currPedigree.getLogLikelihood()));
+		writer.write(">\n");
 		
 		for(int i=0; i<currPedigree.numIndiv; i++){
+			
+			writer.write(String.format("%d\n", currPedigree.getNode(i).getDepth()));
+			
 			for(int j=i+1; j<currPedigree.numIndiv; j++){
 				
 				Path rel = currPedigree.getRelationships()[i][j];
 				
-				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				//writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
 			}
 		}
@@ -380,7 +383,7 @@ public class MCMCMC {
 	}
 	
 	
-	
+	/*
 	private void sample2(Pedigree currPedigree){
 		
 		//header for this sample
@@ -408,12 +411,15 @@ public class MCMCMC {
 		
 		
 	}
+	*/
 	
 	
-	public double acceptanceRatio(double proposalLkhd, double currLkhd, double oldToNew, double newToOld, double heat){
+	public static double acceptanceRatio(double newLkhd, double oldLkhd, double oldToNew, double newToOld, double heat){
 		
-		double acceptRatio = heat * (proposalLkhd - currLkhd) + newToOld - oldToNew;
+		double acceptRatio = heat * (newLkhd - oldLkhd) + newToOld - oldToNew;
 
+		//TODO testing proposal ratios
+		//double acceptRatio = newToOld - oldToNew;
 		
 		if(acceptRatio > 0){
 			return 1;
