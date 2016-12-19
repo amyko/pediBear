@@ -3,7 +3,7 @@ package mcmcMoves;
 import java.util.ArrayList;
 import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -89,7 +89,7 @@ public class SplitLink extends Move {//WORKS
 	    
 		//save current pedigree
 		currPedigree.copyCurrPedigree();
-	    double prevLogLikelihood = currPedigree.getLogLikelihood();
+	    double prevLkhd = currPedigree.getLogLikelihood();
 	    int nBefore = currPedigree.getNActiveNodes();
 	    int targetDepth = parent.getDepth();
 	    
@@ -113,10 +113,13 @@ public class SplitLink extends Move {//WORKS
 		double outerSum = 0d;
 		double innerSum = 0d;
 		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			
+			if(iDepthToCount[l1]==0) continue;
+			
 			innerSum = 0d;
 			for(int l2=0; l2<=jPrime.getDepth(); l2++){
 				
-				//if(l1==targetDepth && l2==targetDepth) continue;
+				if(l1==targetDepth && l2==targetDepth) continue;
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
 			}
@@ -220,10 +223,14 @@ public class SplitLink extends Move {//WORKS
 		outerSum = 0d;
 		innerSum = 0d;
 		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			
+			if(iDepthToCount[l1]==0) continue;
+			
 			innerSum = 0d;
+			
 			for(int l2=0; l2<=jPrime.getDepth(); l2++){
 				
-				//if(l1==targetDepth && l2==targetDepth) continue;
+				if(l1==targetDepth && l2==targetDepth) continue;
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
 			}
@@ -262,8 +269,9 @@ public class SplitLink extends Move {//WORKS
 		double newToOld = newToOldSplit + newToOldLink;
 		
 
-		
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
+
 	}
 	
 	

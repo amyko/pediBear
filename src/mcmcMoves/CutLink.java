@@ -2,7 +2,7 @@ package mcmcMoves;
 
 import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -63,7 +63,7 @@ public class CutLink extends Move {//WORKS
 		
 		//cut 
 		int nBefore = currPedigree.getNActiveNodes();
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.cut(child, parent, hasFullSib);
 		Node iPrime = currPedigree.clean(child);
 		Node jPrime = currPedigree.clean(parent);
@@ -83,15 +83,21 @@ public class CutLink extends Move {//WORKS
 		double outerSum = 0d;
 		double innerSum = 0d;
 		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			
+			if(iDepthToCount[l1]==0) continue;
+			
 			innerSum = 0d;
+			
 			for(int l2=0; l2<=jPrime.getDepth(); l2++){
 				
-				//if(l1==targetDepth && l2==targetDepth) continue;
+				if(l1==targetDepth && l2==targetDepth) continue;
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
 			}
+			
 			outerSum += iDepthToCount[l1] * innerSum;
 		}
+		
 		double newToOldCut =  getLogChooseTwo(nAfter) + Math.log(outerSum);
 
 
@@ -155,7 +161,7 @@ public class CutLink extends Move {//WORKS
 		
 		
 		//assign donor & recipient; recipient is sampled or has parents
-		if((iAnc.sampled || iAnc.getParents().size() > 0) && !jAnc.sampled){
+		if(iAnc.sampled || iAnc.getParents().size() > 0){
 			donor = jAnc;
 			recipient = iAnc;
 		}
@@ -190,10 +196,13 @@ public class CutLink extends Move {//WORKS
 		outerSum = 0d;
 		innerSum = 0d;
 		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			
+			if(iDepthToCount[l1]==0) continue;
+			
 			innerSum = 0d;
 			for(int l2=0; l2<=jPrime.getDepth(); l2++){
 				
-				//if(l1==targetDepth && l2==targetDepth) continue;
+				if(l1==targetDepth && l2==targetDepth) continue;
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
 			}
@@ -228,9 +237,9 @@ public class CutLink extends Move {//WORKS
 		double oldToNew = oldToNewCut + oldToNewLink;
 		double newToOld = newToOldCut + newToOldLink;
 		
-	
+
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
 	}
 	
 	

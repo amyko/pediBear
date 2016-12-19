@@ -1,6 +1,6 @@
 package mcmcMoves;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -46,6 +46,7 @@ public class Cut extends Move {//WORKS
 		Node highestNode = currPedigree.getHighestNode(parent);
 		int targetDepth = highestNode.getDepth();
 
+
 		if(highestNode.getChildren().size() > 1){ //split prob of the highest node
 			int symm = (!highestNode.sampled && highestNode.getParents().size()==0) ? 1 : 0;
 			oldToNew += (1+symm) * getPowersOfHalf2(highestNode.getChildren().size()) * moveProbs.get("split");
@@ -54,7 +55,7 @@ public class Cut extends Move {//WORKS
 		
 		//cut 
 		int nBefore = currPedigree.getNActiveNodes();
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.cut(child, parent, hasFullSib);
 		Node iPrime = currPedigree.clean(child);
 		Node jPrime = currPedigree.clean(parent);
@@ -73,10 +74,13 @@ public class Cut extends Move {//WORKS
 		double innerSum = 0d;
 		double outerSum = 0d;
 		for(int l1=0; l1 <= iPrime.getDepth(); l1++){
+			
+			if(iDepthToCount[l1]==0) continue;
+			
 			innerSum = 0d;
 			for(int l2=0; l2 <= jPrime.getDepth(); l2++){
 				
-				//if(l1==targetDepth && l2==targetDepth) continue;
+				if(l1==targetDepth && l2==targetDepth) continue;
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth-Math.max(l1,l2)-l1-l2);
 			}
@@ -87,7 +91,8 @@ public class Cut extends Move {//WORKS
 		
 		
 		//accept ratio
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
+		
 		
 	}
 	

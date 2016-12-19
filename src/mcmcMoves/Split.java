@@ -3,7 +3,7 @@ package mcmcMoves;
 import java.util.ArrayList;
 import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -34,14 +34,15 @@ public class Split extends Move {
 		int nChildren = parent.getChildren().size();
 		if(nChildren < 2)
 			return REJECT;
-		
+
 	
 		//randomly assign children to a clone (1 to 2^n-1); choose between [0,2^n - 2] and add 1
 		int powerSetInd = currPedigree.rGen.nextInt((int) getPowersOfTwo(nChildren)-1) + 1;
 		
-		//no change if all children are assigned to clone
-		if(!parent.sampled && powerSetInd==(int) getPowersOfTwo(nChildren)-1) 
+		//reject if all children are assigned to clone
+		if(!parent.sampled && powerSetInd==(int) getPowersOfTwo(nChildren)-1){
 			return REJECT;
+		}
 		
 		
 		//assign children to split or stay
@@ -79,7 +80,7 @@ public class Split extends Move {
 	    
 		//save current pedigree
 		currPedigree.copyCurrPedigree();
-	    double prevLogLikelihood = currPedigree.getLogLikelihood();
+	    double prevLkhd = currPedigree.getLogLikelihood();
 	    int nBefore = currPedigree.getNActiveNodes();
 	    int targetDepth = parent.getDepth();
 	    
@@ -105,13 +106,17 @@ public class Split extends Move {
 		currPedigree.getDepthToCount(iPrime, iDepthToCount);
 		currPedigree.getDepthToCount(jPrime, jDepthToCount);
 		//targetDepth = Math.max(targetDepth, iPrime.getDepth());
+		
 
 		
 		for(int l1=0; l1 <= iPrime.getDepth(); l1++){
+			
+			if(iDepthToCount[l1]==0) continue;
+			
 			innerSum = 0;
 			for(int l2=0; l2 <= jPrime.getDepth(); l2++){
 				
-				//if(l1==targetDepth && l2==targetDepth) continue;
+				if(l1==targetDepth && l2==targetDepth) continue;
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth - Math.max(l1,l2)-l1-l2); 
 			}
@@ -120,66 +125,16 @@ public class Split extends Move {
 		newToOld = getLogChooseTwo(nAfter) + Math.log(moveProbs.get("link") * outerSum);
 		
 
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
+		
 	}
 	
 	
 	@Override
 	protected void reverseMove(Pedigree currPedigree) {
-
-		/*
-		//node pointers
-		for(int i=0; i<nActiveNodes; i++){
-			Node model = nodes[i];
-			Node toFix = currPedigree.getNode(i);
-			
-			toFix.setSex(model.getSex());
-			toFix.setDepth(model.getDepth());
-
-			toFix.getParents().clear();
-			for(int idx : model.getParentIdx()){
-				toFix.addParent(currPedigree.getNode(idx));
-			}
-			
-			toFix.getChildren().clear();
-			for(int idx : model.getChildrenIdx()){
-				toFix.addChild(currPedigree.getNode(idx));
-			}
-			
-			
-		}
-		
-		//delete unecessary
-		for(int i=nActiveNodes; i<currPedigree.getNActiveNodes(); i++){
-			Node toDelete = currPedigree.getNode(i);
-			toDelete.getParents().clear();
-			toDelete.getChildren().clear();
-			toDelete.setSex(-1);
-			toDelete.setDepth(-1);
-		}
-		
-		
-		//relationships
-		for(int i=0; i<currPedigree.numIndiv; i++){
-			for(int j=0; j<currPedigree.numIndiv; j++){
-				
-				if(i==j) continue;
-				
-				Path modelRel = rel[i][j];
-				
-				Path toFix = currPedigree.getRelationships()[i][j];
-				toFix.updatePath(modelRel.getUp(), modelRel.getDown(), modelRel.getNumVisit());
-
-			}
-		}
-		
-		
-		currPedigree.setLogLikelihood(logLkhd);
-		currPedigree.setNActiveNodes(nActiveNodes);
-		*/
 		
 		currPedigree.reverse();
-
 		
 	}
 	

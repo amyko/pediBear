@@ -3,15 +3,17 @@ package mcmcMoves;
 import java.util.ArrayList;
 import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Node;
 import dataStructures.Pedigree;
 
 
-// 1) pick a random individual, 2) switch places with either its parent or child
+// 1) swap two sampled nodes
 
 public class SwapDescAnc extends Move {
 
+	List<Node> testing = new ArrayList<Node>();
+	List<Node> ancestors = new ArrayList<Node>();
 
 	
 	public SwapDescAnc(String name, double moveProb) {
@@ -27,11 +29,16 @@ public class SwapDescAnc extends Move {
 		
 		
 		//reject if the sampled node does not have any sampled ancestors
-		List<Node> testing = new ArrayList<Node>();
+		testing.clear();
 		child.getAncestors(testing);
-		List<Node> ancestors = new ArrayList<Node>();
+		ancestors.clear();
+		
+		int childDepth = child.getDepth();
+		int childSex = child.getSex();
 		for(Node parent : testing){
-			if(parent.sampled) ancestors.add(parent);
+			//older than parents, sampled, and sex compatible
+			if(parent.sampled && parent.getSex()==childSex && parent.getDepth() > childDepth+1)
+				ancestors.add(parent);
 		}
 
 		
@@ -41,16 +48,9 @@ public class SwapDescAnc extends Move {
 		//choose ancestor
 		Node anc = ancestors.get(currPedigree.rGen.nextInt(ancestors.size()));
 
+
 		
-		//reject if age incompatible 
-		//TODO fix this!!!
-		if(anc.getAge()!=-1 && child.getAge()!=-1)
-			return REJECT;
-		
-		//reject if parent-offspring
-		if(child.getParents().contains(anc))
-			return REJECT;
-		
+		/*
 		//check sex compatibility
 		if(child.getSex() != anc.getSex()){
 			
@@ -63,6 +63,7 @@ public class SwapDescAnc extends Move {
 			}
 			
 		}
+		*/
 		
 
 		
@@ -72,13 +73,14 @@ public class SwapDescAnc extends Move {
 
 		
 		//swap
-		double prevLogLikelihood = currPedigree.getLogLikelihood();		
+		double prevLkhd = currPedigree.getLogLikelihood();		
 		currPedigree.swapAncDesc(anc, child);
 		
 
+		//this move is symmetric
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, 0d, 0d, heat);
 		
-		//likelihood
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		
 		
 		
 	}

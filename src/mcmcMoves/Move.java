@@ -42,7 +42,7 @@ public abstract class Move {
 		
 		for(int i=0; i<initSize; i++){
 			powersOfHalf.add(1d/Math.pow(2, i));
-			powersOfHalf2.add(1d/(Math.pow(2, i) - 1));
+			powersOfHalf2.add(1d/(Math.pow(2, i) - 1)); // 1 / (2^d - 1)
 			powersOfTwo.add(Math.pow(2, i));
 			logChooseTwo.add(Math.log(2d/(i*(i-1))));
 			logChooseOne.add(Math.log(1d/i));

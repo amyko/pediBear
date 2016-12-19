@@ -3,7 +3,7 @@ package mcmcMoves;
 import java.util.ArrayList;
 import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -34,15 +34,17 @@ public class Split2 extends Move {//TODO make this move more efficient (can we c
 		//get a random sampled node
 		parent = currPedigree.getRandomSampledNode();
 
-		//reject if node has no parents or no children
+		
+		//reject if node has no parents or has < 2 children
 		int nChildren = parent.getChildren().size();
-		if(nChildren ==0 || parent.getParents().size()==0)
+		if(nChildren == 0 || parent.getParents().size()==0)
 			return REJECT;
 		
 	
-		//randomly assign children to stay behind (1 to nChildren-1)
+		//randomly assign children to stay (1 to 2^n-1); choose between [0,2^n - 2] and add 1
 		int powerSetInd = currPedigree.rGen.nextInt((int) getPowersOfTwo(nChildren)-1) + 1;
 		
+
 		
 		stayChildren.clear();
 		splitChildren.clear();
@@ -55,6 +57,11 @@ public class Split2 extends Move {//TODO make this move more efficient (can we c
 	        	splitChildren.add(children.get(i));
 	        }
 	    }
+	    
+	    
+	    //reject if no children are left behind
+	    if(stayChildren.size()==0) return REJECT;
+	    
 		
 	    
 	    //check if any of the children between split and stay form full sibs
@@ -68,13 +75,11 @@ public class Split2 extends Move {//TODO make this move more efficient (can we c
 	    	if(hasFullSib) break;
 	    }
 	    
-	    
-	    //System.out.println("IN SPLIT2");
-	    
+	
 	    
 
 		//split
-	    double prevLogLikelihood = currPedigree.getLogLikelihood();
+	    double prevLkhd = currPedigree.getLogLikelihood();
 	    int nBefore = currPedigree.getNActiveNodes();
 	    stayParent = currPedigree.makeNewNode(parent.getDepth(), parent.getSex());
 	    currPedigree.split2(parent, stayParent, stayChildren, hasFullSib);
@@ -96,18 +101,32 @@ public class Split2 extends Move {//TODO make this move more efficient (can we c
 		
 		
 		double newToOld = 0d;
-		for(int l1=0; l1 <= iPrime.getDepth(); l1++){
-			for(int l2=0; l2 <= jPrime.getDepth(); l2++){
+		double innerSum = 0d;
+		double outerSum = 0d;
+		
+		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			
+			if(iDepthToCount[l1]==0) continue;
+			
+			innerSum = 0d;
+			for(int l2=0; l2<=jPrime.getDepth(); l2++){
 				
 				if(l1==targetDepth && l2==targetDepth) continue;
 				
-				newToOld += iDepthToCount[l1] * jDepthToCount[l2] * getPowersOfTwo(3*targetDepth-Math.max(l1,l2)-l1-l2);
+				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
 			}
+			
+			
+			outerSum += iDepthToCount[l1] * innerSum;
+		
+		
 		}
 		int nAfter = currPedigree.getNActiveNodes();
-		newToOld = getLogChooseTwo(nAfter) + Math.log(newToOld*moveProbs.get("link"));
+		newToOld = getLogChooseTwo(nAfter) + Math.log(outerSum * moveProbs.get("link"));
 
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		//return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
+		
 	}
 	
 	

@@ -1,6 +1,6 @@
 package mcmcMoves;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -26,10 +26,13 @@ public class CutOneLinkTwo extends Move{
 		//reject if child doesn't have exactly 1 parent
 		if(child.getParents().size()!=1)
 			return REJECT;
+		
+		//TODO a bug here!!!
+		/*
 		//reject if the child doesn't have any half siblings
 		if(child.getParents().get(0).getChildren().size() < 2)
 			return REJECT;
-
+		*/
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
@@ -39,7 +42,7 @@ public class CutOneLinkTwo extends Move{
 		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("cutOneLinkTwo"));
 		
 		//cut and link
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.cutOneLinkTwo(child);
 		
 		
@@ -51,7 +54,8 @@ public class CutOneLinkTwo extends Move{
 
 		
 		//accept ratio
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
+		
 
 		
 	}

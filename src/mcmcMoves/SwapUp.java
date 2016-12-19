@@ -1,6 +1,6 @@
 package mcmcMoves;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Node;
 import dataStructures.Pedigree;
 
@@ -19,10 +19,10 @@ public class SwapUp extends Move {
 	protected double tryMove(Pedigree currPedigree, double heat) {
 		
 		
-		// randomly choose an individual
+		// randomly choose a sampled node
 		Node child = currPedigree.getRandomSampledNode();
 
-		//reject if the sampled node is not connected to any other node
+		//reject if the sampled node is not connected to any other nodes
 		if(child.getNumEdges()==0)
 			return REJECT;
 		
@@ -33,17 +33,16 @@ public class SwapUp extends Move {
 		
 		
 
-		int nBefore = currPedigree.getNActiveNodes();
-		
-		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
+		int sex = child.getSex();
+		
 		
 		//choose parent
-		Node parent = child.getParentWithSex(child.getSex());
+		Node parent = child.getParentWithSex(sex);
 		if(parent==null){
-			parent = currPedigree.makeNewNode(child.getDepth()+1, child.getSex());
+			parent = currPedigree.makeNewNode(child.getDepth()+1, sex);
 			parent.addChild(child);
 			child.addParent(parent);
 		}
@@ -64,7 +63,7 @@ public class SwapUp extends Move {
 		//old to new
 		double oldToNew = moveProbs.get("swapUp");
 		if(parent.sampled){ //different way of swapping if both child and parent are sampled
-			int nChildren = parent.getChildrenWithSex(parent.getSex()).size();
+			int nChildren = parent.getChildrenWithSex(sex).size();
 			oldToNew += (1 - 1d/(nChildren+1)) * 1d/nChildren * moveProbs.get("swapDown");
 		}
 		oldToNew = Math.log(oldToNew);
@@ -74,7 +73,7 @@ public class SwapUp extends Move {
 
 		
 		//swap
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.swap(child, parent);
 		
 
@@ -83,7 +82,7 @@ public class SwapUp extends Move {
 		double newToOld =  moveProbs.get("swapDown");
 		
 		//make child go down
-		int nChildren = child.getChildrenWithSex(child.getSex()).size();
+		int nChildren = child.getChildrenWithSex(sex).size();
 
 		//if parent is still there
 		if(parent.getIndex() < currPedigree.getNActiveNodes()){
@@ -104,7 +103,8 @@ public class SwapUp extends Move {
 
 		
 		//likelihood
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
+		
 		
 		
 	}
@@ -127,7 +127,7 @@ public class SwapUp extends Move {
 	
 	private boolean splitsPedigree(Pedigree currPedigree, Node child){
 		
-		if(child==null) return false;
+		//if(child==null) return false;
 		if(child.getChildren().size()>0) return false;
 		
 		//parent to switch with

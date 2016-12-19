@@ -4,7 +4,7 @@ package mcmcMoves;
 
 import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -51,11 +51,11 @@ public class CutTwoLinkOne extends Move{
 		
 		
 		//old to new
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nCandidate) +Math.log(moveProbs.get("cutTwoLinkOne"));
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nCandidate) + Math.log(moveProbs.get("cutTwoLinkOne"));
 		
 		
 		//cut and link
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		double prevLkhd = currPedigree.getLogLikelihood();
 		Node newParent = newParentCandidates.get(currPedigree.rGen.nextInt(nCandidate));
 		currPedigree.cutTwoLinkOne(parent, newParent);
 		
@@ -66,7 +66,7 @@ public class CutTwoLinkOne extends Move{
 
 		
 		//accept ratio
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		
 
 		

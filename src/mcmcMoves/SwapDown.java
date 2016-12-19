@@ -3,7 +3,7 @@ package mcmcMoves;
 
 import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Node;
 import dataStructures.Pedigree;
 
@@ -33,19 +33,20 @@ public class SwapDown extends Move {//works for 3 sampled nodes (2 parents, 1 ch
 			return REJECT;
 		
 		//copy pedigree
-		int nBefore = currPedigree.getNActiveNodes();
 		currPedigree.copyCurrPedigree();
+		
+		int sex = parent.getSex();
 		
 		//choose child
 		double oldToNew = moveProbs.get("swapDown");
 		Node child;
-		List<Node> children = parent.getChildrenWithSex(parent.getSex());
+		List<Node> children = parent.getChildrenWithSex(sex);
 		int nChildren = children.size();
 		
 		double makeNewProb = 1d/(1+nChildren);
 		if(currPedigree.rGen.nextDouble() < makeNewProb){ //choose invisible child
 			
-			child = currPedigree.makeNewNode(parent.getDepth()-1, parent.getSex());
+			child = currPedigree.makeNewNode(parent.getDepth()-1, sex);
 			child.addParent(parent);
 			parent.addChild(child);
 			
@@ -87,7 +88,7 @@ public class SwapDown extends Move {//works for 3 sampled nodes (2 parents, 1 ch
 
 		
 		//swap
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.swap(child, parent);
 		
 
@@ -97,7 +98,7 @@ public class SwapDown extends Move {//works for 3 sampled nodes (2 parents, 1 ch
 
 
 		if(child.sampled){ //make child go down
-			nChildren = child.getChildrenWithSex(child.getSex()).size();
+			nChildren = child.getChildrenWithSex(sex).size();
 			newToOld += moveProbs.get("swapDown") * (1-1d/(nChildren+1)) * 1d/nChildren;
 		}
 		
@@ -108,7 +109,7 @@ public class SwapDown extends Move {//works for 3 sampled nodes (2 parents, 1 ch
 
 		
 		//likelihood
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		
 		
 	}

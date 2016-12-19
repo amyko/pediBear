@@ -1,9 +1,8 @@
 package mcmcMoves;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Node;
 import dataStructures.Pedigree;
 
@@ -13,7 +12,6 @@ public class Link extends Move{ //WORKS; special merge not tested
 	//this is stuff to store each move so that if it gets accepted it can then be performed
 	private Node donor;
 	private Node recipient;
-	private List<Node> donorChildren = new ArrayList<Node>();
 	private int nCuttableNode;
 	int[] iDepthToCount = new int[maxDepth]; //keeps track of how many nodes there are in iCluster before any changes
 	int[] jDepthToCount = new int[maxDepth]; //same for j
@@ -57,6 +55,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 			targetSex = currPedigree.rGen.nextDouble() <.5 ? 0 : 1;
 		}
 		
+
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
@@ -89,7 +88,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 		
 		
 		//assign donor & recipient; recipient is sampled or has parents
-		if((iAnc.sampled || iAnc.getParents().size() > 0) && !jAnc.sampled){
+		if(iAnc.sampled || iAnc.getParents().size() > 0){
 			donor = jAnc;
 			recipient = iAnc;
 		}
@@ -99,13 +98,24 @@ public class Link extends Move{ //WORKS; special merge not tested
 		}
 		
 		
-		//record donor children for reverse move
-		donorChildren.clear();
-		for(Node dc : donor.getChildren())
-			donorChildren.add(dc);
 			
-		//for later
-		specialMerge = recipient.sampled && donor.getParents().size() > 0;
+		//reverse move involves split2 if recipient was sampled and donor has parents
+		specialMerge = recipient.sampled && donor.getParents().size()  > 0 && donor.getChildren().size()>0;
+		
+
+			
+		//TODO test
+		/*
+		if(specialMerge){
+			currPedigree.clean(iAnc);
+			currPedigree.clean(jAnc);
+			return REJECT; 
+		}
+		*/
+		
+		
+		
+		
 
 		
 		//reject bad cases
@@ -129,14 +139,21 @@ public class Link extends Move{ //WORKS; special merge not tested
 		double outerSum = 0d;
 		double innerSum = 0d;
 		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			
+			if(iDepthToCount[l1]==0) continue;
+			
 			innerSum = 0d;
 			for(int l2=0; l2<=jPrime.getDepth(); l2++){
 				
-				//if(l1==targetDepth && l2==targetDepth) continue;
+				if(l1==targetDepth && l2==targetDepth) continue;
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
 			}
+			
+			
 			outerSum += iDepthToCount[l1] * innerSum;
+		
+		
 		}
 		oldToNew = getLogChooseTwo(nBefore) + Math.log(outerSum * moveProbs.get("link"));
 
@@ -149,47 +166,40 @@ public class Link extends Move{ //WORKS; special merge not tested
 
 		//new to old
 		double newToOld = 0d;
-		double cutProb = 0d;
 		double splitProb = 0d;
 		
 		//via cut
-		cutProb += nCuttableNode * .5 * moveProbs.get("cut");
+		double cutProb = nCuttableNode * .5 * moveProbs.get("cut");
 
 		//via split
-		if(recipient.getChildren().size() > 1){
-			if(specialMerge){
-				//System.out.println("HERE!");
-				splitProb = getPowersOfHalf2(recipient.getChildren().size()) * moveProbs.get("split2");
-			}
-			else{
-				int symm = !recipient.sampled && recipient.getParents().size()==0 ? 1 : 0;
-				splitProb = (1+symm) * getPowersOfHalf2(recipient.getChildren().size()) * moveProbs.get("split");
-			}
+		if(recipient.getChildren().size() > 1 && !specialMerge){
 			
+			int symm = !recipient.sampled && recipient.getParents().size()==0 ? 1 : 0;
+			splitProb = (1+symm) * getPowersOfHalf2(recipient.getChildren().size()) * moveProbs.get("split");
 			
+			newToOld = Math.log(cutProb + splitProb) + getLogChooseOne(nAfter);
+
+		}
+		//via split2
+		else if(specialMerge){
+
+			splitProb = getPowersOfHalf2(recipient.getChildren().size()) * moveProbs.get("split2");
+			
+			newToOld = Math.log(cutProb/nAfter + splitProb/currPedigree.numIndiv);
+		}
+
+		else{
+			newToOld = getLogChooseOne(nAfter) + Math.log(cutProb);
 		}
 		
 
-		newToOld = getLogChooseOne(nAfter) + Math.log(cutProb + splitProb);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, heat);
-
+		
 	}
 
 	@Override
 	protected void reverseMove(Pedigree currPedigree) {
-		
-		/*
-		if(specialMerge){
-			currPedigree.split2(recipient, donor, donorChildren, mergingFormsFullSibs);
-		}
-		else{
-			currPedigree.split(recipient, donor, donorChildren, mergingFormsFullSibs);	
-		}
-		
-		currPedigree.clean(donor);
-		currPedigree.clean(recipient);
-		*/
 		
 		currPedigree.reverse();
 		
@@ -269,6 +279,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 		//technically, two merging nodes can have a common parent, but ignore this case for now
 		currPedigree.performDFS(node1);
 		
+		//node2 can be reached from node1
 		if(node2.getNumVisit() > 0){ //okay only if merging creates FS
 			
 			mergingFormsFullSibs = formsFullSibs(node1.getChildren(), node2.getChildren());
@@ -279,10 +290,8 @@ public class Link extends Move{ //WORKS; special merge not tested
 				return true;
 		}		
 		
-		else{
-			mergingFormsFullSibs = false;
-			return false;
-		}
+		mergingFormsFullSibs = false;
+		return false;
 		
 	}
 	
@@ -335,12 +344,13 @@ public class Link extends Move{ //WORKS; special merge not tested
 	private boolean formsFullSibs(List<Node> donorChildren, List<Node> recipientChildren){
 		
 		for(Node i : donorChildren){
+			
 			if(i.getParents().size()!=2) continue;
+			
 			for(Node j : recipientChildren){
-				if(j.getParents().size()!=2) continue;
 				
-				if(i==j) continue;
-				
+				if(j.getParents().size()!=2 || i==j) continue;
+
 				//already share a parent
 				if(i.getParents().get(0) == j.getParents().get(0) || i.getParents().get(1) == j.getParents().get(1) || i.getParents().get(0) == j.getParents().get(1) || i.getParents().get(1) == j.getParents().get(0)) 
 					return true;
