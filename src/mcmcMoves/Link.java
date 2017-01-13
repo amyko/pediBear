@@ -4,6 +4,7 @@ import java.util.List;
 
 import mcmc.MCMCMC;
 import dataStructures.Node;
+import dataStructures.Path;
 import dataStructures.Pedigree;
 
 
@@ -88,7 +89,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 		
 		
 		//assign donor & recipient; recipient is sampled or has parents
-		if(iAnc.sampled || iAnc.getParents().size() > 0){
+		if(iAnc.sampled){
 			donor = jAnc;
 			recipient = iAnc;
 		}
@@ -96,24 +97,13 @@ public class Link extends Move{ //WORKS; special merge not tested
 			donor = iAnc;
 			recipient = jAnc;
 		}
-		
+
 		
 			
 		//reverse move involves split2 if recipient was sampled and donor has parents
 		specialMerge = recipient.sampled && donor.getParents().size()  > 0 && donor.getChildren().size()>0;
 		
 
-			
-		//TODO test
-		/*
-		if(specialMerge){
-			currPedigree.clean(iAnc);
-			currPedigree.clean(jAnc);
-			return REJECT; 
-		}
-		*/
-		
-		
 		
 		
 
@@ -192,6 +182,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 			newToOld = getLogChooseOne(nAfter) + Math.log(cutProb);
 		}
 		
+
 
 		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		

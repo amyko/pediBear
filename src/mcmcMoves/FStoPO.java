@@ -2,7 +2,7 @@ package mcmcMoves;
 
 import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -72,7 +72,7 @@ public class FStoPO extends Move{
 		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(sibs.size()) + Math.log(moveProbs.get("FStoPO"));
 		
 		//modify pedigree
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.FStoPO(child, parent, goUp);
 		
 		
@@ -82,9 +82,8 @@ public class FStoPO extends Move{
 
 		
 		//accept ratio
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		
-
 		
 	}
 	

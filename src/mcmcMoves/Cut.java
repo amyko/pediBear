@@ -21,6 +21,7 @@ public class Cut extends Move {//WORKS
 	@Override
 	protected double tryMove(Pedigree currPedigree, double heat) {
 		
+
 		//get a random child
 		Node child = currPedigree.getRandomNode();
 		

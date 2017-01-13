@@ -27,12 +27,12 @@ public class CutOneLinkTwo extends Move{
 		if(child.getParents().size()!=1)
 			return REJECT;
 		
-		//TODO a bug here!!!
-		/*
-		//reject if the child doesn't have any half siblings
-		if(child.getParents().get(0).getChildren().size() < 2)
+
+		//reject parent is a ghost and has only one child
+		Node parent = child.getParents().get(0);
+		if(!parent.sampled && parent.getChildren().size() == 1)
 			return REJECT;
-		*/
+		
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
@@ -47,10 +47,10 @@ public class CutOneLinkTwo extends Move{
 		
 		
 		//new to old
-		Node parent = child.getParents().get(0);
 		int nCandidate = currPedigree.getFullSibsWithTargetSex(parent, (parent.getSex()+1)%2).size();
 		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nCandidate) + Math.log(moveProbs.get("cutTwoLinkOne"));
 		
+	
 
 		
 		//accept ratio

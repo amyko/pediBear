@@ -1,6 +1,6 @@
 package mcmcMoves;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -62,7 +62,7 @@ public class POtoFS extends Move{
 		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) +  Math.log(moveProbs.get("POtoFS"));
 		
 		//modify pedigree
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.POtoFS(child, parent, goUp);
 		
 		
@@ -73,7 +73,7 @@ public class POtoFS extends Move{
 
 		
 		//accept ratio
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		
 
 		

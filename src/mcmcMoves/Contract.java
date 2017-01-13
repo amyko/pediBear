@@ -1,27 +1,13 @@
 package mcmcMoves;
 
-import java.util.ArrayList;
-import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Node;
 import dataStructures.Pedigree;
 
 
 public class Contract extends Move{ //WORKS; special merge not tested
-	
-	//this is stuff to store each move so that if it gets accepted it can then be performed
-	private Node donor;
-	private Node recipient;
-	private List<Node> donorChildren = new ArrayList<Node>();
-	private int nCuttableNode;
-	int[] iDepthToCount = new int[maxDepth]; //keeps track of how many nodes there are in iCluster before any changes
-	int[] jDepthToCount = new int[maxDepth]; //same for j
-	private boolean specialMerge;
-	private boolean mergingFormsFullSibs;
-	
-	private List<Node> halfSibs = new ArrayList<Node>();
-	
+
 	
 	public Contract(String name, double moveProb) {
 		super(name, moveProb);
@@ -34,13 +20,24 @@ public class Contract extends Move{ //WORKS; special merge not tested
 		//choose child
 		Node child = currPedigree.getRandomNode();
 		
+		
 		//reject if it doesn't have exactly one parent
-		if(child.getParents().size()!=1) return REJECT;
+		if(child.getParents().size()!=1) 
+			return REJECT;
+		
 		Node parent = child.getParents().get(0);
 		
 		//reject if the parent is sampled or has wrong sex
 		if(parent.sampled || parent.getSex()!=child.getSex())
 			return REJECT;
+		
+		
+		//prevent overlap with swap up
+		if(child.sampled && child.getChildren().size()==0)
+			return REJECT;
+		
+		
+		
 		
 		//reject depth violations
 		currPedigree.clearVisit();
@@ -51,7 +48,10 @@ public class Contract extends Move{ //WORKS; special merge not tested
 		//reject bad cases
 		//if(violatesAgeConstraints(currPedigree, child, parent))
 			//return REJECT;
-
+		
+		
+		//oldToNew
+		double oldToNew = Math.log(moveProbs.get("contract")) + getLogChooseOne(currPedigree.getNActiveNodes());
 
 		
 		//record previous config
@@ -60,10 +60,13 @@ public class Contract extends Move{ //WORKS; special merge not tested
 		//merge
 		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.contract(parent, child);
+		
+		//newToOld
+		double newToOld = Math.log(moveProbs.get("stretch")) + getLogChooseOne(currPedigree.getNActiveNodes());
 
 		
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, heat);
-
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
+		
 	}
 
 	@Override

@@ -15,8 +15,8 @@ import utility.DataParser;
 public class MCMCMC {
 	
 	//TODO these should come in as input
-	final static double swapRateLow = .2;
-	final static double swapRateHigh = .4;
+	final static double swapRateLow = .1;
+	final static double swapRateHigh = .6;
 	final static int tuneIter = 10000;
 	final static int maxTuneTrialTune = 10; //max number of tune trials inside Tune
 	final static int maxTuneTrialBurnIn = 10; //max number of tune trials inside BurnIn
@@ -66,8 +66,11 @@ public class MCMCMC {
 		
 		this.heat = new double[nChain];
 		for(int i=0; i<nChain; i++) 
-			heat[i] = 0;
-			//heat[i] = 1 / (1 + deltaT*i);
+			
+			//TODO testing
+			//heat[i] = 0;
+			
+			heat[i] = 1 / (1 + deltaT*i);
 		
 		
 	}
@@ -365,7 +368,8 @@ public class MCMCMC {
 	private void sample(Pedigree currPedigree){
 		
 		//header for this sample
-		//writer.write(">\n");
+		writer.write(String.format(">\t%f\n", currPedigree.getLogLikelihood()));
+
 		
 		for(int i=0; i<currPedigree.numIndiv; i++){
 			
@@ -373,15 +377,18 @@ public class MCMCMC {
 				
 				Path rel = currPedigree.getRelationships()[i][j];
 				
-				//writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
-				writer.write(String.format("%d\t%d\t%d\t", rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				
+				//TODO for hastings test
+				//writer.write(String.format("%d\t%d\t%d\t", rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
 			}
 			
 		}
 		
 		writer.write("\n");
+		//writer.flush();
 		
 	}
 	
@@ -418,6 +425,15 @@ public class MCMCMC {
 	
 	
 	public static double acceptanceRatio(double newLkhd, double oldLkhd, double oldToNew, double newToOld, double heat){
+		
+		if(newLkhd > 0){
+			System.out.println("Positive lkhd");
+		}
+		
+		if(oldToNew==Double.NEGATIVE_INFINITY || newToOld==Double.NEGATIVE_INFINITY){
+			System.out.println("proposal prob inifinity");
+		}
+		
 		
 		double acceptRatio = heat * (newLkhd - oldLkhd) + newToOld - oldToNew;
 

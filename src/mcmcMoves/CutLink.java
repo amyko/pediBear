@@ -161,7 +161,7 @@ public class CutLink extends Move {//WORKS
 		
 		
 		//assign donor & recipient; recipient is sampled or has parents
-		if(iAnc.sampled || iAnc.getParents().size() > 0){
+		if(iAnc.sampled){
 			donor = jAnc;
 			recipient = iAnc;
 		}

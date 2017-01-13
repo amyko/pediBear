@@ -214,7 +214,7 @@ if __name__ == "__main__":
 
 
     ax1.scatter(xdata, saA, color='blue', label='SA')
-    ax1.scatter(xdata, otherA, color='red', marker='>', label='PRIMUS + PLINK')
+    ax1.scatter(xdata, otherA, color='red', marker='>', label='Pairwise')
     ax2.scatter(xdata, saB, color='blue')
     ax2.scatter(xdata, otherB, color='red', marker='>')
     ax3.scatter(xdata, saC, color='blue')
@@ -236,8 +236,8 @@ if __name__ == "__main__":
     
     ax1.legend(loc='upper left')
     plt.xlim([0,len(xdata)+1])
-    ax.set_xlabel("True kinship coefficient ($\phi$)")
-    ax.set_ylabel("Average error rate ($ \\bar e $)")
+    ax.set_xlabel("True kinship coefficient ($\phi$)", fontsize=12)
+    ax.set_ylabel("Average error rate ($ \\bar e $)", fontsize=12)
     #fig.text(0.04, 0.5, 'Kinship coefficient distance ($d$)', va='center', rotation='vertical')
     ax3.set_xticks(xdata)
     ax3.set_xticklabels(tickMarks)

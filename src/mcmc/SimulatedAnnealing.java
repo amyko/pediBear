@@ -236,7 +236,7 @@ public class SimulatedAnnealing {
 		String pa = "0";
 		String ma = "0";
 		String sampleStatus = ind.sampled ? "000000" : "999999";
-		String sex = ind.getSex()==1 ? "7" : "1"; 
+		String sex = ind.getSex()==1 ? "1" : "7"; 
 		
 		//if missing individual and sex not constrained
 		currPedigree.clearVisit();

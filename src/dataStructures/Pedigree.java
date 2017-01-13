@@ -2321,7 +2321,7 @@ public class Pedigree {
 		
 	}
 	
-	//returns number of full siblings child has with the given sex, excluding itself
+	//returns full siblings child has with the given sex, excluding itself
 	public List<Node> getFullSibsWithTargetSex(Node child, int targetSex){
 		
 		List<Node> toReturn = new ArrayList<Node>();
@@ -2339,7 +2339,7 @@ public class Pedigree {
 			if(sib.getNumVisit() > 0) continue;
 			sib.setNumVisit(1);
 			
-			if(sib.getSex()==targetSex && sib.getChildren().size() > 0 && fullSibs(child, sib))
+			if(sib.getSex()==targetSex && fullSibs(child, sib))
 				toReturn.add(sib);
 				
 		}
