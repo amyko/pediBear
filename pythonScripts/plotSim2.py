@@ -170,6 +170,7 @@ if __name__ == "__main__":
     testName = "sim2"
     saPath = resultDir + testName + ".n1.mapAcc"
     otherPath = resultDir + testName + ".5.pairwise.mapAcc"
+    otherPath = resultDir + "sim2.mcmc.3chains.mapAcc"
     truePath = resultDir + "sim2.true"
     saB, otherB = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
 
@@ -178,6 +179,7 @@ if __name__ == "__main__":
     nIndiv = 20
     saPath = resultDir + "sim1.n1.mapAcc"
     otherPath = resultDir + "sim1.5.pairwise.mapAcc"
+    otherPath = resultDir + "sim1.mcmc.3chains.mapAcc"
     truePath = resultDir + "test12.true"
     saA, otherA = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
     

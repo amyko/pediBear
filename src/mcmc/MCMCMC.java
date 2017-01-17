@@ -92,9 +92,9 @@ public class MCMCMC {
 	//tune delta to achieve the desired swap rate
 	private void tune(){
 		
-		if(nChain < 2) return;
-		
-		System.out.println("Tuning...");
+		if(true) return;
+
+		//System.out.println("Tuning...");
 		
 		//initialize variables
 		int t = 0;
@@ -213,7 +213,10 @@ public class MCMCMC {
 			
 			
 			//retune, if necessary
+			/*
 			if(i%tuneInterval==0 && tuneNum < maxTuneTrialBurnIn){
+				
+				
 				
 				double currSwapRate = (double) nSwapSuccess / nSwapAttempt / swapInterval;
 
@@ -234,6 +237,7 @@ public class MCMCMC {
 
 				
 			}
+			*/
 			
 			
 
@@ -387,7 +391,7 @@ public class MCMCMC {
 			
 		}
 		
-		writer.write("\n");
+		//writer.write("\n");
 		//writer.flush();
 		
 	}

@@ -41,8 +41,9 @@ public class Contract extends Move{ //WORKS; special merge not tested
 		
 		//reject depth violations
 		currPedigree.clearVisit();
+		parent.setNumVisit(1);
 		int maxDepth = currPedigree.getMaxDepth(child);
-		if(maxDepth == currPedigree.maxDepth)
+		if(maxDepth+1 > currPedigree.maxDepth)
 			return REJECT;
 
 		//reject bad cases

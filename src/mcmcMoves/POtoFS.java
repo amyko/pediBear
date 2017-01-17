@@ -27,7 +27,7 @@ public class POtoFS extends Move{
 		//get parent
 		Node parent = child.getParents().get(0);
 		
-		//reject if parent is ghost and has no children
+		//reject if parent is ghost and has no other children
 		if(!parent.sampled && parent.getChildren().size()==1)
 			return REJECT;
 		
@@ -39,7 +39,7 @@ public class POtoFS extends Move{
 			currPedigree.clearVisit();
 			parent.setNumVisit(1);
 			int maxDepth = currPedigree.getMaxDepth(child);
-			if(maxDepth+2 > currPedigree.maxDepth)
+			if(maxDepth+1 > currPedigree.maxDepth)
 				return REJECT;
 		}
 		else{
