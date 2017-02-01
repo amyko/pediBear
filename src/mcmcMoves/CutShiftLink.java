@@ -3,6 +3,7 @@ package mcmcMoves;
 import java.util.ArrayList;
 import java.util.List;
 
+import mcmc.MCMCMC;
 import mcmc.SimulatedAnnealing;
 import dataStructures.Pedigree;
 import dataStructures.Node;
@@ -26,6 +27,7 @@ public class CutShiftLink extends Move {
 	private Node recipient;
 	private boolean specialMerge;
 	private boolean mergingFormsFullSibs;
+	int nCuttableNode;
 	
 	
 	@Override
@@ -36,29 +38,73 @@ public class CutShiftLink extends Move {
 		//get a random child
 		Node child = currPedigree.getRandomNode();
 
-		//reject if no parent
-		if(child.getParents().size()==0) return REJECT;
+		//reject if not exactly 1 parent
+		if(child.getParents().size()!=1) return REJECT;
 		
-		//randomly choose parent to cut from
-		Node parent = child.getParents().get(currPedigree.rGen.nextInt(child.getParents().size()));
+		//parent to cut from
+		Node parent = child.getParents().get(0);
 		if(isSplitNode(parent)) //reject if parent is a splitNode
 			return REJECT;
 
 
-		//determine if the child has full siblings; if so, cutting doens't split the pedigree
-		boolean hasFullSib = hasFullSib(currPedigree, child);
+		//determine if the child has full siblings
+		boolean hasFullSib = false; //because only has one parent
 
 		
 		//save current pedigree
 		currPedigree.copyCurrPedigree();
+		
+		//old to new  via split
+		double oldToNewCut = 0d;
+		Node highestNode = currPedigree.getHighestNode(parent);
+		int targetDepth = highestNode.getDepth();
 
+		if(highestNode.getChildren().size() > 1){ //split prob of the highest node
+			int symm = (!highestNode.sampled && highestNode.getParents().size()==0) ? 1 : 0;
+			oldToNewCut += (1+symm) * getPowersOfHalf2(highestNode.getChildren().size()) * moveProbs.get("splitLink");
+		}
 		
 		//cut 
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		int nBefore = currPedigree.getNActiveNodes();
+		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.cut(child, parent, hasFullSib);
 		Node iPrime = currPedigree.clean(child);
 		Node jPrime = currPedigree.clean(parent);
+		int nAfter = currPedigree.getNActiveNodes();
+		
+		
+		//old to new via cut
+		oldToNewCut += (1 + nBefore - nAfter) * .5 * moveProbs.get("cutLink");
+		oldToNewCut = getLogChooseOne(nBefore) + Math.log(oldToNewCut);
+		
 
+		//new to old
+		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
+		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
+		
+	
+		double outerSum = 0d;
+		double innerSum = 0d;
+		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			
+			if(iDepthToCount[l1]==0) continue;
+			
+			innerSum = 0d;
+			
+			for(int l2=0; l2<=jPrime.getDepth(); l2++){
+				
+				if(l1==targetDepth && l2==targetDepth) continue;
+				
+				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
+			}
+			
+			outerSum += iDepthToCount[l1] * innerSum;
+		}
+		
+		double newToOldCut =  getLogChooseTwo(nAfter) + Math.log(outerSum);
+
+
+		
 
 		
 		////////////// SHIFT //////////////////////////
@@ -66,6 +112,7 @@ public class CutShiftLink extends Move {
 		List<Node> cluster = new ArrayList<Node>();
 		currPedigree.clearVisit();
 		iPrime.getConnectedNodes(cluster);
+		
 		
 		
 		//get the lowest level of the cluster
@@ -82,24 +129,30 @@ public class CutShiftLink extends Move {
 		if(highestLevel + offset > currPedigree.maxDepth)
 			return REJECT;
 		
-		//shift
+
+		
+		//shift cluster
 		currPedigree.shiftCluster(cluster, offset);
+		
+		
+		//hastings ratio
+		double oldToNewShift = Math.log(getPowersOfHalf(k));
+		double newToOldShift = Math.log(getPowersOfHalf(oldLowestLevel+1));
 
 		
 		
 		
 		////////////////////// LINK /////////////////////
 		//choose nodes i and j
-		Node j = currPedigree.getRandomNode();
 		Node i = iPrime;
+		Node j = currPedigree.getRandomNode();
+		
 		
 		if(i.getIndex()==j.getIndex()) return REJECT;
 
-
 		//choose target depth
 		k = geometricDist(currPedigree.rGen);
-		
-		int targetDepth = k - 1 + Math.max(i.getDepth(), j.getDepth());
+		targetDepth = k - 1 + Math.max(i.getDepth(), j.getDepth());
 		
 		
 		if(targetDepth > currPedigree.maxDepth || (i.getDepth()==j.getDepth() && i.getDepth()==targetDepth)){ 
@@ -123,12 +176,17 @@ public class CutShiftLink extends Move {
 		
 		
 		//take a random path to targetDepth-1
+		nCuttableNode = 0;
 		Node[] iCluster = getRandomPathAncestor(currPedigree, i, targetDepth, targetSex);
 		Node[] jCluster = getRandomPathAncestor(currPedigree, j, targetDepth, targetSex);
 		Node iAnc = iCluster[0];
 		Node jAnc = jCluster[0];
 		iPrime = iCluster[1];
 		jPrime = jCluster[1];
+		
+		if(nCuttableNode==0){
+			System.out.println("NO cuttable node");
+		}
 		
 		//reject if both merging nodes are sampled, or both have ancestors, or they're the same node
 		if((iAnc==jAnc) || (iAnc.sampled && jAnc.sampled) || (iAnc.getParents().size()>0 && jAnc.getParents().size()>0)){
@@ -144,7 +202,7 @@ public class CutShiftLink extends Move {
 		
 		
 		//assign donor & recipient; recipient is sampled or has parents
-		if((iAnc.sampled || iAnc.getParents().size() > 0) && !jAnc.sampled){
+		if(iAnc.sampled){
 			donor = jAnc;
 			recipient = iAnc;
 		}
@@ -163,23 +221,60 @@ public class CutShiftLink extends Move {
 
 		
 		//reject bad cases
+		/*
 		if(violatesAgeConstraints(currPedigree, donor, recipient)){
 			reverseMove(currPedigree);
 			return REJECT;
 		}
+		*/
 
 		
 
 		//old to new via link
 		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
 		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
+		
+		outerSum = 0d;
+		innerSum = 0d;
+		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+			
+			if(iDepthToCount[l1]==0) continue;
+			
+			innerSum = 0d;
+			for(int l2=0; l2<=jPrime.getDepth(); l2++){
+				
+				if(l1==targetDepth && l2==targetDepth) continue;
+				
+				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
+			}
+			outerSum += iDepthToCount[l1] * innerSum;
+		}
 
+		double oldToNewLink = getLogChooseTwo(nBefore) + Math.log(outerSum);
+		
+		
 		//merge
 		currPedigree.merge(donor, recipient, mergingFormsFullSibs);
 		currPedigree.clean(donor);
+		nAfter = currPedigree.getNActiveNodes(); //add number of nodes created; subtract donor node (which will be deleted)
+	
 
+		//new to old via cut/split
+		double newToOldLink = 0d;
+		double cutProb = 0d;
+	
+		cutProb += nCuttableNode * moveProbs.get("cutShiftLink");
+
+
+		newToOldLink = getLogChooseOne(nAfter) + Math.log(cutProb);
 		
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+			
+		double oldToNew = oldToNewCut + oldToNewLink + oldToNewShift;
+		double newToOld = newToOldCut + newToOldLink + newToOldShift;
+		
+
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
+
 	}
 	
 	
@@ -251,6 +346,7 @@ public class CutShiftLink extends Move {
 					parent = currPedigree.makeNewNode(currNode.getDepth() + 1, sex);
 					currNode.addParent(parent);
 					parent.addChild(currNode);
+					nCuttableNode++;
 				}
 				else{
 					lastExistingNode = parent;
@@ -358,29 +454,7 @@ public class CutShiftLink extends Move {
 		return false;
 	}
 	
-	
-	private boolean hasFullSib(Pedigree currPedigree, Node child){
-		
-		if(child.getParents().size() != 2){
-			return false;
-		}
-		else{
-			for(Node candidate : child.getParents().get(0).getChildren()){ //mom's children
-				if(currPedigree.fullSibs(child, candidate))
-					return true;
-			}
 
-				
-			for(Node candidate : child.getParents().get(1).getChildren()){ //dad's children
-				if(currPedigree.fullSibs(child, candidate))
-					return true;
-			}
-			
-			
-		}
-		
-		return false;
-	}
 
 	
 	private int getLowestLevel(Pedigree currPedigree, List<Node> cluster){

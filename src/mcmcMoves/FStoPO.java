@@ -32,40 +32,19 @@ public class FStoPO extends Move{
 		//choose parent
 		Node parent = sibs.get(currPedigree.rGen.nextInt(sibs.size()));
 		
-		//parent goes up or child goes down
-		boolean goUp = currPedigree.rGen.nextDouble() < .5 ? true : false;
-		
-		//reject if going up violates depth constraint
-		if(goUp){
-			currPedigree.clearVisit();
+			
+		currPedigree.clearVisit();
+		child.getParents().get(0).setNumVisit(1);
+		child.getParents().get(1).setNumVisit(1);
+		int minDepth = currPedigree.getMinDepth(child);
+		if(minDepth - 1 < 0)
+			return REJECT;
 
-			//don't count parents if they are going to be deleted
-			for(Node p : parent.getParents()){
-				if(!p.sampled && p.getNumEdges()<3)
-					p.setNumVisit(1);
-			}
-			
-			
-			int maxDepth = currPedigree.getMaxDepth(parent);
-			if(maxDepth+1 > currPedigree.maxDepth)
-				return REJECT;
-			
-			
-		}
-		else{
-			
-			currPedigree.clearVisit();
-			child.getParents().get(0).setNumVisit(1);
-			child.getParents().get(1).setNumVisit(1);
-			int minDepth = currPedigree.getMinDepth(child);
-			if(minDepth - 1 < 0)
-				return REJECT;
-			
-		}
 
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
+		
 		
 		
 		//old to new
@@ -73,7 +52,7 @@ public class FStoPO extends Move{
 		
 		//modify pedigree
 		double prevLkhd = currPedigree.getLogLikelihood();
-		currPedigree.FStoPO(child, parent, goUp);
+		currPedigree.FStoPO(child, parent);
 		
 		
 		//new to old

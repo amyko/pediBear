@@ -3,7 +3,7 @@ package mcmcMoves;
 
 import java.util.List;
 
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -53,19 +53,22 @@ public class FullUncletoHalfSibs extends Move{
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
-
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("fullUncleToHalfSibs"));
 		
 		//cut and link
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		double prevLkhd = currPedigree.getLogLikelihood();
 		Node uncle = sibs.get(currPedigree.rGen.nextInt(sibs.size()));
-		currPedigree.fullUncletoHalfSibs(child, uncle);
+		int targetSex = currPedigree.rGen.nextDouble() < .5 ? 0 : 1;
+		currPedigree.fullUncletoHalfSibs(child, uncle, targetSex);
 		
-
+		int nFS = currPedigree.getFullSibs(uncle).size();
+		int nHS = child.getParents().get(0).getChildren().size() - 1;
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nHS) + Math.log((nFS+1) * moveProbs.get("halfSibsToFullUncle"));
 		
 		//accept ratio
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		
-
+		
 		
 	}
 		

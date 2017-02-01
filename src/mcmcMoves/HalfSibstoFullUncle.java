@@ -4,9 +4,11 @@ package mcmcMoves;
 import java.util.ArrayList;
 import java.util.List;
 
+import dataStructures.Path;
 import dataStructures.Pedigree;
 import dataStructures.Node;
-import mcmc.SimulatedAnnealing;
+import mcmc.MCMCMC;
+
 
 //cut child from parent and link to two grand parents
 
@@ -37,39 +39,61 @@ public class HalfSibstoFullUncle extends Move{
 				halfSibs.add(hs);
 		}
 		
-		if(halfSibs.size()<2)
+		if(halfSibs.size()==0)
 			return REJECT;
 		
 		
 		//depth constraint
 		currPedigree.clearVisit();
-		for(Node k : child.getParents()){
-			k.setNumVisit(1);
-		}
+		parent.setNumVisit(1);
 		int minDepth = currPedigree.getMinDepth(child);
 		if(minDepth == 0) //can't shift down child cluster
 			return REJECT;
+		
 
 		
 		//choose half sib
 		Node halfSib = halfSibs.get(currPedigree.rGen.nextInt(halfSibs.size()));
 		
+		/*
+		//TODO test
+		if(child.getIndex()==6 && halfSib.getIndex()==1){
+			
+			Path rel = currPedigree.getRelationships()[5][8];
+			
+			if(rel.getUp()==4 && rel.getDown()==3 && rel.getNumVisit()==1){
+				
+				rel = currPedigree.getRelationships()[0][1];
+				
+				if(rel.getUp()==1 && rel.getDown()==0 && rel.getNumVisit()==1){
+					System.out.println();	
+				}
+				
+			}
+
+		}
+		*/
 		
 					
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
-	
+		int nFS = currPedigree.getFullSibs(halfSib).size();
+		
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(halfSibs.size()) +  Math.log((nFS+1) * moveProbs.get("halfSibsToFullUncle"));
+		
 		
 		//cut and link
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
+		double prevLkhd = currPedigree.getLogLikelihood();
+		int targetSex = currPedigree.rGen.nextDouble() < .5? 0: 1;
 
-		currPedigree.halfSibstoFullUncle(child, halfSib);
+		currPedigree.halfSibstoFullUncle(child, halfSib, targetSex);
 		
-		
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("fullUncleToHalfSibs"));
 
 		//accept ratio
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
+		
 		
 
 		

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Random;
 
 import mcmcMoves.Move;
+import dataStructures.Chain;
 import dataStructures.Node;
 import dataStructures.Path;
 import dataStructures.Pedigree;
@@ -15,20 +16,21 @@ import utility.DataParser;
 public class MCMCMC {
 	
 	//TODO these should come in as input
-	final static double swapRateLow = .1;
+	final static double swapRateLow = .2;
 	final static double swapRateHigh = .6;
 	final static int tuneIter = 10000;
 	final static int maxTuneTrialTune = 10; //max number of tune trials inside Tune
 	final static int maxTuneTrialBurnIn = 10; //max number of tune trials inside BurnIn
-	final static int tuneInterval = 50000;
+	final static int tuneInterval = 100000;
+
 	
-	final List<Pedigree> chains;
+	final List<Chain> chains;
 	final int burnIn;
 	final int runLength;
 	final int sampleRate;
 	final Move[] moves; 
 	final PrintWriter writer;
-	//final PrintWriter writer2;
+	final PrintWriter cranefootFamWriter;
 	final Random rGen;
 	final int nChain;
 	public int nSwapSuccess;
@@ -36,9 +38,12 @@ public class MCMCMC {
 	public int coldChain;
 	public int swapInterval;
 	boolean tuned;
+	int nSwaps;
 	
 	private double deltaT;
-	private double[] heat;
+	
+	private int missingParentCounter = 0;
+
 	
 	
 	
@@ -46,7 +51,7 @@ public class MCMCMC {
 	
 
 	//TODO parallelize 
-	public MCMCMC(List<Pedigree> chains, double deltaT, Move[] moves, int burnIn, int runLength, int sampleRate, int swapInterval, Random rGen, String outPath) throws IOException{
+	public MCMCMC(List<Chain> chains, double deltaT, Move[] moves, int burnIn, int runLength, int sampleRate, int swapInterval, int nSwaps, Random rGen, String outPath) throws IOException{
 
 		this.chains = chains;
 		this.deltaT = deltaT;
@@ -54,24 +59,19 @@ public class MCMCMC {
 		this.runLength = runLength;
 		this.sampleRate = sampleRate;
 		this.moves = moves;		
-		this.writer = DataParser.openWriter(outPath);
-		//this.writer2 = DataParser.openWriter(outPath+".2");
+		this.writer = DataParser.openWriter(outPath+".pair");
+		this.cranefootFamWriter = DataParser.openWriter(outPath+".fam");
 		this.rGen = rGen;
 		this.nChain = chains.size();
 		this.nSwapAttempt = 0;
 		this.nSwapSuccess = 0;
-		this.coldChain = 0;
+		this.coldChain = nChain - 1;
 		this.swapInterval = swapInterval;
 		this.tuned = false;
+		this.nSwaps = nSwaps;
 		
-		this.heat = new double[nChain];
-		for(int i=0; i<nChain; i++) 
-			
-			//TODO testing
-			//heat[i] = 0;
-			
-			heat[i] = 1 / (1 + deltaT*i);
-		
+
+
 		
 	}
 	
@@ -79,11 +79,12 @@ public class MCMCMC {
 	
 	public void run(){
 
-		tune();
-
 		runBurnIn();
 		
 		runSample();
+		
+		//record last fam
+		writeFamFile();
 	
 	}
 	
@@ -92,19 +93,45 @@ public class MCMCMC {
 	//tune delta to achieve the desired swap rate
 	private void tune(){
 		
-		if(true) return;
-
+		//if(true) return;
+		
 		//System.out.println("Tuning...");
 		
 		//initialize variables
 		int t = 0;
-		nSwapAttempt = 0;
-		nSwapSuccess = 0;
-		double currSwapRate = 0;
+
 		
 		//tune 
 		while(!tuned && t < maxTuneTrialTune){
 		
+
+			//check swap rate
+			double currSwapRate = (double) nSwapSuccess/ nSwapAttempt / swapInterval;
+			
+			if(currSwapRate > swapRateLow && currSwapRate < swapRateHigh){
+				tuned = true;
+			}
+			
+			else{
+				double multiplier = currSwapRate < swapRateLow? .8 : 1.2; 
+				
+				//update delta
+				this.deltaT *= multiplier;
+				
+				for(int i=0; i<nChain; i++){
+					chains.get(i).setHeat(deltaT);
+					
+				}
+				
+				
+			}
+
+			//update counts
+			nSwapAttempt = 0;
+			nSwapSuccess = 0;
+			t++;
+			
+			
 			//run mcmc
 			for(int i=0; i<tuneIter; i++){
 				
@@ -112,7 +139,7 @@ public class MCMCMC {
 				for(int j = 0; j < nChain; j++){
 					
 					Move move = chooseMove();				
-					move.mcmcMove(chains.get(j), heat[j]);
+					move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
 						
 					
 					
@@ -126,23 +153,6 @@ public class MCMCMC {
 			}
 			
 			
-			//check swap rate
-			currSwapRate = (double) nSwapSuccess/ nSwapAttempt / swapInterval;
-			
-			if(currSwapRate > swapRateLow && currSwapRate < swapRateHigh){
-				tuned = true;
-			}
-			
-			else{
-				double multiplier = currSwapRate < swapRateLow? .5 : 2;
-				this.deltaT *= multiplier;
-				for(int i=0; i<nChain; i++) heat[i] = 1 / (1 + deltaT*i);
-			}
-
-			//update counts
-			nSwapAttempt = 0;
-			nSwapSuccess = 0;
-			t++;
 			
 		}
 		
@@ -167,6 +177,8 @@ public class MCMCMC {
 		
 		//run burn-in
 		for(int i = 0; i < burnIn; i++){
+			
+			//System.out.println(i);
 		
 			//for every chain, update
 			for(int j = 0; j < nChain; j++){
@@ -192,13 +204,10 @@ public class MCMCMC {
 						
 				}
 				*/
+
+
 				
-				
-				
-				
-				
-				
-				move.mcmcMove(chains.get(j), heat[j]);
+				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
 				
 				
 		
@@ -212,37 +221,49 @@ public class MCMCMC {
 			}
 			
 			
+			
 			//retune, if necessary
-			/*
-			if(i%tuneInterval==0 && tuneNum < maxTuneTrialBurnIn){
+			if((i+1)%tuneInterval==0 && tuneNum < maxTuneTrialBurnIn){
 				
-				
-				
-				double currSwapRate = (double) nSwapSuccess / nSwapAttempt / swapInterval;
 
+				double currSwapRate = (double) nSwapSuccess / nSwapAttempt / swapInterval;
+				
+				//TODO testing
+				//get minimum heat
+				double minHeat = 1;
+				for(Chain x : chains){
+					if(x.getHeat() < minHeat) minHeat = x.getHeat();
+				}
+						
+						
+				System.out.println(String.format("%f, %f", currSwapRate, minHeat));
+				
+				
 				if(currSwapRate < swapRateLow || currSwapRate > swapRateHigh){
 					tuned = false;
 					tune();
 					tuneNum++;
-					//reset burnIn counter
-					i = 0;
+
 				}
 				
 				if(!tuned && tuneNum==maxTuneTrialBurnIn){
 					System.out.println("WARNING: Auto-tune failed");
-					nSwapAttempt = 0;
-					nSwapSuccess = 0;
 				}
+				
+				
 				
 
 				
 			}
-			*/
+			
+			
+			
 			
 			
 
 
 		}
+
 		
 		
 	}
@@ -260,7 +281,7 @@ public class MCMCMC {
 		for(int i = 0; i < runLength; i++){
 			
 			//record best likelihood
-			double currLkhd = chains.get(this.coldChain).getLogLikelihood();
+			double currLkhd = chains.get(this.coldChain).getPedigree().getLogLikelihood();
 			if(currLkhd > this.bestLkhd){
 				this.bestLkhd = currLkhd;
 				//System.out.println(bestLkhd);
@@ -269,7 +290,7 @@ public class MCMCMC {
 			
 			//sample from cold chain
 			if(i % sampleRate == 0){
-				sample(chains.get(this.coldChain));
+				sample(chains.get(this.coldChain).getPedigree());
 				//sample2(chains.get(this.coldChain));
 			}
 			
@@ -277,7 +298,7 @@ public class MCMCMC {
 			//for every chain, update
 			for(int j = 0; j < nChain; j++){				
 				Move move = chooseMove();
-				move.mcmcMove(chains.get(j), heat[j]);
+				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
 			}
 			
 			if(i%swapInterval==0){
@@ -323,43 +344,41 @@ public class MCMCMC {
 		
 		if(nChain<2) return;
 		
-		nSwapAttempt++;
-		
-		//randomly choose two chains to swap
-		int[] twoChains = ArrayUtility.getNRandomIdx(nChain, 2, rGen);
-		int j = twoChains[0];
-		int k = twoChains[1];
+		for(int q=0; q < nSwaps; q++){
 		
 		
-		//compute probability of swapping states
-		double acceptRatio = heat[j] * chains.get(k).getLogLikelihood() + heat[k] * chains.get(j).getLogLikelihood() - heat[j] * chains.get(j).getLogLikelihood() - heat[k] *chains.get(k).getLogLikelihood();
-		double acceptProb = 0d;
-		if(acceptRatio > 0){
-			acceptProb = 1;
-		}
-		else{
-			acceptProb = Math.exp(acceptRatio);
-		}
-		
-		
-		//swap states, which is equivalent to swapping heat parameters
-		if(rGen.nextDouble() < acceptProb){
+			nSwapAttempt++;
 			
-			double temp = heat[j];
-			heat[j] = heat[k];
-			heat[k] = temp;
 			
-			nSwapSuccess++;
+
+			int j = rGen.nextInt(nChain-1);
+			int k = chains.get(j).getRandomNeighborIndex();
 			
-		}
+			
+			//compute probability of swapping states
+			double acceptRatio = chains.get(j).getHeat() * chains.get(k).getLikelihood() + chains.get(k).getHeat() * chains.get(j).getLikelihood() - chains.get(j).getHeat()  * chains.get(j).getLikelihood() - chains.get(k).getHeat()  * chains.get(k).getLikelihood();
+			double acceptProb = 0d;
+			if(acceptRatio > 0){
+				acceptProb = 1;
+			}
+			else{
+				acceptProb = Math.exp(acceptRatio);
+			}
+			
 		
-		
-		//update index of cold chain
-		if(heat[j]==1){
-			this.coldChain = j;
-		}
-		else if(heat[k]==1){
-			this.coldChain = k;
+			//swap states
+			if(rGen.nextDouble() < acceptProb){
+				
+				Pedigree jped = chains.get(j).getPedigree();
+				chains.get(j).setPedigree(chains.get(k).getPedigree());
+				chains.get(k).setPedigree(jped);
+
+				
+				nSwapSuccess++;
+				
+			}
+			
+
 		}
 		
 		
@@ -371,8 +390,9 @@ public class MCMCMC {
 	//write relationship to file
 	private void sample(Pedigree currPedigree){
 		
+		//pairwise relatioship
 		//header for this sample
-		writer.write(String.format(">\t%f\n", currPedigree.getLogLikelihood()));
+		//writer.write(String.format(">\t%f\n", currPedigree.getLogLikelihood()));
 
 		
 		for(int i=0; i<currPedigree.numIndiv; i++){
@@ -382,67 +402,121 @@ public class MCMCMC {
 				Path rel = currPedigree.getRelationships()[i][j];
 				
 				
-				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				//writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
 				//TODO for hastings test
-				//writer.write(String.format("%d\t%d\t%d\t", rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				writer.write(String.format("%d\t%d\t%d\t", rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
 			}
 			
+			
 		}
 		
-		//writer.write("\n");
-		//writer.flush();
+		//TODO testing
+		writer.write("\n");
 		
+
+		
+
 	}
 	
-	
-	/*
-	private void sample2(Pedigree currPedigree){
+	private void writeFamFile(){
 		
-		//header for this sample
-		writer2.write(String.format(">\t%.5f\t%d\n", currPedigree.getLogLikelihood(), currPedigree.getNActiveNodes()));
+		Pedigree currPedigree = chains.get(coldChain).getPedigree();
 		
+		//write family relationship
+		cranefootFamWriter.write(String.format("NAME\tFATHER\tMOTHER\tSEX\tSAMPLED\n"));
 		for(int i=0; i<currPedigree.getNActiveNodes(); i++){
-
-			Node node = currPedigree.getNode(i);
-			List<Node> parents = node.getParents();
-			int p1 = -1;
-			int p2 = -1;
-			if(parents.size()==1){
-				p1 = parents.get(0).getIndex();
-			}
-			else if(parents.size()==2){
-				p1 = parents.get(0).getIndex();
-				p2 = parents.get(1).getIndex();
-			}
-			
-			int sampled = node.sampled ? 1 : 0;
-			
-			writer2.write(String.format("%d\t%d\t%d\t%d\t%d\n", node.getIndex(), p1, p2, node.getDepth(), sampled));
-
+			recordCranefootFam(currPedigree.getNode(i), currPedigree);
 		}
+		
+		cranefootFamWriter.close();
+		
+	}
+	
+	
+	
+
+	private void recordCranefootFam(Node ind, Pedigree currPedigree){
+		
+		String name = ind.fid + "_" + ind.iid;
+		String pa = "0";
+		String ma = "0";
+		String sampleStatus = ind.sampled ? "000000" : "999999";
+		String sex = ind.getSex()==1 ? "1" : "7"; 
+		
+		//if missing individual and sex not constrained
+		currPedigree.clearVisit();
+		if(currPedigree.sexLocked(ind)==false) sex = "4";
+			
+		//get parent ids
+		for(Node parent : ind.getParents()){
+			
+			//recordFam(parent);
+		
+			if(parent.getSex()==0)
+				ma = parent.fid + "_" + parent.iid;
+			else if(parent.getSex()==1)
+				pa = parent.fid + "_" + parent.iid;
+			else
+				throw new RuntimeException("Parent with unknown sex");
+			
+		}
+		
+		//if only one parent is present
+		if(ind.getParents().size()==1){
+			
+			//make missing parent
+			int missingParentSex = ind.getParents().get(0).getSex()==1 ? 0 : 1;
+			Node missingParent = new Node("missingParent", missingParentCounter+"", missingParentSex, false, -1);
+			
+			//connect temporarily
+			currPedigree.connect(missingParent, ind);
+			recordCranefootFam(missingParent, currPedigree);
+			currPedigree.disconnect(missingParent, ind);
+			
+			if(missingParentSex==0) ma = String.format("missingParent_%d", missingParentCounter);
+			else pa = String.format("missingParent_%d", missingParentCounter);
+			
+			missingParentCounter++;
+			
+		}
+
+		
+		
+		
+		
+		//write to file
+		cranefootFamWriter.write(String.format("%s\t%s\t%s\t%s\t%s\n", name, pa, ma, sex, sampleStatus));
 		
 		
 	}
-	*/
+	
 	
 	
 	public static double acceptanceRatio(double newLkhd, double oldLkhd, double oldToNew, double newToOld, double heat){
 		
+		/*
 		if(newLkhd > 0){
 			System.out.println("Positive lkhd");
 		}
+		*/
+		
+		
 		
 		if(oldToNew==Double.NEGATIVE_INFINITY || newToOld==Double.NEGATIVE_INFINITY){
 			System.out.println("proposal prob inifinity");
 		}
 		
 		
+		//TODO testing
+		heat = 0;
+		
+		
+		
 		double acceptRatio = heat * (newLkhd - oldLkhd) + newToOld - oldToNew;
+		
 
-		//TODO testing proposal ratios
-		//double acceptRatio = newToOld - oldToNew;
 		
 		if(acceptRatio > 0){
 			return 1;

@@ -1,6 +1,7 @@
 package mcmcMoves;
 
 import mcmc.MCMCMC;
+import dataStructures.Path;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -31,6 +32,7 @@ public class Cut extends Move {//WORKS
 		Node parent = child.getParentWithSex(parentSex);
 		if(parent==null || isSplitNode(parent)) //reject if parent not available or parent is a splitNode
 			return REJECT;
+		
 		
 
 
@@ -81,7 +83,9 @@ public class Cut extends Move {//WORKS
 			innerSum = 0d;
 			for(int l2=0; l2 <= jPrime.getDepth(); l2++){
 				
-				if(l1==targetDepth && l2==targetDepth) continue;
+				if(l1==targetDepth && l2==targetDepth){
+					continue;
+				}
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth-Math.max(l1,l2)-l1-l2);
 			}

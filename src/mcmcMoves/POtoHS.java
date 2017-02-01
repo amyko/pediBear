@@ -6,10 +6,10 @@ import dataStructures.Node;
 
 //cut child from parent; shift parent cluster down; make full siblings
 
-public class POtoFS extends Move{
+public class POtoHS extends Move{
 
 	
-	public POtoFS(String name, double moveProb) {
+	public POtoHS(String name, double moveProb) {
 		super(name, moveProb);
 	}
 	
@@ -43,19 +43,21 @@ public class POtoFS extends Move{
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
+		int targetSex = currPedigree.rGen.nextDouble() < .5? 0 : 1;
+		
 		
 		//old to new
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) +  Math.log(moveProbs.get("POtoFS"));
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) +  Math.log(.5*moveProbs.get("POtoHS"));
 		
 		//modify pedigree
 		double prevLkhd = currPedigree.getLogLikelihood();
-		currPedigree.POtoFS(child, parent);
+		currPedigree.POtoHS(child, parent, targetSex);
 		
 
 		
 		//new to old
-		int nSibs = currPedigree.getFullSibs(child).size();
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nSibs) + Math.log(moveProbs.get("FStoPO"));
+		int nSibs = child.getParents().get(0).getChildren().size() - 1;
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nSibs) + Math.log(moveProbs.get("HStoPO"));
 		
 
 		

@@ -1,5 +1,6 @@
 package mcmcMoves;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import mcmc.MCMCMC;
@@ -35,6 +36,7 @@ public class CutLink extends Move {//WORKS
 		
 		//get a random child
 		Node child = currPedigree.getRandomNode();
+		
 		
 		//choose mom or dad to cut from
 		int parentSex = currPedigree.rGen.nextDouble() < .5 ? 0 : 1;
@@ -83,6 +85,7 @@ public class CutLink extends Move {//WORKS
 		double outerSum = 0d;
 		double innerSum = 0d;
 		for(int l1=0; l1<=iPrime.getDepth(); l1++){
+
 			
 			if(iDepthToCount[l1]==0) continue;
 			
@@ -101,15 +104,54 @@ public class CutLink extends Move {//WORKS
 		double newToOldCut =  getLogChooseTwo(nAfter) + Math.log(outerSum);
 
 
+		/*
+		////////////// SHIFT //////////////////////////
+		//get the cluster the node belongs to
+		List<Node> cluster = new ArrayList<Node>();
+		currPedigree.clearVisit();
+		iPrime.getConnectedNodes(cluster);
+		
+		//pick offset
+		int offset = currPedigree.rGen.nextDouble() < .5 ? 0 : -1;
+		
+		//reject if highest node goes over max depth
+		int highestLevel = getHighestLevel(currPedigree, cluster);
+		if(highestLevel + offset > currPedigree.maxDepth)
+			return REJECT;
+		int lowestLevel = getLowestLevel(currPedigree, cluster);
+		if(lowestLevel+offset < 0)
+			return REJECT;
+		
+
+		
+		//shift cluster
+		currPedigree.shiftCluster(cluster, offset);
+		*/
+		
+		
+		
+		
+
+		
 		
 		
 		
 		////////////////////// LINK /////////////////////
+		
 		//choose nodes i and j
 		nBefore = currPedigree.getNActiveNodes();
 		Node[] nodes = currPedigree.getNRandomNodes(2);
 		Node i = nodes[0];
 		Node j = nodes[1];
+		
+		
+		/*
+		nBefore = currPedigree.getNActiveNodes();
+		Node i = iPrime;
+		int offset = currPedigree.rGen.nextInt(currPedigree.getNActiveNodes() - 1) + 1;
+		int jIndex = (i.getIndex() + offset) % currPedigree.getNActiveNodes();
+		Node j = currPedigree.getNode(jIndex);
+		*/
 		
 
 		//choose target depth
@@ -443,6 +485,41 @@ public class CutLink extends Move {//WORKS
 		}
 		
 		return false;
+	}
+	
+	private int getLowestLevel(Pedigree currPedigree, List<Node> cluster){
+		
+		int lowest = currPedigree.maxDepth;
+		
+		for(Node i : cluster){
+			if(i.getDepth() < lowest){
+				lowest = i.getDepth();
+			}
+			if(lowest==0) break;
+		}
+		
+		
+		return lowest;
+		
+		
+	}
+
+	
+	private int getHighestLevel(Pedigree currPedigree, List<Node> cluster){
+		
+		int highest = 0;
+		
+		for(Node i : cluster){
+			if(i.getDepth() > highest){
+				highest = i.getDepth();
+			}
+			if(highest==currPedigree.maxDepth) break;
+		}
+		
+		
+		return highest;
+		
+		
 	}
 
 	

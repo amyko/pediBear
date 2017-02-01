@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import dataStructures.Path;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -36,6 +37,9 @@ public abstract class Move {
 	public int nAccept = 0;
 	public int nTried = 0;
 	
+	//misc
+	List<Node> ancestors = new ArrayList<Node>();
+	
 	
 	//store powers of twos and halves
 	static{
@@ -64,6 +68,8 @@ public abstract class Move {
 	//tries a move, tests it, and returns the old pedigree if it fails, and the new pedigree if it passes
 	public final void mcmcMove(Pedigree currPedigree, double heat){
 
+		
+		
 		double prevLkhd = currPedigree.getLogLikelihood();
 		
 		double acceptanceRatio = tryMove(currPedigree, heat);
@@ -74,6 +80,7 @@ public abstract class Move {
 			return; //skip bad move
 		}
 		
+
 		
 		boolean reject = false;
 		
@@ -88,9 +95,12 @@ public abstract class Move {
 				break;
 			}
 			
+			
 			//age
 			if(myNode.getAge() != -1){
-				for(Node p : myNode.getParents()){
+				ancestors.clear();
+				myNode.getAncestors(ancestors);
+				for(Node p : ancestors){
 					
 					if(p.getAge() != -1 && p.getAge() < myNode.getAge()){
 						reject = true;
@@ -99,6 +109,19 @@ public abstract class Move {
 					
 				}
 			}
+			
+			/*
+			//ghost
+			if(!myNode.sampled && myNode.getChildren().size()==0){
+				
+				System.out.println(this.name);
+				reject = true;
+				break;
+				
+			}
+			*/
+			
+			
 			
 			
 		}
@@ -124,7 +147,9 @@ public abstract class Move {
 		
 		//accept move and clean
 		else{
-			//System.out.println("Accepted");
+			//System.out.println(this.name);	
+
+
 			nAccept++;
 			clean(currPedigree);
 		}

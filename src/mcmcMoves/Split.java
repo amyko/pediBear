@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mcmc.MCMCMC;
+import dataStructures.Path;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -43,6 +44,7 @@ public class Split extends Move {
 		if(!parent.sampled && powerSetInd==(int) getPowersOfTwo(nChildren)-1){
 			return REJECT;
 		}
+
 		
 		
 		//assign children to split or stay
@@ -58,6 +60,7 @@ public class Split extends Move {
 	        }
 	    }
 		
+	    
 
 	    //check if any of the children between split and stay form full sibs
 	    hasFullSib = false;
@@ -116,7 +119,9 @@ public class Split extends Move {
 			innerSum = 0;
 			for(int l2=0; l2 <= jPrime.getDepth(); l2++){
 				
-				if(l1==targetDepth && l2==targetDepth) continue;
+				if(l1==targetDepth && l2==targetDepth){
+					continue;
+				}
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth - Math.max(l1,l2)-l1-l2); 
 			}

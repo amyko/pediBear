@@ -1,9 +1,7 @@
 package dataStructures;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class Node {
 	
@@ -251,7 +249,11 @@ public class Node {
 	
 
 	public void setChildren(List<Node> newChildren) { //shallow copy
+		
 		children.clear();
+		
+		if(newChildren==null) return;
+		
 		for(Node child : newChildren){
 			children.add(child);
 		}
@@ -260,6 +262,9 @@ public class Node {
 	
 	public void setParents(List<Node> newParents) {//shallow copy
 		parents.clear();
+		
+		if(newParents==null) return;
+		
 		for(Node parent : newParents){
 			parents.add(parent);
 		}

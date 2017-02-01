@@ -25,16 +25,18 @@ public class Contract extends Move{ //WORKS; special merge not tested
 		if(child.getParents().size()!=1) 
 			return REJECT;
 		
+		
+		//prevent overlap with swap up
+		if(child.getChildren().size()==0)
+			return REJECT;
+		
+		
 		Node parent = child.getParents().get(0);
 		
 		//reject if the parent is sampled or has wrong sex
-		if(parent.sampled || parent.getSex()!=child.getSex())
+		if(parent.sampled || parent.getSex()!=child.getSex() || parent.getChildren().size()!=1 || parent.getParents().size()==0)
 			return REJECT;
 		
-		
-		//prevent overlap with swap up
-		if(child.sampled && child.getChildren().size()==0)
-			return REJECT;
 		
 		
 		

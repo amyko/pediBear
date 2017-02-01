@@ -189,10 +189,11 @@ if __name__ == "__main__":
     nIndiv = 18
     saPath = resultDir + "sim4.n1.mapAcc"
     otherPath = resultDir + "sim4.5.pairwise.mapAcc"
+    otherPath = resultDir + "sim4.mcmc.3chains.mapAcc"
     truePath = resultDir + "sim4.true"
     saC, otherC = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
     
-    
+    pdb.set_trace()
  
     #PLOT
     xdata = [i for i in range(1,len(saA)+1)]
@@ -216,7 +217,7 @@ if __name__ == "__main__":
 
 
     ax1.scatter(xdata, saA, color='blue', label='SA')
-    ax1.scatter(xdata, otherA, color='red', marker='>', label='Pairwise')
+    ax1.scatter(xdata, otherA, color='red', marker='>', label='MCMCMC')
     ax2.scatter(xdata, saB, color='blue')
     ax2.scatter(xdata, otherB, color='red', marker='>')
     ax3.scatter(xdata, saC, color='blue')

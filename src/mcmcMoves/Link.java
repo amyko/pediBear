@@ -41,6 +41,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 		int targetDepth = k - 1 + Math.max(i.getDepth(), j.getDepth());
 		if(targetDepth > currPedigree.maxDepth || (i.getDepth()==j.getDepth() && i.getDepth()==targetDepth)) 
 			return REJECT;
+		
 
 		
 		
@@ -105,7 +106,8 @@ public class Link extends Move{ //WORKS; special merge not tested
 		
 
 		
-		
+		//TODO testing
+		//if(specialMerge) return REJECT;
 
 		
 		//reject bad cases
@@ -135,7 +137,9 @@ public class Link extends Move{ //WORKS; special merge not tested
 			innerSum = 0d;
 			for(int l2=0; l2<=jPrime.getDepth(); l2++){
 				
-				if(l1==targetDepth && l2==targetDepth) continue;
+				if((l1==targetDepth && l2==targetDepth) || jDepthToCount[l2]==0){
+					continue;
+				}
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
 			}
@@ -162,7 +166,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 		double cutProb = nCuttableNode * .5 * moveProbs.get("cut");
 
 		//via split
-		if(recipient.getChildren().size() > 1 && !specialMerge){
+		if(!specialMerge && recipient.getChildren().size() > 1){
 			
 			int symm = !recipient.sampled && recipient.getParents().size()==0 ? 1 : 0;
 			splitProb = (1+symm) * getPowersOfHalf2(recipient.getChildren().size()) * moveProbs.get("split");

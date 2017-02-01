@@ -1,15 +1,19 @@
 package mcmcMoves;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
 //cut child from parent; shift parent cluster down; make full siblings
 
-public class POtoFS extends Move{
+public class HStoPO extends Move{
 
+	private List<Node> halfSibs = new ArrayList<Node>();
 	
-	public POtoFS(String name, double moveProb) {
+	public HStoPO(String name, double moveProb) {
 		super(name, moveProb);
 	}
 	
@@ -20,49 +24,53 @@ public class POtoFS extends Move{
 		//choose a child to cut
 		Node child = currPedigree.getRandomNode();
 
-		//reject if child doesn't have exactly 1 parent
 		if(child.getParents().size()!=1)
 			return REJECT;
 		
-		//get parent
 		Node parent = child.getParents().get(0);
 		
-		//reject if parent is ghost and has no other children
-		if(!parent.sampled && parent.getChildren().size()<2)
+		//no half sibs
+		int nChildren = parent.getChildren().size();
+		if(nChildren < 2)
 			return REJECT;
 		
-			
+		//depth
 		currPedigree.clearVisit();
 		parent.setNumVisit(1);
-		int maxDepth = currPedigree.getMaxDepth(child);
-		if(maxDepth+1 > currPedigree.maxDepth || child.getDepth()+2 > currPedigree.maxDepth)
+		if(currPedigree.getMinDepth(child)==0)
 			return REJECT;
-
+		
+		
+		//get half sib
+		halfSibs.clear();
+		for(Node x : parent.getChildren()){
+			if(x.getIndex()==child.getIndex()) continue;
+			halfSibs.add(x);
+		}
+		Node hs = halfSibs.get(currPedigree.rGen.nextInt(halfSibs.size()));
 
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
 		
+		
 		//old to new
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) +  Math.log(moveProbs.get("POtoFS"));
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(halfSibs.size()) + Math.log(moveProbs.get("HStoPO"));
 		
 		//modify pedigree
 		double prevLkhd = currPedigree.getLogLikelihood();
-		currPedigree.POtoFS(child, parent);
+		currPedigree.HStoPO(child, hs);
 		
-
 		
 		//new to old
-		int nSibs = currPedigree.getFullSibs(child).size();
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nSibs) + Math.log(moveProbs.get("FStoPO"));
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(.5*moveProbs.get("POtoHS"));
 		
 
 		
 		//accept ratio
 		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		
-
 		
 	}
 	

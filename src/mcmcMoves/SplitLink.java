@@ -129,15 +129,58 @@ public class SplitLink extends Move {//WORKS
 
 		
 		
+		/*
+		////////////// SHIFT //////////////////////////
+		//get the cluster the node belongs to
+		List<Node> cluster = new ArrayList<Node>();
+		currPedigree.clearVisit();
+		iPrime.getConnectedNodes(cluster);
+		
+		//pick offset
+		int offset = currPedigree.rGen.nextDouble() < .5 ? 0 : -1;
+		
+		//reject if highest node goes over max depth
+		int highestLevel = getHighestLevel(currPedigree, cluster);
+		if(highestLevel + offset > currPedigree.maxDepth)
+			return REJECT;
+		int lowestLevel = getLowestLevel(currPedigree, cluster);
+		if(lowestLevel+offset < 0)
+			return REJECT;
+		
+
+		
+		//shift cluster
+		currPedigree.shiftCluster(cluster, offset);
+		*/
+		
+		
+		
+
+		
+
+		
+		
+		
+		
 		
 		////////////////////// LINK /////////////////////
 		//choose nodes i and j
+		
 		nBefore = currPedigree.getNActiveNodes();
 		Node[] nodes = currPedigree.getNRandomNodes(2);
 		Node i = nodes[0];
 		Node j = nodes[1];
-		//int offset = currPedigree.rGen.nextInt(currPedigree.getNActiveNodes()-1) + 1;
+		
+		
+		/*
+		nBefore = currPedigree.getNActiveNodes();
+		Node i = iPrime;
+		int offset = currPedigree.rGen.nextInt(currPedigree.getNActiveNodes() - 1) + 1;
+		int jIndex = (i.getIndex() + offset) % currPedigree.getNActiveNodes();
+		Node j = currPedigree.getNode(jIndex);
+		*/
 
+		
 		
 		//choose target depth
 		int k = geometricDist(currPedigree.rGen);
@@ -436,6 +479,41 @@ public class SplitLink extends Move {//WORKS
 		}
 		
 		return false;
+	}
+	
+	private int getLowestLevel(Pedigree currPedigree, List<Node> cluster){
+		
+		int lowest = currPedigree.maxDepth;
+		
+		for(Node i : cluster){
+			if(i.getDepth() < lowest){
+				lowest = i.getDepth();
+			}
+			if(lowest==0) break;
+		}
+		
+		
+		return lowest;
+		
+		
+	}
+
+	
+	private int getHighestLevel(Pedigree currPedigree, List<Node> cluster){
+		
+		int highest = 0;
+		
+		for(Node i : cluster){
+			if(i.getDepth() > highest){
+				highest = i.getDepth();
+			}
+			if(highest==currPedigree.maxDepth) break;
+		}
+		
+		
+		return highest;
+		
+		
 	}
 
 	
