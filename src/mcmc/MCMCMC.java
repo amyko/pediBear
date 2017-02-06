@@ -30,6 +30,7 @@ public class MCMCMC {
 	final int sampleRate;
 	final Move[] moves; 
 	final PrintWriter writer;
+	final PrintWriter convWriter;
 	final PrintWriter cranefootFamWriter;
 	final Random rGen;
 	final int nChain;
@@ -60,6 +61,7 @@ public class MCMCMC {
 		this.sampleRate = sampleRate;
 		this.moves = moves;		
 		this.writer = DataParser.openWriter(outPath+".pair");
+		this.convWriter = DataParser.openWriter(outPath+".lkhd");
 		this.cranefootFamWriter = DataParser.openWriter(outPath+".fam");
 		this.rGen = rGen;
 		this.nChain = chains.size();
@@ -291,7 +293,7 @@ public class MCMCMC {
 			//sample from cold chain
 			if(i % sampleRate == 0){
 				sample(chains.get(this.coldChain).getPedigree());
-				//sample2(chains.get(this.coldChain));
+				convergence(chains.get(this.coldChain).getPedigree());
 			}
 			
 			
@@ -345,9 +347,6 @@ public class MCMCMC {
 		if(nChain<2) return;
 		
 		for(int q=0; q < nSwaps; q++){
-		
-		
-			nSwapAttempt++;
 			
 			
 
@@ -378,6 +377,8 @@ public class MCMCMC {
 				
 			}
 			
+			nSwapAttempt++;
+			
 
 		}
 		
@@ -392,7 +393,7 @@ public class MCMCMC {
 		
 		//pairwise relatioship
 		//header for this sample
-		//writer.write(String.format(">\t%f\n", currPedigree.getLogLikelihood()));
+		writer.write(String.format(">\t%f\n", currPedigree.getLogLikelihood()));
 
 		
 		for(int i=0; i<currPedigree.numIndiv; i++){
@@ -414,9 +415,7 @@ public class MCMCMC {
 		
 		//TODO testing
 		writer.write("\n");
-		
-
-		
+	
 
 	}
 	
@@ -435,6 +434,11 @@ public class MCMCMC {
 	}
 	
 	
+	private void convergence(Pedigree currPedigree){
+		
+		convWriter.write(String.format("%f\n", currPedigree.getLogLikelihood()));
+		
+	}
 	
 
 	private void recordCranefootFam(Node ind, Pedigree currPedigree){
@@ -496,11 +500,10 @@ public class MCMCMC {
 	
 	public static double acceptanceRatio(double newLkhd, double oldLkhd, double oldToNew, double newToOld, double heat){
 		
-		/*
+		
 		if(newLkhd > 0){
 			System.out.println("Positive lkhd");
 		}
-		*/
 		
 		
 		
@@ -510,7 +513,7 @@ public class MCMCMC {
 		
 		
 		//TODO testing
-		heat = 0;
+		//heat = 0;
 		
 		
 		

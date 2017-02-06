@@ -190,10 +190,10 @@ if __name__ == "__main__":
     saPath = resultDir + "sim4.n1.mapAcc"
     otherPath = resultDir + "sim4.5.pairwise.mapAcc"
     otherPath = resultDir + "sim4.mcmc.3chains.mapAcc"
+    #otherPath = resultDir + "testing"
     truePath = resultDir + "sim4.true"
     saC, otherC = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
     
-    pdb.set_trace()
  
     #PLOT
     xdata = [i for i in range(1,len(saA)+1)]

@@ -23,7 +23,6 @@ import mcmcMoves.CousinToHalfUncle;
 import mcmcMoves.Cut;
 import mcmcMoves.CutLink;
 import mcmcMoves.CutOneLinkTwo;
-import mcmcMoves.CutShiftLink;
 import mcmcMoves.CutTwoLinkOne;
 import mcmcMoves.FStoPO;
 import mcmcMoves.FullUncletoHalfSibs;
@@ -53,14 +52,13 @@ import utility.DataParser;
 
 public class RunMCMC{
 	
-	//MCMC parameters
-	public static String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/mcmcTest/mcmcTest";
-	//public static String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/simPed4/";
+	//MCMC parameter
+	public static String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/simPed2/";
 	public static String refPopFileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/mcmcTest/mcmcTest";
 	public static String ageFileName = "";
 	public static double maf = 0.01;
 	public static double errorRate = 0.01;
-	public static int maxDepth = 3;
+	public static int maxDepth = 4;
 	public static int sampleDepth = maxDepth;
 	public static double back = 0.04;
 	public static double startTemp = 100;
@@ -233,17 +231,19 @@ public class RunMCMC{
 	}
 	
 
-	public static void runThreads(int testNum) throws IOException{
+	public static void runThreads(String myFile, String outfile) throws IOException{
 		
 		//arguments
-		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .05), new Split2("split2", 0.02), 
-				new CutLink("cutLink", .05), new SplitLink("splitLink", .05), new SwitchSex("switchSex", .02), 
-				new SwapUp("swapUp", .05), new SwapDown("swapDown", .02), new SwapDescAnc("swapDescAnc", .02), 
-				new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", .05), new CutTwoLinkOne("cutTwoLinkOne", .05),
-				new FStoPO("FStoPO", .05), new POtoFS("POtoFS", .05), new Contract("contract", 0.05), new Stretch("stretch", 0.05), 
+		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .05), new Split2("split2", .02), 
+				new CutLink("cutLink", .05), new SplitLink("splitLink", .05), 
+				new ShiftClusterLevel("shiftClusterLevel", .02),  new SwitchSex("switchSex", .03), 
+				new SwapUp("swapUp", .03), new SwapDown("swapDown", .03), new SwapDescAnc("swapDescAnc", .02), 
+				new CutOneLinkTwo("cutOneLinkTwo", .05), new CutTwoLinkOne("cutTwoLinkOne", .05),
+				new Contract("contract", .05), new Stretch("stretch", .05),
+				new FStoPO("FStoPO", .05), new POtoFS("POtoFS", .05),  
 				new OPtoPO("OPtoPO", .05), new POtoOP("POtoOP", .05),
-				new HStoPO("HStoPO", 0.05), new POtoHS("POtoHS", .05),
-				new HalfSibstoFullUncle("halfSibsToFullUncle", 0.05), new FullUncletoHalfSibs("fullUncleToHalfSibs", 0.05),
+				new HStoPO("HStoPO", .05), new POtoHS("POtoHS", .05),
+				new HalfSibstoFullUncle("halfSibsToFullUncle", .05), new FullUncletoHalfSibs("fullUncleToHalfSibs", .05),
 				new HalfUncleToCousin("halfUncleToCousin_REDUNDANT", 0), new CousinToHalfUncle("cousinToHalfUncle_REDUNDANT", 0),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0),  
 				new CousinToGreatUncle("cousinToGreatUncle", 0), new GreatUncleToCousin("greatUncleToCousin", 0)};
@@ -254,25 +254,20 @@ public class RunMCMC{
 		}
 		System.out.println(prob);
 		
-		Random rGen = new Random(1234);
+		Random rGen = new Random(123);
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
 
 		//mcmc parameters
-		int nChain = 1;
+		int nChain = 5;
 		int nBranch = 1;
-		int burnIn = 100000;
-		int runLength = 50000000;
+		int burnIn = 10000;
+		int runLength = 2000000;
 		int sampleRate = 50;
 		double deltaT = .2;
 		int swapInterval = 1;
 		int nSwaps = 1;
 		
-		
-		//String myFile = fileName + "sim4." + testNum;
-		//String outfile = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim4";
-		
-		String myFile = fileName;
-		String outfile = fileName;
+
 		
 		/*
 		//testing age info
@@ -307,7 +302,7 @@ public class RunMCMC{
 			
 			for(int branch=0; branch < nBranch; branch++){
 			
-				for(int chain=nChain-2; chain > 0; chain--){
+				for(int chain=nChain-2; chain >= 0; chain--){
 					
 					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age);
 					Chain myChain = new Chain(chain, ped);
@@ -334,6 +329,9 @@ public class RunMCMC{
 				}
 			}
 			
+			
+			
+			/*
 			//connect cold chains together
 			for(int i=0; i<nBranch; i++){
 				
@@ -351,6 +349,8 @@ public class RunMCMC{
 				}
 				
 			}
+			*/
+			
 		}
 		
 		else{
@@ -373,14 +373,14 @@ public class RunMCMC{
 	
 	
 	//validate output
-	public static void validate() throws IOException{
+	public static void validate(String outfile) throws IOException{
 		
 		//read target counts
-		int numTarget = DataParser.countLines(fileName+".3depth.target");
+		int numTarget = DataParser.countLines(outfile+".target");
 		String[] target = new String[numTarget];
 		int[] expectedCount = new int[numTarget];
 		
-		BufferedReader targetReader = DataParser.openReader(fileName+".3depth.target");
+		BufferedReader targetReader = DataParser.openReader(outfile+".target");
 		String line;
 		int lineNum=0;
 		while((line=targetReader.readLine())!=null){
@@ -398,9 +398,11 @@ public class RunMCMC{
 		//count
 		int[] counts = new int[target.length];
 		
-		BufferedReader reader = DataParser.openReader(fileName+".pair");
+		BufferedReader reader = DataParser.openReader(outfile+".pair");
 		
 		while((line=reader.readLine())!=null){
+			
+			if(line.charAt(0)=='>') continue;
 			
 			String myLine = line.split("\t\n")[0];
 			
@@ -415,7 +417,7 @@ public class RunMCMC{
 		}
 		
 		
-		PrintWriter writer = DataParser.openWriter(fileName+".stat");
+		PrintWriter writer = DataParser.openWriter(outfile+".stat");
 		
 		for(int i=0; i<counts.length; i++){
 			writer.write(String.format("%d\t%.2f\n", expectedCount[i], counts[i]/1.0));
@@ -474,18 +476,26 @@ public class RunMCMC{
 		
 		//open output file
 		//PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim4.mcmc.3chains.mapAcc");
-
+		//PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/testing");
 
 		//run
 		for(int i=0; i<1; i++){
 			
 			System.out.println(i);
 			
-			runThreads(i);
+			for(int j=0; j<1; j++){
 			
-			validate();
-			
-			//writeMap(writer, i);
+				String myFile = fileName + "sim2." + i;
+				String outfile = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim2."+j;
+
+				
+				runThreads(myFile, outfile);
+				
+				
+				validate(outfile);
+				
+				//writeMap(writer, i);
+			}
 			
 		}
 
