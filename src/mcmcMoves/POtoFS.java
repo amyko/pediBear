@@ -44,11 +44,13 @@ public class POtoFS extends Move{
 		}
 		else{
 			
+
 			currPedigree.clearVisit();
 			child.setNumVisit(1);
 			int minDepth = currPedigree.getMinDepth(parent);
 			if(minDepth==0)
 				return REJECT;
+			
 			
 		}
 		

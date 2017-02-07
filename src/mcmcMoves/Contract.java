@@ -31,6 +31,7 @@ public class Contract extends Move{ //WORKS; special merge not tested
 	@Override
 	protected double tryMove(Pedigree currPedigree, double heat) {
 		
+		/* OLD CODE
 		//choose child
 		Node child = currPedigree.getRandomNode();
 		
@@ -51,7 +52,38 @@ public class Contract extends Move{ //WORKS; special merge not tested
 		//reject bad cases
 		//if(violatesAgeConstraints(currPedigree, child, parent))
 			//return REJECT;
-
+		*/
+		
+		//choose child
+		Node child = currPedigree.getRandomNode();
+		
+		
+		//reject if it doesn't have exactly one parent
+		if(child.getParents().size()!=1) 
+			return REJECT;
+		
+		
+		//prevent overlap with swap up
+		if(child.getChildren().size()==0)
+			return REJECT;
+		
+		
+		Node parent = child.getParents().get(0);
+		
+		//reject if the parent is sampled or has wrong sex
+		if(parent.sampled || parent.getSex()!=child.getSex() || parent.getChildren().size()!=1 || parent.getParents().size()==0)
+			return REJECT;
+		
+		
+		
+		
+		
+		//reject depth violations
+		currPedigree.clearVisit();
+		parent.setNumVisit(1);
+		int maxDepth = currPedigree.getMaxDepth(child);
+		if(maxDepth == currPedigree.maxDepth)
+			return REJECT;
 
 		
 		//record previous config

@@ -45,8 +45,10 @@ public class Stretch extends Move{ //WORKS; special merge not tested
 		
 		//reject if shifting down the child cluster violates depth constraint
 		currPedigree.clearVisit();
+		for(Node p : child.getParents()) p.setNumVisit(1);
 		int minCluDepth = currPedigree.getMinDepth(child);
-		if(minCluDepth < 1) return REJECT;
+		if(minCluDepth == 0) return REJECT;
+		
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();

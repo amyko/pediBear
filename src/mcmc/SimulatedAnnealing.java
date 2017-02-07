@@ -17,9 +17,10 @@ public class SimulatedAnnealing {
 	final int runLength;
 	final Move[] moves; 
 	final PrintWriter cranefootFamWriter;
-	final PrintWriter pairWriter;
+	//final PrintWriter pairWriter;
 	PrintWriter convWriter;
 	final Random rGen;
+	private int missingParentCounter = 0;
 	
 	//heating parameters
 	private double[] heat;
@@ -37,7 +38,7 @@ public class SimulatedAnnealing {
 		this.runLength = runLength;
 		this.moves = moves;		
 		this.cranefootFamWriter = DataParser.openWriter(outPath+".fam");
-		this.pairWriter = DataParser.openWriter(outPath+".pair");
+		//this.pairWriter = DataParser.openWriter(outPath+".pair");
 		this.convWriter = DataParser.openWriter(outPath+".lkhd");
 		
 		this.rGen = rGen;
@@ -171,7 +172,7 @@ public class SimulatedAnnealing {
 		//close outfile
 		cranefootFamWriter.close();
 		convWriter.close();
-		pairWriter.close();
+		//pairWriter.close();
 		
 	}
 	
@@ -206,6 +207,7 @@ public class SimulatedAnnealing {
 		//pairwise relationship
 		//header for this sample
 		
+		/*
 		pairWriter.write(String.format(">\t%.5f\n", currPedigree.getLogLikelihood()));
 		
 		for(int i=0; i<currPedigree.numIndiv; i++){
@@ -217,6 +219,7 @@ public class SimulatedAnnealing {
 				
 			}
 		}
+		*/
 		
 		
 		//write family relationship
@@ -230,6 +233,63 @@ public class SimulatedAnnealing {
 	}
 	
 	
+	private void recordCranefootFam(Node ind, Pedigree currPedigree){
+		
+		String name = ind.fid + "_" + ind.iid;
+		String pa = "0";
+		String ma = "0";
+		String sampleStatus = ind.sampled ? "000000" : "999999";
+		String sex = ind.getSex()==1 ? "1" : "7"; 
+		
+		//if missing individual and sex not constrained
+		currPedigree.clearVisit();
+		if(currPedigree.sexLocked(ind)==false) sex = "4";
+			
+		//get parent ids
+		for(Node parent : ind.getParents()){
+			
+			//recordFam(parent);
+		
+			if(parent.getSex()==0)
+				ma = parent.fid + "_" + parent.iid;
+			else if(parent.getSex()==1)
+				pa = parent.fid + "_" + parent.iid;
+			else
+				throw new RuntimeException("Parent with unknown sex");
+			
+		}
+		
+		//if only one parent is present
+		if(ind.getParents().size()==1){
+			
+			//make missing parent
+			int missingParentSex = ind.getParents().get(0).getSex()==1 ? 0 : 1;
+			Node missingParent = new Node("missingParent", missingParentCounter+"", missingParentSex, false, -1);
+			
+			//connect temporarily
+			currPedigree.connect(missingParent, ind);
+			recordCranefootFam(missingParent, currPedigree);
+			currPedigree.disconnect(missingParent, ind);
+			
+			if(missingParentSex==0) ma = String.format("missingParent_%d", missingParentCounter);
+			else pa = String.format("missingParent_%d", missingParentCounter);
+			
+			missingParentCounter++;
+			
+		}
+
+		
+		
+		
+		
+		//write to file
+		cranefootFamWriter.write(String.format("%s\t%s\t%s\t%s\t%s\n", name, pa, ma, sex, sampleStatus));
+		
+		
+	}
+	
+	
+	/* OLD CODE
 	private void recordCranefootFam(Node ind, Pedigree currPedigree){
 		
 		String name = ind.fid + "_" + ind.iid;
@@ -282,6 +342,7 @@ public class SimulatedAnnealing {
 		
 		
 	}
+	*/
 	
 	
 	
