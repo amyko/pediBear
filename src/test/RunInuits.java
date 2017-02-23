@@ -14,10 +14,10 @@ import mcmcMoves.CutLink;
 import mcmcMoves.CutOneLinkTwo;
 import mcmcMoves.CutTwoLinkOne;
 import mcmcMoves.FStoPO;
-import mcmcMoves.FullUncletoHalfSibs;
+import mcmcMoves.FUtoHS;
 import mcmcMoves.HalfCousinToHalfGreatUncle;
 import mcmcMoves.HalfGreatUncleToHalfCousin;
-import mcmcMoves.HalfSibstoFullUncle;
+import mcmcMoves.HStoFU;
 import mcmcMoves.HalfUncleToCousin;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
@@ -72,7 +72,7 @@ public class RunInuits {
 				new CutLink("cutLink", 0.17), new SplitLink("splitLink", 0.07), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.15), new CutTwoLinkOne("cutTwoLinkOne", 0.02),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.02), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.02), new FStoPO("FStoPO", 0.02), new POtoFS("POtoFS",0.02), 
 				new HalfUncleToCousin("halfUncleToCousin", 0.02), new CousinToHalfUncle("cousinToHalfUncle", 0.02), new CousinToGreatUncle("cousinToGreatUncle", 0.02), new GreatUncleToCousin("greatUncleToCousin", 0.02),
-				new SwapDescAnc("swapDescAnc", 0.04), new Contract("contract", 0.02), new Stretch("stretch", 0.02), new HalfSibstoFullUncle("halfSibstoFullUncle", 0.02), new FullUncletoHalfSibs("fullUncleToHalfSibs", 0.02),
+				new SwapDescAnc("swapDescAnc", 0.04), new Contract("contract", 0.02), new Stretch("stretch", 0.02), new HStoFU("halfSibstoFullUncle", 0.02), new FUtoHS("fullUncleToHalfSibs", 0.02),
 				new ShiftClusterLevel("shiftClusterLevel", 0.04)};
 		String testName = "100tasiilaq.admixed0.05.pruned0.05";
 		//String testName = "nucFam";

@@ -23,6 +23,7 @@ public class POtoOP extends Move {
 	protected double tryMove(Pedigree currPedigree, double heat) {
 		
 		
+		
 		// randomly choose a sampled node
 		Node upperNode = currPedigree.getRandomSampledNode();
 		
@@ -74,6 +75,7 @@ public class POtoOP extends Move {
 
 		//this move is symmetric
 		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
+		
 		
 		
 		

@@ -238,6 +238,58 @@ public class SimulatorStreamPed {
 		}
 	
 
+		
+		
+		public void addError(String inPath, String outPath, double epsilon, Random rGen) throws IOException{
+			
+			//open files
+			BufferedReader reader = DataParser.openReader(inPath);
+			PrintWriter writer = DataParser.openWriter(outPath);
+			
+
+			String line;
+			while((line = reader.readLine())!=null){
+				
+				//read line
+				String[] fields = line.split("\\s");
+				
+				//info fields
+				for(int i=0; i<4; i++){
+					writer.write(fields[i]+" ");
+				}
+				
+				//for each genotype
+				for(int i=4; i<fields.length; i++){
+
+						
+					if(rGen.nextDouble() < epsilon){
+						if(fields[i].charAt(0)=='A')
+							writer.write("T");
+						else
+							writer.write("A");
+					}
+					else{
+						writer.write(fields[i].charAt(0));
+					}
+						
+					
+					
+					writer.write(" ");
+					
+					
+				}
+				
+				writer.write("\n");
+					
+				
+			}
+			
+			
+			//close files
+			reader.close();
+			writer.close();
+			
+		}
 
 }
 

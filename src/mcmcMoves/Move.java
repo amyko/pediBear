@@ -27,6 +27,8 @@ public abstract class Move {
 	public final static int REJECT = 2;
 	public final static double lnHalf = Math.log(.5);
 	public final static double lnTwo = Math.log(2);
+	public final static double oneThird = 1/3.0;
+	public final static double twoThirds = 2/3.0;
 	private final static List<Double> powersOfHalf = new ArrayList<Double>();
 	private final static List<Double> powersOfHalf2 = new ArrayList<Double>(); // 1/(2^i - 1)
 	private final static List<Double> powersOfTwo = new ArrayList<Double>();
@@ -66,7 +68,7 @@ public abstract class Move {
 	}
 
 	//tries a move, tests it, and returns the old pedigree if it fails, and the new pedigree if it passes
-	public final void mcmcMove(Pedigree currPedigree, double heat){
+	public final void mcmcMove(Pedigree currPedigree, double heat, int iter){
 
 		
 		
@@ -108,19 +110,7 @@ public abstract class Move {
 					}
 					
 				}
-			}
-			
-			/*
-			//ghost
-			if(!myNode.sampled && myNode.getChildren().size()==0){
-				
-				System.out.println(this.name);
-				reject = true;
-				break;
-				
-			}
-			*/
-			
+			}			
 			
 			
 			
@@ -147,9 +137,13 @@ public abstract class Move {
 		
 		//accept move and clean
 		else{
+			
+			
 			//System.out.println(this.name);	
-
-
+			//currPedigree.printAdjMat();
+			
+		
+			
 			nAccept++;
 			clean(currPedigree);
 		}
@@ -183,6 +177,7 @@ public abstract class Move {
 		
 	}
 	
+	
 	protected double getPowersOfHalf(int idx){
 		
 		//grow list
@@ -198,6 +193,7 @@ public abstract class Move {
 		return powersOfHalf.get(idx);
 		
 	}
+	
 	
 	protected double getPowersOfHalf2(int idx){
 		
@@ -230,6 +226,7 @@ public abstract class Move {
 		return powersOfTwo.get(idx);
 		
 	}
+	
 	
 	protected double getLogChooseOne(int idx){
 		

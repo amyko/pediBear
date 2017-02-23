@@ -18,17 +18,18 @@ public class Contract extends Move{ //WORKS; special merge not tested
 	protected double tryMove(Pedigree currPedigree, double heat) {
 		
 		//choose child
-		Node child = currPedigree.getRandomNode();
+		Node child = currPedigree.getRandomSampledNode();
 		
 		
 		//reject if it doesn't have exactly one parent
 		if(child.getParents().size()!=1) 
 			return REJECT;
 		
-		
+		/*
 		//prevent overlap with swap up
 		if(child.getChildren().size()==0)
 			return REJECT;
+			*/
 		
 		
 		Node parent = child.getParents().get(0);
@@ -37,24 +38,30 @@ public class Contract extends Move{ //WORKS; special merge not tested
 		if(parent.sampled || parent.getSex()!=child.getSex() || parent.getChildren().size()!=1 || parent.getParents().size()==0)
 			return REJECT;
 		
-		
-		
-		
-		
-		//reject depth violations
-		currPedigree.clearVisit();
-		parent.setNumVisit(1);
-		int maxDepth = currPedigree.getMaxDepth(child);
-		if(maxDepth+1 > currPedigree.maxDepth)
-			return REJECT;
 
-		//reject bad cases
-		//if(violatesAgeConstraints(currPedigree, child, parent))
-			//return REJECT;
+		//choose 1) shift child cluster up or 2) shift parent cluster down
+		int shift = currPedigree.rGen.nextDouble() < .5 ? 1 : -1;
+		
+		
+		//depth constraint
+		if(shift==1){ //case 1: shift child cluster up
+			currPedigree.clearVisit();
+			parent.setNumVisit(1);
+			int maxDepth = currPedigree.getMaxDepth(child);
+			if(maxDepth == currPedigree.maxDepth) return REJECT;
+		}
+		else{ //case 2: shift parent cluster down
+			currPedigree.clearVisit();
+			child.setNumVisit(1);
+			int minDepth = currPedigree.getMinDepth(parent);
+			if(minDepth==0) return REJECT;
+		}
+		
+
 		
 		
 		//oldToNew
-		double oldToNew = Math.log(moveProbs.get("contract")) + getLogChooseOne(currPedigree.getNActiveNodes());
+		double oldToNew = Math.log(moveProbs.get("contract"));
 
 		
 		//record previous config
@@ -62,10 +69,10 @@ public class Contract extends Move{ //WORKS; special merge not tested
 		
 		//merge
 		double prevLkhd = currPedigree.getLogLikelihood();
-		currPedigree.contract(parent, child);
+		currPedigree.contract(parent, child, shift);
 		
 		//newToOld
-		double newToOld = Math.log(moveProbs.get("stretch")) + getLogChooseOne(currPedigree.getNActiveNodes());
+		double newToOld = Math.log(moveProbs.get("stretch"));
 
 		
 		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);

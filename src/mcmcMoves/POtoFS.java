@@ -27,16 +27,30 @@ public class POtoFS extends Move{
 		//get parent
 		Node parent = child.getParents().get(0);
 		
+
 		//reject if parent is ghost and has no other children
 		if(!parent.sampled && parent.getChildren().size()<2)
 			return REJECT;
 		
-			
-		currPedigree.clearVisit();
-		parent.setNumVisit(1);
-		int maxDepth = currPedigree.getMaxDepth(child);
-		if(maxDepth+1 > currPedigree.maxDepth || child.getDepth()+2 > currPedigree.maxDepth)
-			return REJECT;
+		
+		//choose 1) shift child cluster up or 2) shift parent cluster down
+		int shift = currPedigree.rGen.nextDouble() < .5 ? 1 : -1;
+
+		
+		
+		//depth constraint
+		if(shift==1){ //case 1: shift child cluster up
+			currPedigree.clearVisit();
+			parent.setNumVisit(1);
+			int maxDepth = Math.max(currPedigree.getMaxDepth(child), child.getDepth()+1);
+			if(maxDepth==currPedigree.maxDepth) return REJECT;
+		}
+		else{ //case 2: shift parent cluster down
+			currPedigree.clearVisit();
+			child.setNumVisit(1);
+			int minDepth = currPedigree.getMinDepth(parent);
+			if(minDepth==0) return REJECT;
+		} 
 
 
 		
@@ -49,7 +63,7 @@ public class POtoFS extends Move{
 		
 		//modify pedigree
 		double prevLkhd = currPedigree.getLogLikelihood();
-		currPedigree.POtoFS(child, parent);
+		currPedigree.POtoFS(child, parent, shift);
 		
 
 		

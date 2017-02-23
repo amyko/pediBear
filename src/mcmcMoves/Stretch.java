@@ -2,7 +2,6 @@ package mcmcMoves;
 
 import mcmc.MCMCMC;
 import dataStructures.Node;
-import dataStructures.Path;
 import dataStructures.Pedigree;
 
 //TODO this is not exactly the reverse move of contract; need to selectively shift down descendants of child
@@ -19,53 +18,44 @@ public class Stretch extends Move{ //WORKS; special merge not tested
 	protected double tryMove(Pedigree currPedigree, double heat) {
 		
 		//choose child
-		Node child = currPedigree.getRandomNode();
+		Node child = currPedigree.getRandomSampledNode();
 				
 		
 		//reject if child has no parents
 		if(child.getParents().size()==0)
 			return REJECT;
 		
-		
+		/*
 		//prevents overlap with swap down
 		if(child.getChildren().size()==0)
 			return REJECT;
+		*/
 		
+		//choose 1) shift child cluster down or 2) shift parent cluster up
+		int shift = currPedigree.rGen.nextDouble() < .5 ? -1 : 1;
 
 		
-		//reject if shifting down the child cluster violates depth constraint
-		currPedigree.clearVisit();
-		for(Node p : child.getParents()) p.setNumVisit(1);
-		int minCluDepth = currPedigree.getMinDepth(child);
-		if(minCluDepth < 1) return REJECT;
-		
-		/*
-		boolean testing = false;
-		if(child.getIndex()==3){
+		//depth constraint
+		if(shift==-1){ //case 1: shift child cluster down
+			currPedigree.clearVisit();
+			for(Node p : child.getParents()) p.setNumVisit(1);
+			int minDepth = currPedigree.getMinDepth(child);
+			if(minDepth == 0) return REJECT;
+		}
+		else{ //case 2: shift parent cluster up
 			
-			Path rel = currPedigree.getRelationships()[0][8];
-			if(rel.getUp()==1 && rel.getDown()==3 && rel.getNumVisit()==1){
-				
-				
-				rel = currPedigree.getRelationships()[0][5];
-				
-				if(rel.getUp()==2 && rel.getDown()==3 && rel.getNumVisit()==1){
-					
-					System.out.println();
-					
-					testing = true;
-				}
-				
-				
-			}
+			currPedigree.clearVisit();
+			for(Node x : child.getChildren()) x.setNumVisit(1); 
+			
+			int maxDepth = currPedigree.getMaxDepth(child);
+			if(maxDepth==currPedigree.maxDepth) return REJECT;
 			
 			
 		}
-		*/
-		
+
 		
 		//old to new
-		double oldToNew = Math.log(moveProbs.get("stretch")) + getLogChooseOne(currPedigree.getNActiveNodes());
+		double oldToNew = Math.log(moveProbs.get("stretch"));
 		
 
 		
@@ -75,11 +65,11 @@ public class Stretch extends Move{ //WORKS; special merge not tested
 
 		//merge
 		double prevLkhd = currPedigree.getLogLikelihood();
-		currPedigree.stretch(child);
+		currPedigree.stretch(child, shift);
 		
 		
 		//newToOld
-		double newToOld = Math.log(moveProbs.get("contract")) + getLogChooseOne(currPedigree.getNActiveNodes());
+		double newToOld = Math.log(moveProbs.get("contract"));
 
 		
 		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);

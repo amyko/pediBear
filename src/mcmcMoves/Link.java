@@ -43,10 +43,8 @@ public class Link extends Move{ //WORKS; special merge not tested
 			return REJECT;
 		
 
-		
-		
-		//determine target sex
-		int targetSex;
+		//target sex
+		int targetSex;		
 		if(j.getDepth()==targetDepth){
 			targetSex = j.getSex();
 		}
@@ -56,6 +54,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 		else{//choose randomly
 			targetSex = currPedigree.rGen.nextDouble() <.5 ? 0 : 1;
 		}
+		
 		
 
 		//copy pedigree
@@ -107,7 +106,14 @@ public class Link extends Move{ //WORKS; special merge not tested
 
 		
 		//TODO testing
-		//if(specialMerge) return REJECT;
+		if(specialMerge){
+			currPedigree.clean(donor);
+			currPedigree.clean(recipient);
+			return REJECT;
+		}
+		
+		
+		
 
 		
 		//reject bad cases
@@ -126,6 +132,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
 		
 
+		
 		
 		double oldToNew = 0d;
 		double outerSum = 0d;
@@ -152,12 +159,14 @@ public class Link extends Move{ //WORKS; special merge not tested
 		oldToNew = getLogChooseTwo(nBefore) + Math.log(outerSum * moveProbs.get("link"));
 
 		
+	
 		
 		//merge
 		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.merge(donor, recipient, mergingFormsFullSibs);
 		int nAfter = nBefore + nCuttableNode - 1; //add number of nodes created; subtract donor node (which will be deleted)
-
+		
+		
 		//new to old
 		double newToOld = 0d;
 		double splitProb = 0d;

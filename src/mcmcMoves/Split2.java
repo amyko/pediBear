@@ -62,6 +62,14 @@ public class Split2 extends Move {//TODO make this move more efficient (can we c
 	    //reject if no children are left behind
 	    if(stayChildren.size()==0) return REJECT;
 	    
+	    
+	    //reject if split creates illegal cycles
+	    if(createsIllegalCycle(currPedigree, splitChildren, stayChildren, parent)) 
+	    	return REJECT;
+	    	
+	    
+		
+	    
 		
 	    
 	    //check if any of the children between split and stay form full sibs
@@ -147,6 +155,31 @@ public class Split2 extends Move {//TODO make this move more efficient (can we c
 		
 		return;
 		
+	}
+	
+	
+	private boolean createsIllegalCycle(Pedigree currPedigree, List<Node> splitChildren, List<Node> stayChildren, Node parent){		
+
+	    for(Node x : splitChildren){
+	    	
+	    	if(currPedigree.getFullSibs(x).size()==0) continue;
+	    	
+	    	for(Node y : splitChildren){
+	    		
+	    		if(x.getIndex()==y.getIndex()) continue;
+	    		
+	    		if(currPedigree.getFullSibs(y).size()==0) continue;
+	    		
+	    		if(!currPedigree.fullSibs(x,y)) return true;
+	    		
+	    	}
+	    		
+	    		
+	    	
+	    }
+	    
+	    return false;
+
 	}
 
 	

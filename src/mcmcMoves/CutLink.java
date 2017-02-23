@@ -1,6 +1,5 @@
 package mcmcMoves;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import mcmc.MCMCMC;
@@ -93,7 +92,7 @@ public class CutLink extends Move {//WORKS
 			
 			for(int l2=0; l2<=jPrime.getDepth(); l2++){
 				
-				if(l1==targetDepth && l2==targetDepth) continue;
+				if((l1==targetDepth && l2==targetDepth) || jDepthToCount[l2]==0) continue;
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
 			}
@@ -103,36 +102,6 @@ public class CutLink extends Move {//WORKS
 		
 		double newToOldCut =  getLogChooseTwo(nAfter) + Math.log(outerSum);
 
-
-		/*
-		////////////// SHIFT //////////////////////////
-		//get the cluster the node belongs to
-		List<Node> cluster = new ArrayList<Node>();
-		currPedigree.clearVisit();
-		iPrime.getConnectedNodes(cluster);
-		
-		//pick offset
-		int offset = currPedigree.rGen.nextDouble() < .5 ? 0 : -1;
-		
-		//reject if highest node goes over max depth
-		int highestLevel = getHighestLevel(currPedigree, cluster);
-		if(highestLevel + offset > currPedigree.maxDepth)
-			return REJECT;
-		int lowestLevel = getLowestLevel(currPedigree, cluster);
-		if(lowestLevel+offset < 0)
-			return REJECT;
-		
-
-		
-		//shift cluster
-		currPedigree.shiftCluster(cluster, offset);
-		*/
-		
-		
-		
-		
-
-		
 		
 		
 		
@@ -144,14 +113,6 @@ public class CutLink extends Move {//WORKS
 		Node i = nodes[0];
 		Node j = nodes[1];
 		
-		
-		/*
-		nBefore = currPedigree.getNActiveNodes();
-		Node i = iPrime;
-		int offset = currPedigree.rGen.nextInt(currPedigree.getNActiveNodes() - 1) + 1;
-		int jIndex = (i.getIndex() + offset) % currPedigree.getNActiveNodes();
-		Node j = currPedigree.getNode(jIndex);
-		*/
 		
 
 		//choose target depth
@@ -244,7 +205,7 @@ public class CutLink extends Move {//WORKS
 			innerSum = 0d;
 			for(int l2=0; l2<=jPrime.getDepth(); l2++){
 				
-				if(l1==targetDepth && l2==targetDepth) continue;
+				if((l1==targetDepth && l2==targetDepth) || jDepthToCount[l2]==0) continue;
 				
 				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
 			}

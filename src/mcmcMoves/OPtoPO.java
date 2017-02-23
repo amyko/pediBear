@@ -3,7 +3,6 @@ package mcmcMoves;
 
 import mcmc.MCMCMC;
 import dataStructures.Node;
-import dataStructures.Path;
 import dataStructures.Pedigree;
 
 
@@ -44,40 +43,15 @@ public class OPtoPO extends Move {
 		//get grand parents to switch with
 		Node upperNode = middleNode.getParentWithSex(lowerNode.getSex());
 		
+		/*
 		//to prevent overlap with swapAncDesc
 		if(upperNode!=null && upperNode.sampled)
 			return REJECT;
-		
+		*/
 
 
 		if(isSplitNode(middleNode, upperNode)) 
 			return REJECT;	
-		
-		
-		/*
-		//TODO testing
-		boolean testing = false;
-		if(lowerNode.getIndex()==0 && upperNode!=null && upperNode.getChildren().size()==3){
-			
-			Path rel = currPedigree.getRelationships()[0][8];
-			if(rel.getUp()==1 && rel.getDown()==3 && rel.getNumVisit()==1){
-				
-				
-				rel = currPedigree.getRelationships()[0][5];
-				
-				if(rel.getUp()==2 && rel.getDown()==3 && rel.getNumVisit()==1){
-					
-					System.out.println();
-					
-					testing = true;
-				}
-				
-				
-			}
-			
-			
-		}
-		*/
 		
 		
 		

@@ -2,15 +2,18 @@ package mcmc;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import mcmcMoves.Move;
 import dataStructures.Chain;
 import dataStructures.Node;
 import dataStructures.Path;
+import dataStructures.PedInfo;
 import dataStructures.Pedigree;
-import utility.ArrayUtility;
 import utility.DataParser;
 
 public class MCMCMC {
@@ -23,7 +26,7 @@ public class MCMCMC {
 	final static int maxTuneTrialBurnIn = 10; //max number of tune trials inside BurnIn
 	final static int tuneInterval = 100000;
 
-	
+	String outPath; 
 	final List<Chain> chains;
 	final int burnIn;
 	final int runLength;
@@ -31,7 +34,7 @@ public class MCMCMC {
 	final Move[] moves; 
 	final PrintWriter writer;
 	final PrintWriter convWriter;
-	final PrintWriter cranefootFamWriter;
+	PrintWriter cranefootFamWriter;
 	final Random rGen;
 	final int nChain;
 	public int nSwapSuccess;
@@ -44,6 +47,8 @@ public class MCMCMC {
 	private double deltaT;
 	
 	private int missingParentCounter = 0;
+	public Map<String, PedInfo> ped2info = new HashMap<String, PedInfo>();
+
 
 	
 	
@@ -54,6 +59,7 @@ public class MCMCMC {
 	//TODO parallelize 
 	public MCMCMC(List<Chain> chains, double deltaT, Move[] moves, int burnIn, int runLength, int sampleRate, int swapInterval, int nSwaps, Random rGen, String outPath) throws IOException{
 
+		this.outPath = outPath;
 		this.chains = chains;
 		this.deltaT = deltaT;
 		this.burnIn = burnIn;
@@ -62,7 +68,7 @@ public class MCMCMC {
 		this.moves = moves;		
 		this.writer = DataParser.openWriter(outPath+".pair");
 		this.convWriter = DataParser.openWriter(outPath+".lkhd");
-		this.cranefootFamWriter = DataParser.openWriter(outPath+".fam");
+		//this.cranefootFamWriter = DataParser.openWriter(outPath+".fam");
 		this.rGen = rGen;
 		this.nChain = chains.size();
 		this.nSwapAttempt = 0;
@@ -79,14 +85,12 @@ public class MCMCMC {
 	
 	
 	
-	public void run(){
+	public void run() throws IOException{
 
 		runBurnIn();
 		
 		runSample();
-		
-		//record last fam
-		writeFamFile();
+
 	
 	}
 	
@@ -141,7 +145,7 @@ public class MCMCMC {
 				for(int j = 0; j < nChain; j++){
 					
 					Move move = chooseMove();				
-					move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
+					move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat(),0);
 						
 					
 					
@@ -170,7 +174,7 @@ public class MCMCMC {
 	
 	
 	
-	private void runBurnIn(){
+	private void runBurnIn() throws IOException{
 		
 		System.out.println("Burn in...");
 		
@@ -190,37 +194,53 @@ public class MCMCMC {
 				
 				/*
 				//TESTING			
-				if(!chains.get(j).sanityCheck()){
+				if(!chains.get(j).getPedigree().sanityCheck()){
 					System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
-				
-					for(int k=0; k< chains.get(j).getNActiveNodes(); k++){
-						chains.get(j).getNode(k).print();
-					}
-					//System.out.println();
-						
-					System.out.println(chains.get(j).getNActiveNodes());
-					chains.get(j).printAdjMat();
-					System.out.println();
-					
 
 						
 				}
-				*/
-
-
 				
-				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
+				 
+				
+				if(i==805){
+					//Node myNode = chains.get(j).getPedigree().getNode(6);
+					//String toWrite = "";
+					//for(Node x : myNode.getParents()) toWrite += x.iid+" ";
+					//System.out.println(toWrite);
+					//cranefootFamWriter = DataParser.openWriter(outPath+".fam");
+					//writeFamFile(chains.get(j).getPedigree());
+					//System.out.println(String.format("%d %d", i, j));
+					System.out.println(move.name);
+					//System.out.println(chains.get(j).getLikelihood());
+					
+					chains.get(j).getPedigree().printAdjMat();
+					System.out.println();
+					
+					
+				}
+				*/
+				
+				
+				
+				
+				//chains.get(j).getPedigree().printAdjMat();
+				//System.out.println();
+				
+
+				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat(), i);
 				
 				
 		
 			}
 			
-
+			
 			
 			//swap
 			if(i%swapInterval==0){
 				swapStates();
 			}
+			
+			
 			
 			
 			
@@ -275,9 +295,11 @@ public class MCMCMC {
 	
 	
 	
-	private void runSample(){
+	private void runSample() throws IOException{
 		
 		System.out.println("Sampling...");
+		
+		
 		
 		//now start sampling
 		for(int i = 0; i < runLength; i++){
@@ -286,8 +308,21 @@ public class MCMCMC {
 			double currLkhd = chains.get(this.coldChain).getPedigree().getLogLikelihood();
 			if(currLkhd > this.bestLkhd){
 				this.bestLkhd = currLkhd;
-				//System.out.println(bestLkhd);
+				
+				cranefootFamWriter = DataParser.openWriter(outPath+".fam");
+				missingParentCounter = 0;
+				writeFamFile(chains.get(coldChain).getPedigree());
+				
 			}
+			
+			/*
+			if((int)currLkhd==-46788){
+
+				cranefootFamWriter = DataParser.openWriter(outPath+".2.fam");
+				missingParentCounter = 0;
+				writeFamFile(chains.get(coldChain).getPedigree());	
+			}
+			*/
 			
 			
 			//sample from cold chain
@@ -300,7 +335,7 @@ public class MCMCMC {
 			//for every chain, update
 			for(int j = 0; j < nChain; j++){				
 				Move move = chooseMove();
-				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
+				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat(),0);
 			}
 			
 			if(i%swapInterval==0){
@@ -313,6 +348,10 @@ public class MCMCMC {
 		
 		//close outfile
 		writer.close();
+		
+		
+
+		
 		
 	}
 	
@@ -389,14 +428,26 @@ public class MCMCMC {
 	
 
 	//write relationship to file
+	
 	private void sample(Pedigree currPedigree){
 		
 		//pairwise relatioship
 		//header for this sample
 		writer.write(String.format(">\t%f\n", currPedigree.getLogLikelihood()));
 
+		//number of ancestors for each sampled node
+		String numAncString = "";
+		
+		String toWrite = "";
 		
 		for(int i=0; i<currPedigree.numIndiv; i++){
+			
+			//num ancestors
+			List<Node> anc = new ArrayList<Node>();
+			currPedigree.getNode(i).getAncestors(anc);
+			int nAnc = anc.size();
+			
+			numAncString += nAnc;
 			
 			for(int j=i+1; j<currPedigree.numIndiv; j++){
 				
@@ -406,23 +457,54 @@ public class MCMCMC {
 				//writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
 				//TODO for hastings test
-				writer.write(String.format("%d\t%d\t%d\t", rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
 				
 			}
 			
 			
 		}
 		
+		
 		//TODO testing
-		writer.write("\n");
+		toWrite += numAncString;
+		writer.write(toWrite+"\n");
+		
+		
+		//multiplier and likelihood
+		if(!ped2info.containsKey(toWrite)){			
+			
+			PedInfo info = new PedInfo();
+			info.multiplier = computeMultiplier(currPedigree);
+			info.lkhd = currPedigree.getLogLikelihood();
+			
+			ped2info.put(toWrite, info);		
+		}
+
+		
+		
+		//count
+		if(!ped2info.containsKey(toWrite)){
+			PedInfo info = new PedInfo();
+			info.count = 1;
+			ped2info.put(toWrite, info);
+			
+		}
+		else{
+			PedInfo info = ped2info.get(toWrite);
+			info.count = info.count + 1;
+			ped2info.put(toWrite, info);
+		}
+		
+		
 	
 
 	}
 	
-	private void writeFamFile(){
+	
+
+	private void writeFamFile(Pedigree currPedigree){
 		
-		Pedigree currPedigree = chains.get(coldChain).getPedigree();
-		
+
 		//write family relationship
 		cranefootFamWriter.write(String.format("NAME\tFATHER\tMOTHER\tSEX\tSAMPLED\n"));
 		for(int i=0; i<currPedigree.getNActiveNodes(); i++){
@@ -495,7 +577,103 @@ public class MCMCMC {
 		
 		
 	}
+
 	
+
+	private int computeMultiplier(Pedigree currPedigree){
+		
+		
+		int toReturn = 1;
+		
+		currPedigree.clearVisit();
+		
+		for(int i=0; i<currPedigree.getNActiveNodes(); i++){
+			
+			//skip visited cluster
+			Node x = currPedigree.getNode(i);
+			if(x.getNumVisit()>0) continue;
+			
+			
+			//get cluster
+			List<Node> cluster = new ArrayList<Node>();
+			x.getConnectedNodes(cluster);
+			
+			
+			//depth
+			int minDepth = currPedigree.maxDepth;
+			int maxDepth = 0;
+	
+			//clear cluster visits
+			for(Node y : cluster) y.setNumVisit(0);
+			
+
+
+			for(Node y : cluster){
+				
+				//depth
+				int yDepth = y.getDepth();
+				
+				if(yDepth < minDepth) minDepth = yDepth;
+				if(yDepth > maxDepth) maxDepth = yDepth;
+				
+				//only 1 parent: not sex locked
+				if(y.getParents().size()==1){
+					
+					Node p = y.getParents().get(0);
+					
+					if(p.getNumVisit()>0) continue;
+					
+					if(!p.sampled)
+						toReturn *= 2;
+					
+					p.setNumVisit(1);
+					
+				}
+				
+				//2 parents
+				else if(y.getParents().size()==2){
+					
+					Node p1 = y.getParents().get(0);
+					Node p2 = y.getParents().get(1);
+					
+					
+					if(!p1.sampled && !p2.sampled && p1.getNumVisit()==0 && p2.getNumVisit()==0){
+						
+						int nCommonChildren = 1 + currPedigree.getFullSibs(y).size();
+						
+						if(p1.getParents().size()!=0 || p2.getParents().size()!=0 || p1.getChildren().size()!=nCommonChildren || p2.getChildren().size()!=nCommonChildren)
+							toReturn *= 2;
+						
+					}
+					
+					
+					
+					p1.setNumVisit(1);
+					p2.setNumVisit(1);
+					
+					
+				}
+
+				
+			}
+			
+			for(Node y : cluster) y.setNumVisit(1);
+			
+			//toReturn = toReturn / (int) Math.pow(2, nSexLocked/2);	
+			int span = maxDepth - minDepth;
+			toReturn = toReturn * (currPedigree.maxDepth - span + 1);
+			
+			
+			
+		}
+		
+		
+		
+		return toReturn;
+			
+		
+		
+	}
 	
 	
 	public static double acceptanceRatio(double newLkhd, double oldLkhd, double oldToNew, double newToOld, double heat){

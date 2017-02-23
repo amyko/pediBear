@@ -68,14 +68,14 @@ public class DataParser {
 				//write all columns
 				if(cols[i].length==0){
 					for (int j=0; j<fields.length; j++){
-						toWrite += fields[j]+"\t";
+						toWrite += fields[j]+" ";
 					}
 				}
 				
 				//write select columns
 				else{
 					for (int j=0; j<cols[i].length; j++){
-						toWrite += fields[cols[i][j]]+"\t";
+						toWrite += fields[cols[i][j]]+" ";
 					}
 				}
 			}

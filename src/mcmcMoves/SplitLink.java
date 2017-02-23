@@ -66,6 +66,13 @@ public class SplitLink extends Move {//WORKS
 	        }
 	    }
 	    
+	    
+	    //TODO
+	    //reject if split creates illegal cycles
+	    if(createsIllegalCycle(currPedigree, splitChildren, stayChildren, parent)) 
+	    	return REJECT;
+	    	
+	    
 
 
 
@@ -128,40 +135,7 @@ public class SplitLink extends Move {//WORKS
 		double newToOldSplit =  getLogChooseTwo(nAfter) + Math.log(outerSum);
 
 		
-		
-		/*
-		////////////// SHIFT //////////////////////////
-		//get the cluster the node belongs to
-		List<Node> cluster = new ArrayList<Node>();
-		currPedigree.clearVisit();
-		iPrime.getConnectedNodes(cluster);
-		
-		//pick offset
-		int offset = currPedigree.rGen.nextDouble() < .5 ? 0 : -1;
-		
-		//reject if highest node goes over max depth
-		int highestLevel = getHighestLevel(currPedigree, cluster);
-		if(highestLevel + offset > currPedigree.maxDepth)
-			return REJECT;
-		int lowestLevel = getLowestLevel(currPedigree, cluster);
-		if(lowestLevel+offset < 0)
-			return REJECT;
-		
 
-		
-		//shift cluster
-		currPedigree.shiftCluster(cluster, offset);
-		*/
-		
-		
-		
-
-		
-
-		
-		
-		
-		
 		
 		////////////////////// LINK /////////////////////
 		//choose nodes i and j
@@ -179,7 +153,6 @@ public class SplitLink extends Move {//WORKS
 		int jIndex = (i.getIndex() + offset) % currPedigree.getNActiveNodes();
 		Node j = currPedigree.getNode(jIndex);
 		*/
-
 		
 		
 		//choose target depth
@@ -416,6 +389,30 @@ public class SplitLink extends Move {//WORKS
 			return false;
 		}
 		
+	}
+	
+	private boolean createsIllegalCycle(Pedigree currPedigree, List<Node> splitChildren, List<Node> stayChildren, Node parent){		
+
+	    for(Node x : splitChildren){
+	    	
+	    	if(currPedigree.getFullSibs(x).size()==0) continue;
+	    	
+	    	for(Node y : splitChildren){
+	    		
+	    		if(x.getIndex()==y.getIndex()) continue;
+	    		
+	    		if(currPedigree.getFullSibs(y).size()==0) continue;
+	    		
+	    		if(!currPedigree.fullSibs(x,y)) return true;
+	    		
+	    	}
+	    		
+	    		
+	    	
+	    }
+	    
+	    return false;
+
 	}
 	
 	/*

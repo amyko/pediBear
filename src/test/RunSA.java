@@ -35,8 +35,8 @@ import mcmcMoves.GreatUncleToCousin;
 import mcmcMoves.SwapDescAnc;
 import mcmcMoves.Contract;
 import mcmcMoves.Stretch;
-import mcmcMoves.HalfSibstoFullUncle;
-import mcmcMoves.FullUncletoHalfSibs;
+import mcmcMoves.HStoFU;
+import mcmcMoves.FUtoHS;
 import mcmcMoves.CutShiftLink;
 
 
@@ -76,7 +76,7 @@ public class RunSA {
 				new CutLink("cutLink", 0.2), new SplitLink("splitLink", 0.04), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.15), new CutTwoLinkOne("cutTwoLinkOne", 0.02),
 				new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.02), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.02), new FStoPO("FStoPO", 0.02), new POtoFS("POtoFS",0.02), 
 				new HalfUncleToCousin("halfUncleToCousin", 0.02), new CousinToHalfUncle("cousinToHalfUncle", 0.02), new CousinToGreatUncle("cousinToGreatUncle", 0.02), new GreatUncleToCousin("greatUncleToCousin", 0.02),
-				new SwapDescAnc("swapDescAnc", 0.04), new Contract("contract", 0.02), new Stretch("stretch", 0.02), new HalfSibstoFullUncle("halfSibstoFullUncle", 0.02), new FullUncletoHalfSibs("fullUncleToHalfSibs", 0.02),
+				new SwapDescAnc("swapDescAnc", 0.04), new Contract("contract", 0.02), new Stretch("stretch", 0.02), new HStoFU("halfSibstoFullUncle", 0.02), new FUtoHS("fullUncleToHalfSibs", 0.02),
 				new ShiftClusterLevel("shiftClusterLevel", 0.04)};
 		String testName = "sim4";
 		String truePath = dir + "results/sim4.true";

@@ -27,14 +27,22 @@ public class Cut extends Move {//WORKS
 		Node child = currPedigree.getRandomNode();
 		
 		
+		
+		
 		//choose mom or dad to cut from
 		int parentSex = currPedigree.rGen.nextDouble() < .5 ? 0 : 1;
 		Node parent = child.getParentWithSex(parentSex);
 		if(parent==null || isSplitNode(parent)) //reject if parent not available or parent is a splitNode
 			return REJECT;
 		
-		
+		/*
+		if(currPedigree.getNActiveNodes()==6 && child.getDepth()==1){
+			currPedigree.printAdjMat();
+			System.out.println();
+		}
+		*/
 
+		
 
 		//determine if the child has full siblings; if so, cutting doens't split the pedigree
 		boolean hasFullSib = hasFullSib(currPedigree, child);
@@ -83,7 +91,7 @@ public class Cut extends Move {//WORKS
 			innerSum = 0d;
 			for(int l2=0; l2 <= jPrime.getDepth(); l2++){
 				
-				if(l1==targetDepth && l2==targetDepth){
+				if((l1==targetDepth && l2==targetDepth) || jDepthToCount[l2]==0){
 					continue;
 				}
 				
