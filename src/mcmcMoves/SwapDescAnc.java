@@ -7,7 +7,6 @@ import mcmc.MCMCMC;
 import dataStructures.Node;
 import dataStructures.Pedigree;
 
-
 // 1) swap two sampled nodes
 
 public class SwapDescAnc extends Move {
@@ -32,12 +31,11 @@ public class SwapDescAnc extends Move {
 		testing.clear();
 		child.getAncestors(testing);
 		ancestors.clear();
-		
-		int childDepth = child.getDepth();
-		int childSex = child.getSex();
+
+
 		for(Node parent : testing){
-			//older than parents, sampled, and sex compatible
-			if(parent.sampled && parent.getSex()==childSex && parent.getDepth() > childDepth+1)
+			//sampled, and sex compatible
+			if(parent.sampled && parent.getSex()==child.getSex())
 				ancestors.add(parent);
 		}
 
@@ -48,24 +46,7 @@ public class SwapDescAnc extends Move {
 		//choose ancestor
 		Node anc = ancestors.get(currPedigree.rGen.nextInt(ancestors.size()));
 
-
 		
-		/*
-		//check sex compatibility
-		if(child.getSex() != anc.getSex()){
-			
-			for(Node c : child.getChildren()){
-				if(c.getParents().size()==2) return REJECT;
-			}
-			
-			for(Node c : anc.getChildren()){
-				if(c.getParents().size()==2) return REJECT;
-			}
-			
-		}
-		*/
-		
-
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();

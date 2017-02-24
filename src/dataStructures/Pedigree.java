@@ -2104,51 +2104,56 @@ public class Pedigree {
 		//subtract old terms
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);	
 
-				
-		//switch nodes
-		//save descendant parents & children
-		List<Node> descParents = new ArrayList<Node>();
-		List<Node> descChildren = new ArrayList<Node>();
-		for(Node p : desc.getParents()){
-			descParents.add(p);
-			p.removeChild(desc);
-			p.addChild(anc);
-		}
-		for(Node p : desc.getChildren()){
-			descChildren.add(p);
-			p.removeParent(desc);
-			p.addParent(anc);
-		}
-		int descDepth = desc.getDepth();
 		
-		desc.getParents().clear();
-		desc.getChildren().clear();
-		
-		//save anc parents & children
-		List<Node> ancParents = new ArrayList<Node>();
-		List<Node> ancChildren = new ArrayList<Node>();
-		for(Node p : anc.getParents()){
-			ancParents.add(p);
-			p.removeChild(anc);
-			p.addChild(desc);
-		}
-		for(Node p : anc.getChildren()){
-			ancChildren.add(p);
-			p.removeParent(anc);
-			p.addParent(desc);
+		if(anc.getDepth() == desc.getDepth()+1){
+			switchParentChild(anc,desc);
 		}
 		
-		anc.getParents().clear();
-		anc.getChildren().clear();
-		
-		//update
-		anc.setParents(descParents);
-		anc.setChildren(descChildren);
-		desc.setParents(ancParents);
-		desc.setChildren(ancChildren);
-		desc.setDepth(anc.getDepth());
-		anc.setDepth(descDepth);
-		
+		else{
+			//switch nodes
+			//save descendant parents & children
+			List<Node> descParents = new ArrayList<Node>();
+			List<Node> descChildren = new ArrayList<Node>();
+			for(Node p : desc.getParents()){
+				descParents.add(p);
+				p.removeChild(desc);
+				p.addChild(anc);
+			}
+			for(Node p : desc.getChildren()){
+				descChildren.add(p);
+				p.removeParent(desc);
+				p.addParent(anc);
+			}
+			int descDepth = desc.getDepth();
+			
+			desc.getParents().clear();
+			desc.getChildren().clear();
+			
+			//save anc parents & children
+			List<Node> ancParents = new ArrayList<Node>();
+			List<Node> ancChildren = new ArrayList<Node>();
+			for(Node p : anc.getParents()){
+				ancParents.add(p);
+				p.removeChild(anc);
+				p.addChild(desc);
+			}
+			for(Node p : anc.getChildren()){
+				ancChildren.add(p);
+				p.removeParent(anc);
+				p.addParent(desc);
+			}
+			
+			anc.getParents().clear();
+			anc.getChildren().clear();
+			
+			//update
+			anc.setParents(descParents);
+			anc.setChildren(descChildren);
+			desc.setParents(ancParents);
+			desc.setChildren(ancChildren);
+			desc.setDepth(anc.getDepth());
+			anc.setDepth(descDepth);
+		}
 		
 		
 	

@@ -85,7 +85,7 @@ public class FUtoHS extends Move{
 
 		
 		//choose targetSex for parent, symmetry for fullSibs of child
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("fu2hs"));
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("FUtoHS"));
 		
 
 		currPedigree.FUtoHS(child, parent, targetSex, fullSibs, shift);
@@ -101,7 +101,7 @@ public class FUtoHS extends Move{
 		}
 				
 		int symm = currPedigree.getFullSibs(uncles.get(0)).size()+1;
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nHS) + Math.log(symm*moveProbs.get("hs2fu"));
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nHS) + Math.log(symm*moveProbs.get("HStoFU"));
 		
 		//accept ratio
 		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);

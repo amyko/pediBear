@@ -16,8 +16,7 @@ public class POtoFS extends Move{
 	
 	protected double tryMove(Pedigree currPedigree, double heat) {
 	
-
-		//choose a child to cut
+		
 		Node child = currPedigree.getRandomNode();
 
 		//reject if child doesn't have exactly 1 parent
@@ -52,7 +51,13 @@ public class POtoFS extends Move{
 			if(minDepth==0) return REJECT;
 		} 
 
-
+		/*
+		if((int) currPedigree.getLogLikelihood()==-92954 && parent.getIndex()==0){
+			System.out.println();
+		}
+		*/
+		
+		
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
@@ -76,6 +81,8 @@ public class POtoFS extends Move{
 		//accept ratio
 		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);
 		
+		
+
 
 		
 	}

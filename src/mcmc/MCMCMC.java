@@ -25,6 +25,8 @@ public class MCMCMC {
 	final static int maxTuneTrialTune = 10; //max number of tune trials inside Tune
 	final static int maxTuneTrialBurnIn = 10; //max number of tune trials inside BurnIn
 	final static int tuneInterval = 100000;
+	final static int maxDelta = 10;
+	final static int minDelta = 0;
 
 	String outPath; 
 	final List<Chain> chains;
@@ -106,6 +108,7 @@ public class MCMCMC {
 		//initialize variables
 		int t = 0;
 
+		boolean deltaOutOfBounds = false;
 		
 		//tune 
 		while(!tuned && t < maxTuneTrialTune){
@@ -124,6 +127,12 @@ public class MCMCMC {
 				//update delta
 				this.deltaT *= multiplier;
 				
+				//failed auto tune
+				if(deltaT > maxDelta || deltaT < minDelta){
+					deltaOutOfBounds = true;
+					break;
+				}
+				
 				for(int i=0; i<nChain; i++){
 					chains.get(i).setHeat(deltaT);
 					
@@ -131,6 +140,9 @@ public class MCMCMC {
 				
 				
 			}
+			
+			//failed to auto-tune
+			if(deltaOutOfBounds) break;
 
 			//update counts
 			nSwapAttempt = 0;
@@ -162,9 +174,13 @@ public class MCMCMC {
 			
 		}
 		
+
 		//System.out.println(String.format("swap rate: %.2f", currSwapRate));
-		//if(t==maxTuneTrialTune && !tuned)
-			//System.out.println("Tuning failed inside tune()");
+		if(t==maxTuneTrialTune && !tuned)
+			System.out.println("Tuning failed");
+		if(deltaOutOfBounds){
+			System.out.println("Tuning paramater delta out of bounds");
+		}
 		
 		
 		
@@ -202,7 +218,7 @@ public class MCMCMC {
 				
 				 
 				
-				if(i==805){
+				if(i==1838){
 					//Node myNode = chains.get(j).getPedigree().getNode(6);
 					//String toWrite = "";
 					//for(Node x : myNode.getParents()) toWrite += x.iid+" ";
@@ -299,8 +315,7 @@ public class MCMCMC {
 		
 		System.out.println("Sampling...");
 		
-		
-		
+
 		//now start sampling
 		for(int i = 0; i < runLength; i++){
 			
@@ -316,13 +331,16 @@ public class MCMCMC {
 			}
 			
 			/*
-			if((int)currLkhd==-46788){
+			if(Math.abs(currLkhd-(-42952.742734)) < 1e-3 && written==false){
 
 				cranefootFamWriter = DataParser.openWriter(outPath+".2.fam");
 				missingParentCounter = 0;
 				writeFamFile(chains.get(coldChain).getPedigree());	
+				written = true;
 			}
 			*/
+			
+	
 			
 			
 			//sample from cold chain
@@ -394,7 +412,10 @@ public class MCMCMC {
 			
 			
 			//compute probability of swapping states
-			double acceptRatio = chains.get(j).getHeat() * chains.get(k).getLikelihood() + chains.get(k).getHeat() * chains.get(j).getLikelihood() - chains.get(j).getHeat()  * chains.get(j).getLikelihood() - chains.get(k).getHeat()  * chains.get(k).getLikelihood();
+			double acceptRatio = chains.get(j).getHeat()*chains.get(k).getLikelihood() + chains.get(k).getHeat()*chains.get(j).getLikelihood() - chains.get(j).getHeat()*chains.get(j).getLikelihood() - chains.get(k).getHeat()*chains.get(k).getLikelihood();
+
+			
+			
 			double acceptProb = 0d;
 			if(acceptRatio > 0){
 				acceptProb = 1;
@@ -407,10 +428,10 @@ public class MCMCMC {
 			//swap states
 			if(rGen.nextDouble() < acceptProb){
 				
+				
 				Pedigree jped = chains.get(j).getPedigree();
 				chains.get(j).setPedigree(chains.get(k).getPedigree());
 				chains.get(k).setPedigree(jped);
-
 				
 				nSwapSuccess++;
 				
@@ -454,10 +475,10 @@ public class MCMCMC {
 				Path rel = currPedigree.getRelationships()[i][j];
 				
 				
-				//writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
 				//TODO for hastings test
-				toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
+				//toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
 				
 			}
 			
@@ -466,8 +487,8 @@ public class MCMCMC {
 		
 		
 		//TODO testing
-		toWrite += numAncString;
-		writer.write(toWrite+"\n");
+		//toWrite += numAncString;
+		//writer.write(toWrite+"\n");
 		
 		
 		//multiplier and likelihood
@@ -685,7 +706,7 @@ public class MCMCMC {
 		
 		
 		
-		if(oldToNew==Double.NEGATIVE_INFINITY || newToOld==Double.NEGATIVE_INFINITY){
+		if(oldToNew==Double.NEGATIVE_INFINITY || newToOld==Double.NEGATIVE_INFINITY || oldToNew==Double.POSITIVE_INFINITY || newToOld==Double.POSITIVE_INFINITY ){
 			System.out.println("proposal prob inifinity");
 		}
 		

@@ -97,14 +97,14 @@ public class HStoFU extends Move{
 		//choose node, choose targetSex for parent, choose halfSib, choose shift direction
 		//symmetry for fullSibs of child, fullSibs of HS; sex & direction cancel out
 		int symm = (currPedigree.getFullSibs(halfSib).size()+1);
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(halfSibs.size()) +  Math.log(symm*moveProbs.get("hs2fu"));
+		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(halfSibs.size()) +  Math.log(symm*moveProbs.get("HStoFU"));
 		
 	
 		//modify
 		currPedigree.HStoFU(child, parent, halfSib, targetSex, fullSibs, shift);
 		
 		//choose targetSex for parent, symmetry for fullSibs of child
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("fu2hs"));
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("FUtoHS"));
 		
 		//accept ratio
 		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);

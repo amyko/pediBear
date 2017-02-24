@@ -60,6 +60,20 @@ public class POtoOP extends Move {
 		}
 		
 
+		//reject if confounds with GP2HS
+		if(!middleNode.sampled && middleNode.getChildren().size()>0 && upperNode.getNumEdges()==1 && middleNode.getParents().size()==1){
+
+			
+			Node child = middleNode.getChildren().get(0);
+			
+			if(currPedigree.getFullSibs(child).size()+1 == middleNode.getChildren().size())
+				return REJECT;
+			
+			
+		}
+
+		
+		
 		
 		Node lowerNode = null;
 

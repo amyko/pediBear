@@ -67,7 +67,7 @@ public class RunMCMC{
 	public static int iterPerTemp = 40000;
 	public static int maxIter = 10000000;
 	public static double conv = 1;
-	public static int numIndiv = 10;
+	public static int numIndiv = 18;
 	public static double poissonMean = numIndiv;
 	public static boolean conditional = true;
 	public static int numRun = 1;
@@ -78,7 +78,7 @@ public class RunMCMC{
 	public static int maxNumNodes = 200;
 	public static Map<String, Double> name2age = null;
 	
-	public static Random rGen = new Random(1052764);
+	public static Random rGen = new Random(102762);
 
 	
 	
@@ -237,20 +237,19 @@ public class RunMCMC{
 	public static void runThreads(String myFile, String outfile) throws IOException{
 		
 		//arguments
-		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .02),  
+		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .02), new Split("split", .02),  
 				new CutLink("cutLink", .05), new SplitLink("splitLink", .05), 
 				new ShiftClusterLevel("shiftClusterLevel", .02),  new SwitchSex("switchSex", .02),  
-				new FStoSelf("FStoSelf", .05), new SelftoFS("selfToFS", .05),						
-				new FStoPO("FStoPO", .05), new POtoFS("POtoFS", .09),	
-				new HStoPO("HStoPO", .05), new POtoHS("POtoHS", .05),
-				new HStoGP("HStoGP", .05), new GPtoHS("GPtoHS", .05),	
-				new UncletoNephew("uncleToNephew", .15), new NephewToUncle("nephewToUncle", .15),
+				new FStoSelf("FStoSelf", .07), new SelftoFS("selfToFS", .07),
+				new HStoGP("HStoGP", .06), new GPtoHS("GPtoHS", .06),	
+				new UncletoNephew("uncleToNephew", .07), new NephewToUncle("nephewToUncle", .07),
+				new SwapDescAnc("swapDescAnc", .02),
+				new OPtoPO("OPtoPO", .02), new POtoOP("POtoOP", .02),
+				new FStoPO("FStoPO", .05), new POtoFS("POtoFS", .05), //confounds with HS2FU
+				new HStoPO("HStoPO", .05), new POtoHS("POtoHS", .06),
+				new Contract("contract", .05), new Stretch("stretch", .05), //confounds with HS2PO, HS2FU?
 				
-				new OPtoPO("OPtoPO", .0), new POtoOP("POtoOP", .0),
-
-				new Contract("contract", .0), new Stretch("stretch", .0), //confounds with HS2PO, HS2FU
-
-				new HStoFU("hs2fu",.0), new FUtoHS("fu2hs", .0), //confounds with PO2FS
+				new HStoFU("HStoFU",.0), new FUtoHS("FUtoHS", .0), //confounds with POtoFU
 				new Split2("split2", 0), new SwapDescAnc("swapDescAnc", .0),
 				new SwapUp("swapUp", .0), new SwapDown("swapDown", .0),
 				new CutOneLinkTwo("cutOneLinkTwo", .0), new CutTwoLinkOne("cutTwoLinkOne", .0)};
@@ -267,9 +266,9 @@ public class RunMCMC{
 		//mcmc parameters
 		int nChain = 5;
 		int nBranch = 1;
-		int burnIn = 200000;
-		int runLength = 1000000;
-		int sampleRate = 50;
+		int burnIn = 10;
+		int runLength = 500000;
+		int sampleRate = 25;
 		double deltaT = .5;
 		int swapInterval = 1;
 		int nSwaps = 1;
@@ -378,11 +377,11 @@ public class RunMCMC{
 		
 		//check relative occupancy
 		String[] peds = getTwoPeds(mcmcmc);
-		System.out.println(peds[0]);
-		System.out.println(peds[1]);
-		checkRelativeOccupancy(outfile, mcmcmc, peds[0], peds[1]);
+		//System.out.println(peds[0]);
+		//System.out.println(peds[1]);
+		if(peds[0]!=null && peds[1]!=null)
+			checkRelativeOccupancy(outfile, mcmcmc, peds[0], peds[1]);
 		System.out.println(mcmcmc.bestLkhd);
-		
 		
 
 		
@@ -518,7 +517,7 @@ public class RunMCMC{
 			
 			
 			//recompute ratio
-			if(lineCounter%5000==0){
+			if(lineCounter%1000==0){
 				double expected = count2 * factor;
 				double ratio = expected / count1;
 				writer.write(String.format("%d\t%.3f\n", lineCounter, ratio));
@@ -536,8 +535,8 @@ public class RunMCMC{
 	public static void writeMap(PrintWriter writer, int t) throws NumberFormatException, IOException{
 			
 		//get mapAcc
-		String truePath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim4.true";
-		String outPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim4.pair";
+		String truePath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5.true";
+		String outPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5.0.pair";
 		String pathToOmega = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/pathToOmega.txt";
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmega);
 		double[][] mapAcc = Accuracy.mapAccuracy(outPath, truePath, numIndiv, numIndiv, pathToKinship);
@@ -576,11 +575,11 @@ public class RunMCMC{
 	
 		
 		//open output file
-		//PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim4.mcmc.3chains.mapAcc");
-		//PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/testing");
+		//PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5.mcmc.5chains.mapAcc");
+		PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/testing");
 
 		//run
-		for(int i=9; i<10; i++){
+		for(int i=65; i<66; i++){
 			
 			System.out.println(i);
 			
@@ -594,7 +593,7 @@ public class RunMCMC{
 				
 				//validate(outfile);
 				
-				//writeMap(writer, i);
+				writeMap(writer, i);
 			}
 			
 		}

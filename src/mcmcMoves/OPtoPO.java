@@ -43,16 +43,34 @@ public class OPtoPO extends Move {
 		//get grand parents to switch with
 		Node upperNode = middleNode.getParentWithSex(lowerNode.getSex());
 		
-		/*
+		
 		//to prevent overlap with swapAncDesc
 		if(upperNode!=null && upperNode.sampled)
 			return REJECT;
-		*/
+		
+		
+		//reject if confounds with HS2GP
+		if(!middleNode.sampled && middleNode.getParents().size()==0 && middleNode.getChildren().size()>1){
+			
+			//get lowerNode's half sibling
+			Node sib = null;
+			
+			for(Node x : middleNode.getChildren()){
+				if(x.getIndex()==lowerNode.getIndex()) continue;
+				sib = x;
+				break;
+			}
+			
+			
+			if(currPedigree.getFullSibs(sib).size() + 2 == middleNode.getChildren().size())
+				return REJECT;
+
+		}
+			
 
 
 		if(isSplitNode(middleNode, upperNode)) 
 			return REJECT;	
-		
 		
 		
 		

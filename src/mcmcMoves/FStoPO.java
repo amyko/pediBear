@@ -57,12 +57,12 @@ public class FStoPO extends Move{
 		} 
 
 
-
+		
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
-		
+
 		
 		//old to new
 		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(sibs.size()) + Math.log(moveProbs.get("FStoPO"));

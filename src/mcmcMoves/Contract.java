@@ -6,7 +6,7 @@ import dataStructures.Node;
 import dataStructures.Pedigree;
 
 
-public class Contract extends Move{ //WORKS; special merge not tested
+public class Contract extends Move{ 
 
 	
 	public Contract(String name, double moveProb) {
@@ -21,22 +21,49 @@ public class Contract extends Move{ //WORKS; special merge not tested
 		Node child = currPedigree.getRandomSampledNode();
 		
 		
+		
 		//reject if it doesn't have exactly one parent
 		if(child.getParents().size()!=1) 
 			return REJECT;
-		
-		/*
-		//prevent overlap with swap up
-		if(child.getChildren().size()==0)
-			return REJECT;
-			*/
-		
+
 		
 		Node parent = child.getParents().get(0);
 		
-		//reject if the parent is sampled or has wrong sex
+		//reject if the parent is sampled or has wrong sex; must have grand parents
 		if(parent.sampled || parent.getSex()!=child.getSex() || parent.getChildren().size()!=1 || parent.getParents().size()==0)
 			return REJECT;
+		
+
+		
+		//reject if confounds with POtoHS (i.e. both gp and parent would be deleted)
+		if(parent.getParents().size()==1){
+			
+			Node gp = parent.getParents().get(0);
+			
+			//check if gp would be deleted by removing halfSib cluster
+			if(!gp.sampled && gp.getSex()==child.getSex() && gp.getParents().size()==0 && gp.getChildren().size()>1){
+				
+				Node hs = null;
+				for(Node x : gp.getChildren()){
+					if(x.getIndex()==parent.getIndex()) continue;
+					hs = x;
+					if(currPedigree.getFullSibs(hs).size()+2 == gp.getChildren().size()){
+						
+						return REJECT;
+						
+						
+					}
+				}
+				
+
+						
+				
+			}
+			
+		}
+		
+		
+		
 		
 
 		//choose 1) shift child cluster up or 2) shift parent cluster down
@@ -94,29 +121,6 @@ public class Contract extends Move{ //WORKS; special merge not tested
 	
 	}
 	
-
-	/*
-	private boolean violatesAgeConstraints(Pedigree currPedigree, Node child, Node parent){
-
-		if(parent.getChildren().size()==1 || child.getAge()==-1)
-			return false;
-		
-		for(Node leaf : parent.getChildren()){
-			
-			if(leaf.getIndex()==child.getIndex()) continue;
-			
-			double maxClusterAge = currPedigree.getDescendantWithMaxAge(leaf).getAge();
-			
-			if(maxClusterAge > child.getAge())
-				return true;
-			
-		}
-		
-		return false;
-		
-		
-	}
-	*/
 
 	
 	
