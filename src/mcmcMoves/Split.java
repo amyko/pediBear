@@ -70,6 +70,10 @@ public class Split extends Move {
 	    }
 	    
 	    
+	    //reject if creates illegal cycle
+	    if(createsIllegalCycle(currPedigree, splitChildren, stayChildren, parent))
+	    	return REJECT;
+	    
 	    
 		//old to new
 		//via split
@@ -191,6 +195,31 @@ public class Split extends Move {
 
 		
 	}
+	
+	private boolean createsIllegalCycle(Pedigree currPedigree, List<Node> splitChildren, List<Node> stayChildren, Node parent){		
+
+	    for(Node x : splitChildren){
+	    	
+	    	if(currPedigree.getFullSibs(x).size()==0) continue;
+	    	
+	    	for(Node y : splitChildren){
+	    		
+	    		if(x.getIndex()==y.getIndex()) continue;
+	    		
+	    		if(currPedigree.getFullSibs(y).size()==0) continue;
+	    		
+	    		if(!currPedigree.fullSibs(x,y)) return true;
+	    		
+	    	}
+	    		
+	    		
+	    	
+	    }
+	    
+	    return false;
+
+	}
+	
 	
 
 }

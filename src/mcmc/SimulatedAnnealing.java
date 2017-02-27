@@ -242,8 +242,8 @@ public class SimulatedAnnealing {
 		String sex = ind.getSex()==1 ? "1" : "7"; 
 		
 		//if missing individual and sex not constrained
-		currPedigree.clearVisit();
-		if(currPedigree.sexLocked(ind)==false) sex = "4";
+		//currPedigree.clearVisit();
+		//if(currPedigree.sexLocked(ind)==false) sex = "4";
 			
 		//get parent ids
 		for(Node parent : ind.getParents()){
@@ -287,63 +287,6 @@ public class SimulatedAnnealing {
 		
 		
 	}
-	
-	
-	/* OLD CODE
-	private void recordCranefootFam(Node ind, Pedigree currPedigree){
-		
-		String name = ind.fid + "_" + ind.iid;
-		String pa = "0";
-		String ma = "0";
-		String sampleStatus = ind.sampled ? "000000" : "999999";
-		String sex = ind.getSex()==1 ? "7" : "1"; 
-		
-		//if missing individual and sex not constrained
-		currPedigree.clearVisit();
-		if(currPedigree.sexLocked(ind)==false) sex = "4";
-			
-		//get parent ids
-		for(Node parent : ind.getParents()){
-			
-			//recordFam(parent);
-		
-			if(parent.getSex()==0)
-				ma = parent.fid + "_" + parent.iid;
-			else if(parent.getSex()==1)
-				pa = parent.fid + "_" + parent.iid;
-			else
-				throw new RuntimeException("Parent with unknown sex");
-			
-		}
-		
-		//if only one parent is present
-		if(ind.getParents().size()==1){
-			
-			//make missing parent
-			int missingParentSex = ind.getParents().get(0).getSex()==1 ? 0 : 1;
-			Node missingParent = new Node("missingParent", ind.iid, missingParentSex, false, -1);
-			
-			//connect temporarily
-			currPedigree.connect(missingParent, ind);
-			recordCranefootFam(missingParent, currPedigree);
-			currPedigree.disconnect(missingParent, ind);
-			
-			if(missingParentSex==0) ma = "missingParent_" + ind.iid;
-			else pa = "missingParent_" + ind.iid;
-			
-		}
-
-		
-		
-		
-		
-		//write to file
-		cranefootFamWriter.write(String.format("%s\t%s\t%s\t%s\t%s\n", name, pa, ma, sex, sampleStatus));
-		
-		
-	}
-	*/
-	
 	
 	
 	private void recordLkhd(Pedigree currPedigree, int iter){
