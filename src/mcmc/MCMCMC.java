@@ -315,7 +315,7 @@ public class MCMCMC {
 		
 		System.out.println("Sampling...");
 		
-
+		boolean written = false;
 		//now start sampling
 		for(int i = 0; i < runLength; i++){
 			
@@ -330,15 +330,18 @@ public class MCMCMC {
 				
 			}
 			
-			/*
-			if(Math.abs(currLkhd-(-42952.742734)) < 1e-3 && written==false){
+			
+			if(Math.abs(currLkhd+47393.39) < 1e-1 && written==false){
 
 				cranefootFamWriter = DataParser.openWriter(outPath+".2.fam");
 				missingParentCounter = 0;
 				writeFamFile(chains.get(coldChain).getPedigree());	
 				written = true;
 			}
-			*/
+			
+			
+			
+			
 			
 	
 			
@@ -475,10 +478,10 @@ public class MCMCMC {
 				Path rel = currPedigree.getRelationships()[i][j];
 				
 				
-				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				//writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
 				//TODO for hastings test
-				//toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
+				toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
 				
 			}
 			
@@ -488,15 +491,15 @@ public class MCMCMC {
 		
 		//TODO testing
 		//toWrite += numAncString;
-		//writer.write(toWrite+"\n");
+		writer.write(toWrite+"\n");
 		
 		
 		//multiplier and likelihood
 		if(!ped2info.containsKey(toWrite)){			
 			
 			PedInfo info = new PedInfo();
-			info.multiplier = computeMultiplier(currPedigree);
 			info.lkhd = currPedigree.getLogLikelihood();
+			info.multiplier = computeMultiplier(currPedigree);
 			
 			ped2info.put(toWrite, info);		
 		}
@@ -553,8 +556,8 @@ public class MCMCMC {
 		String sex = ind.getSex()==1 ? "1" : "7"; 
 		
 		//if missing individual and sex not constrained
-		currPedigree.clearVisit();
-		if(currPedigree.sexLocked(ind)==false) sex = "4";
+		//currPedigree.clearVisit();
+		//if(currPedigree.sexLocked(ind)==false) sex = "4";
 			
 		//get parent ids
 		for(Node parent : ind.getParents()){
@@ -623,6 +626,7 @@ public class MCMCMC {
 			//depth
 			int minDepth = currPedigree.maxDepth;
 			int maxDepth = 0;
+			int maxSampleDepth = 0;
 	
 			//clear cluster visits
 			for(Node y : cluster) y.setNumVisit(0);
@@ -636,6 +640,9 @@ public class MCMCMC {
 				
 				if(yDepth < minDepth) minDepth = yDepth;
 				if(yDepth > maxDepth) maxDepth = yDepth;
+				
+				if(y.sampled && maxSampleDepth < y.getDepth())
+					maxSampleDepth = y.getDepth();
 				
 				//only 1 parent: not sex locked
 				if(y.getParents().size()==1){
@@ -680,9 +687,26 @@ public class MCMCMC {
 			
 			for(Node y : cluster) y.setNumVisit(1);
 			
-			//toReturn = toReturn / (int) Math.pow(2, nSexLocked/2);	
-			int span = maxDepth - minDepth;
-			toReturn = toReturn * (currPedigree.maxDepth - span + 1);
+			
+			int depthFactor = 1;
+			int k=1;
+			while(k+maxDepth < currPedigree.maxDepth+1){ //going up
+				if(maxSampleDepth+k <= currPedigree.maxSampleDepth){
+					depthFactor++;
+					k++;
+				}
+				else
+					break;
+			}
+			
+			k=1;
+			while(minDepth-k >= 0){
+				depthFactor++;
+				k++;
+			}
+
+			
+			toReturn = toReturn * depthFactor;
 			
 			
 			

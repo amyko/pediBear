@@ -137,12 +137,10 @@ public abstract class Move {
 		
 		//accept move and clean
 		else{
-			
-			
+
 			//System.out.println(this.name);	
 			//currPedigree.printAdjMat();
 			
-		
 			
 			nAccept++;
 			clean(currPedigree);

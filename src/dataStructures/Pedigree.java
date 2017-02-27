@@ -3268,6 +3268,7 @@ public class Pedigree {
 		
 	}
 	
+	
 	//get spouses, including itself
 	public List<Node> getSpouses(Node node, List<Node> spouses){
 

@@ -60,14 +60,14 @@ public class RunMCMC{
 	public static double maf = 0.01;
 	public static double errorRate = 0.01;
 	public static int maxDepth = 4;
-	public static int sampleDepth = maxDepth;
+	public static int sampleDepth = maxDepth-2;
 	public static double back = 0.04;
 	public static double startTemp = 100;
 	public static double tempFact = 1.01;
 	public static int iterPerTemp = 40000;
 	public static int maxIter = 10000000;
 	public static double conv = 1;
-	public static int numIndiv = 18;
+	public static int numIndiv = 10;
 	public static double poissonMean = numIndiv;
 	public static boolean conditional = true;
 	public static int numRun = 1;
@@ -267,7 +267,7 @@ public class RunMCMC{
 		int nChain = 5;
 		int nBranch = 1;
 		int burnIn = 10;
-		int runLength = 500000;
+		int runLength = 1000000;
 		int sampleRate = 25;
 		double deltaT = .5;
 		int swapInterval = 1;
@@ -375,6 +375,11 @@ public class RunMCMC{
 		mcmcmc.run();
 		
 		
+		//print counts
+		for(PedInfo info : mcmcmc.ped2info.values()){
+			System.out.println(String.format("%f %d",info.lkhd, info.count));
+		}
+		
 		//check relative occupancy
 		String[] peds = getTwoPeds(mcmcmc);
 		//System.out.println(peds[0]);
@@ -382,6 +387,8 @@ public class RunMCMC{
 		if(peds[0]!=null && peds[1]!=null)
 			checkRelativeOccupancy(outfile, mcmcmc, peds[0], peds[1]);
 		System.out.println(mcmcmc.bestLkhd);
+		
+		
 		
 
 		
@@ -575,11 +582,11 @@ public class RunMCMC{
 	
 		
 		//open output file
-		//PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5.mcmc.5chains.mapAcc");
+		//PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim4.mcmc.5chains.mapAcc");
 		PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/testing");
 
 		//run
-		for(int i=65; i<66; i++){
+		for(int i=0; i<1; i++){
 			
 			System.out.println(i);
 			
@@ -593,7 +600,7 @@ public class RunMCMC{
 				
 				//validate(outfile);
 				
-				writeMap(writer, i);
+				//writeMap(writer, i);
 			}
 			
 		}

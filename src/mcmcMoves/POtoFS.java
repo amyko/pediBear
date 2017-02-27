@@ -52,11 +52,12 @@ public class POtoFS extends Move{
 		} 
 
 		/*
-		if((int) currPedigree.getLogLikelihood()==-92954 && parent.getIndex()==0){
+		if((int) currPedigree.getLogLikelihood()==-47390 && child.getDepth()==2 && !child.sampled){
 			System.out.println();
 		}
 		*/
 		
+	
 		
 		
 		//copy pedigree

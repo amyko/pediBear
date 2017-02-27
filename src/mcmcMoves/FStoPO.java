@@ -58,7 +58,6 @@ public class FStoPO extends Move{
 
 
 		
-		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
@@ -75,6 +74,7 @@ public class FStoPO extends Move{
 		//new to old
 		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("POtoFS"));
 		
+
 
 		
 		//accept ratio
