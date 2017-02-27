@@ -476,12 +476,12 @@ public class MCMCMC {
 			for(int j=i+1; j<currPedigree.numIndiv; j++){
 				
 				Path rel = currPedigree.getRelationships()[i][j];
+				 
 				
-				
-				//writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
 				//TODO for hastings test
-				toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
+				//toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
 				
 			}
 			
@@ -489,9 +489,11 @@ public class MCMCMC {
 		}
 		
 		
+		
+		toWrite += numAncString;
+		
 		//TODO testing
-		//toWrite += numAncString;
-		writer.write(toWrite+"\n");
+		//writer.write(toWrite+"\n");
 		
 		
 		//multiplier and likelihood
@@ -687,6 +689,8 @@ public class MCMCMC {
 			
 			for(Node y : cluster) y.setNumVisit(1);
 			
+			
+
 			
 			int depthFactor = 1;
 			int k=1;

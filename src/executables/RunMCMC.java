@@ -54,20 +54,20 @@ import utility.DataParser;
 public class RunMCMC{
 	
 	//MCMC parameter
-	public static String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/simPed5/";
+	public static String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/simPed4/";
 	public static String refPopFileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/mcmcTest/mcmcTest";
 	public static String ageFileName = "";
 	public static double maf = 0.01;
 	public static double errorRate = 0.01;
 	public static int maxDepth = 4;
-	public static int sampleDepth = maxDepth-2;
+	public static int sampleDepth = maxDepth;
 	public static double back = 0.04;
 	public static double startTemp = 100;
 	public static double tempFact = 1.01;
 	public static int iterPerTemp = 40000;
 	public static int maxIter = 10000000;
 	public static double conv = 1;
-	public static int numIndiv = 10;
+	public static int numIndiv = 18;
 	public static double poissonMean = numIndiv;
 	public static boolean conditional = true;
 	public static int numRun = 1;
@@ -77,8 +77,8 @@ public class RunMCMC{
 	//misc
 	public static int maxNumNodes = 200;
 	public static Map<String, Double> name2age = null;
-	
 	public static Random rGen = new Random(102762);
+	
 
 	
 	
@@ -236,6 +236,8 @@ public class RunMCMC{
 
 	public static void runThreads(String myFile, String outfile) throws IOException{
 		
+		//Random rGen = new Random(102762);
+		
 		//arguments
 		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .02), new Split("split", .02),  
 				new CutLink("cutLink", .05), new SplitLink("splitLink", .05), 
@@ -264,10 +266,10 @@ public class RunMCMC{
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
 
 		//mcmc parameters
-		int nChain = 5;
+		int nChain = 7;
 		int nBranch = 1;
 		int burnIn = 10;
-		int runLength = 1000000;
+		int runLength = 100000;
 		int sampleRate = 25;
 		double deltaT = .5;
 		int swapInterval = 1;
@@ -375,6 +377,8 @@ public class RunMCMC{
 		mcmcmc.run();
 		
 		
+		
+		/*
 		//print counts
 		for(PedInfo info : mcmcmc.ped2info.values()){
 			System.out.println(String.format("%f %d",info.lkhd, info.count));
@@ -387,7 +391,7 @@ public class RunMCMC{
 		if(peds[0]!=null && peds[1]!=null)
 			checkRelativeOccupancy(outfile, mcmcmc, peds[0], peds[1]);
 		System.out.println(mcmcmc.bestLkhd);
-		
+		*/
 		
 		
 
@@ -542,7 +546,7 @@ public class RunMCMC{
 	public static void writeMap(PrintWriter writer, int t) throws NumberFormatException, IOException{
 			
 		//get mapAcc
-		String truePath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5.true";
+		String truePath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim4.true";
 		String outPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5.0.pair";
 		String pathToOmega = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/pathToOmega.txt";
 		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmega);
@@ -586,13 +590,13 @@ public class RunMCMC{
 		PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/testing");
 
 		//run
-		for(int i=0; i<1; i++){
+		for(int i=0; i<100; i++){
 			
 			System.out.println(i);
 			
 			for(int j=0; j<1; j++){
 			
-				String myFile = fileName + "sim5." + i;
+				String myFile = fileName + "sim4." + i;
 				String outfile = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5."+j;
 
 				
@@ -600,14 +604,14 @@ public class RunMCMC{
 				
 				//validate(outfile);
 				
-				//writeMap(writer, i);
+				writeMap(writer, i);
 			}
 			
 		}
 
 		
 		
-		//writer.close();
+		writer.close();
 
 
 		
