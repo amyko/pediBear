@@ -26,6 +26,8 @@ public abstract class Move {
 	public final static int REJECT = 2;
 	public final static double lnHalf = Math.log(.5);
 	public final static double lnTwo = Math.log(2);
+	public final static double oneThird = 1/3.0;
+	public final static double twoThirds = 2/3.0;
 	private final static List<Double> powersOfHalf = new ArrayList<Double>();
 	private final static List<Double> powersOfHalf2 = new ArrayList<Double>(); // 1/(2^i - 1)
 	private final static List<Double> powersOfTwo = new ArrayList<Double>();

@@ -14,7 +14,6 @@ public class Link extends Move{ //WORKS; special merge not tested
 	private Node donor;
 	private Node recipient;
 	private List<Node> donorChildren = new ArrayList<Node>();
-	private int nCuttableNode;
 	int[] iDepthToCount = new int[maxDepth]; //keeps track of how many nodes there are in iCluster before any changes
 	int[] jDepthToCount = new int[maxDepth]; //same for j
 	private boolean specialMerge;
@@ -62,14 +61,11 @@ public class Link extends Move{ //WORKS; special merge not tested
 		
 		
 		//take a random path to targetDepth-1
-		int nBefore = currPedigree.getNActiveNodes();
-		nCuttableNode = 0;
 		Node[] iCluster = getRandomPathAncestor(currPedigree, i, targetDepth, targetSex);
 		Node[] jCluster = getRandomPathAncestor(currPedigree, j, targetDepth, targetSex);
 		Node iAnc = iCluster[0];
 		Node jAnc = jCluster[0];
-		Node iPrime = iCluster[1];
-		Node jPrime = jCluster[1];
+
 		
 		//reject if both merging nodes are sampled, or both have ancestors, or they're the same node
 		if((iAnc==jAnc) || (iAnc.sampled && jAnc.sampled) || (iAnc.getParents().size()>0 && jAnc.getParents().size()>0)){
@@ -107,89 +103,25 @@ public class Link extends Move{ //WORKS; special merge not tested
 		//for later
 		specialMerge = recipient.sampled && donor.getParents().size() > 0;
 
-		
-		//reject bad cases
-		/*
-		if(violatesAgeConstraints(currPedigree, donor, recipient)){
-			currPedigree.clean(iAnc);
-			currPedigree.clean(jAnc);
+		if(specialMerge){
+			currPedigree.clean(donor);
+			currPedigree.clean(recipient);
 			return REJECT;
 		}
-		*/
-
 		
-		
-		//old to new via link
-		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
-		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
 		
 
-		
-		double oldToNew = 0d;
-		double outerSum = 0d;
-		double innerSum = 0d;
-		for(int l1=0; l1<=iPrime.getDepth(); l1++){
-			innerSum = 0d;
-			for(int l2=0; l2<=jPrime.getDepth(); l2++){
-				
-				//if(l1==targetDepth && l2==targetDepth) continue;
-				
-				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
-			}
-			outerSum += iDepthToCount[l1] * innerSum;
-		}
-		oldToNew = getLogChooseTwo(nBefore) + Math.log(outerSum * moveProbs.get("link"));
-
-		
 		
 		//merge
 		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.merge(donor, recipient, mergingFormsFullSibs);
-		int nAfter = nBefore + nCuttableNode - 1; //add number of nodes created; subtract donor node (which will be deleted)
 
-		//new to old
-		double newToOld = 0d;
-		double cutProb = 0d;
-		double splitProb = 0d;
-		
-		//via cut
-		cutProb += nCuttableNode * .5 * moveProbs.get("cut");
-
-		//via split
-		if(recipient.getChildren().size() > 1){
-			if(specialMerge){
-				//System.out.println("HERE!");
-				splitProb = getPowersOfHalf2(recipient.getChildren().size()) * moveProbs.get("split2");
-			}
-			else{
-				int symm = !recipient.sampled && recipient.getParents().size()==0 ? 1 : 0;
-				splitProb = (1+symm) * getPowersOfHalf2(recipient.getChildren().size()) * moveProbs.get("split");
-			}
-			
-			
-		}
-		
-
-		newToOld = getLogChooseOne(nAfter) + Math.log(cutProb + splitProb);
-		
 		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, heat);
 
 	}
 
 	@Override
 	protected void reverseMove(Pedigree currPedigree) {
-		
-		/*
-		if(specialMerge){
-			currPedigree.split2(recipient, donor, donorChildren, mergingFormsFullSibs);
-		}
-		else{
-			currPedigree.split(recipient, donor, donorChildren, mergingFormsFullSibs);	
-		}
-		
-		currPedigree.clean(donor);
-		currPedigree.clean(recipient);
-		*/
 		
 		currPedigree.reverse();
 		
@@ -200,9 +132,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 	protected void clean(Pedigree currPedigree){
 		
 		currPedigree.deleteNode(donor);
-	
-		//return;
-		
+
 	}
 	
 
@@ -241,7 +171,6 @@ public class Link extends Move{ //WORKS; special merge not tested
 					parent = currPedigree.makeNewNode(currNode.getDepth() + 1, sex);
 					currNode.addParent(parent);
 					parent.addChild(currNode);
-					nCuttableNode++;
 				}
 				else{
 					lastExistingNode = parent;
@@ -285,51 +214,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 		}
 		
 	}
-	
 
-	/*
-	private boolean violatesAgeConstraints(Pedigree currPedigree, Node donor, Node recipient){
-
-		//check maxD < minR
-		Node maxDonorDesc = currPedigree.getDescendantWithMaxAge(donor);
-		Node minRecipientAnc = null;
-		
-		if(recipient.sampled){
-			minRecipientAnc = recipient;
-		}
-		else{
-			minRecipientAnc = currPedigree.getAncestorWithMinAge(recipient);
-		}
-		
-		if(maxDonorDesc!=null && minRecipientAnc!=null && (minRecipientAnc.getAge() <= maxDonorDesc.getAge())){
-			return true;
-		}
-
-		
-
-		//check minD > maxR
-		Node minDonorAnc = currPedigree.getAncestorWithMinAge(donor);
-		Node maxRecipientDesc = null;
-		
-		if(recipient.sampled){
-			maxRecipientDesc = recipient;
-		}
-		else{
-			maxRecipientDesc = currPedigree.getDescendantWithMaxAge(recipient);
-		}
-		
-		if(minDonorAnc!=null && maxRecipientDesc!=null && (minDonorAnc.getAge() <= maxRecipientDesc.getAge())){
-			return true;
-		}
-		
-		
-		return false;
-		
-		
-	}
-	*/
-
-	
 	
 	//returns true if merging form a FS
 	private boolean formsFullSibs(List<Node> donorChildren, List<Node> recipientChildren){

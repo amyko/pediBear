@@ -29,62 +29,48 @@ public class FStoPO extends Move{
 		if(sibs.size()==0)
 			return REJECT;
 		
-		//choose parent
+		//choose future parent
 		Node parent = sibs.get(currPedigree.rGen.nextInt(sibs.size()));
 		
-		//parent goes up or child goes down
-		boolean goUp = currPedigree.rGen.nextDouble() < .5 ? true : false;
-		
-		//reject if going up violates depth constraint
-		if(goUp){
-			currPedigree.clearVisit();
+			
+		//choose 1) shift child cluster down or 2) shift parent cluster up
+		int shift = currPedigree.rGen.nextDouble() < .5 ? -1 : 1;
 
-			//don't count parents if they are going to be deleted
-			for(Node p : parent.getParents()){
-				if(!p.sampled && p.getNumEdges()<3)
-					p.setNumVisit(1);
+		
+		//depth constraint
+		if(shift==-1){ //case 1: shift child cluster down
+			currPedigree.clearVisit();
+			for(Node p : child.getParents()) p.setNumVisit(1);
+			int minDepth = currPedigree.getMinDepth(child);
+			if(minDepth == 0) return REJECT;
+		}
+		else{ //case 2: shift parent cluster up
+			currPedigree.clearVisit();
+			child.setNumVisit(1);
+			for(Node p : child.getParents()){ //don't count parent node that will be deleted
+				if(!p.sampled && p.getNumEdges() == 2) p.setNumVisit(1);
 			}
 			
-			
 			int maxDepth = currPedigree.getMaxDepth(parent);
-			if(maxDepth+1 > currPedigree.maxDepth)
-				return REJECT;
+			if(maxDepth==currPedigree.maxDepth) return REJECT;
 			
-			
-		}
-		else{
-			
-			currPedigree.clearVisit();
-			child.getParents().get(0).setNumVisit(1);
-			child.getParents().get(1).setNumVisit(1);
-			int minDepth = currPedigree.getMinDepth(child);
-			if(minDepth - 1 < 0)
-				return REJECT;
-			
-		}
+		} 
+
 
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
-		
-		//old to new
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(sibs.size()) + Math.log(moveProbs.get("FStoPO"));
-		
+
 		//modify pedigree
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
-		currPedigree.FStoPO(child, parent, goUp);
-		
-		
-		//new to old
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(moveProbs.get("POtoFS"));
-		
+		double prevLkhd = currPedigree.getLogLikelihood();
+		currPedigree.FStoPO(child, parent, shift);
+
 
 		
 		//accept ratio
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, heat);
 		
-
 		
 	}
 	

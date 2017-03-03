@@ -2,7 +2,6 @@ package executables;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -20,31 +19,28 @@ import likelihood.PairwiseLikelihoodCoreStreamPed;
 import likelihood.PreProcess;
 import mcmc.SimulatedAnnealing;
 import mcmcMoves.Contract;
-import mcmcMoves.CousinToGreatUncle;
-import mcmcMoves.CousinToHalfUncle;
 import mcmcMoves.Cut;
 import mcmcMoves.CutLink;
-import mcmcMoves.CutOneLinkTwo;
-import mcmcMoves.CutTwoLinkOne;
 import mcmcMoves.FStoPO;
-import mcmcMoves.FullUncletoHalfSibs;
-import mcmcMoves.GreatUncleToCousin;
-import mcmcMoves.HalfCousinToHalfGreatUncle;
-import mcmcMoves.HalfGreatUncleToHalfCousin;
-import mcmcMoves.HalfSibstoFullUncle;
-import mcmcMoves.HalfUncleToCousin;
+import mcmcMoves.FStoSelf;
+import mcmcMoves.GPtoHS;
+import mcmcMoves.HStoGP;
+import mcmcMoves.HStoPO;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
+import mcmcMoves.NephewToUncle;
+import mcmcMoves.OPtoPO;
 import mcmcMoves.POtoFS;
+import mcmcMoves.POtoHS;
+import mcmcMoves.POtoOP;
+import mcmcMoves.SelftoFS;
 import mcmcMoves.ShiftClusterLevel;
 import mcmcMoves.Split;
-import mcmcMoves.Split2;
 import mcmcMoves.SplitLink;
 import mcmcMoves.Stretch;
 import mcmcMoves.SwapDescAnc;
-import mcmcMoves.SwapDown;
-import mcmcMoves.SwapUp;
 import mcmcMoves.SwitchSex;
+import mcmcMoves.UncletoNephew;
 import utility.DataParser;
 
 public class Run{
@@ -253,18 +249,24 @@ public class Run{
 			
 			//arguments to worker
 			Random rGen = new Random();
-			Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .1), new Split("split", .02), new Split2("split2", 0.02), new SwapUp("swapUp", 0.02), new SwapDown("swapDown", 0.02), new SwitchSex("switchSex", 0.02), 
-					new CutLink("cutLink", 0.17), new SplitLink("splitLink", 0.07), new ShiftClusterLevel("shiftClusterLevel", .02), new CutOneLinkTwo("cutOneLinkTwo", 0.15), new CutTwoLinkOne("cutTwoLinkOne", 0.02),
-					new HalfCousinToHalfGreatUncle("halfCousinToHalfGreatUncle", 0.02), new HalfGreatUncleToHalfCousin("halfGreatUncleToHalfCousin", 0.02), new FStoPO("FStoPO", 0.02), new POtoFS("POtoFS",0.02), 
-					new HalfUncleToCousin("halfUncleToCousin", 0.02), new CousinToHalfUncle("cousinToHalfUncle", 0.02), new CousinToGreatUncle("cousinToGreatUncle", 0.02), new GreatUncleToCousin("greatUncleToCousin", 0.02),
-					new SwapDescAnc("swapDescAnc", 0.04), new Contract("contract", 0.02), new Stretch("stretch", 0.02), new HalfSibstoFullUncle("halfSibstoFullUncle", 0.02), new FullUncletoHalfSibs("fullUncleToHalfSibs", 0.02),
-					new ShiftClusterLevel("shiftClusterLevel", 0.04)};
+			Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .02), new Split("split", .02), 
+					new CutLink("cutLink", .05), new SplitLink("splitLink", .05), 
+					new ShiftClusterLevel("shiftClusterLevel", .02),  new SwitchSex("switchSex", .02),  
+					new FStoSelf("FStoSelf", .07), new SelftoFS("selfToFS", .07),
+					new HStoGP("HStoGP", .06), new GPtoHS("GPtoHS", .06),	
+					new UncletoNephew("uncleToNephew", .07), new NephewToUncle("nephewToUncle", .07),
+					new SwapDescAnc("swapDescAnc", .02),
+					new OPtoPO("OPtoPO", .02), new POtoOP("POtoOP", .02),
+					new FStoPO("FStoPO", .05), new POtoFS("POtoFS", .05),
+					new HStoPO("HStoPO", .05), new POtoHS("POtoHS", .06),
+					new Contract("contract", .05), new Stretch("stretch", .05)};
+			
+			
 			PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
 			Pedigree ped = new Pedigree(fileName, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age);
 			SimulatedAnnealing sa = new SimulatedAnnealing(ped, heat, coolingSchedule, moves, runLength, rGen, String.format("%s.%d", fileName, i), conv);
 			
-			
-			
+
 			//run worker
 			Runnable worker = new MyRunnable(i, ped, core, sa);
 			executor.execute(worker);
@@ -298,7 +300,7 @@ public class Run{
 		//read files
 		setName2age();
 		
-		computeLikelihoods();
+		//computeLikelihoods();
 		
 
 		

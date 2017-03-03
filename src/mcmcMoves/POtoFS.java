@@ -16,8 +16,7 @@ public class POtoFS extends Move{
 	
 	protected double tryMove(Pedigree currPedigree, double heat) {
 	
-
-		//choose a child to cut
+		
 		Node child = currPedigree.getRandomNode();
 
 		//reject if child doesn't have exactly 1 parent
@@ -27,56 +26,47 @@ public class POtoFS extends Move{
 		//get parent
 		Node parent = child.getParents().get(0);
 		
-		//reject if parent is ghost and has no children
-		if(!parent.sampled && parent.getChildren().size()==1)
+
+		//reject if parent is ghost and has no other children
+		if(!parent.sampled && parent.getChildren().size()<2)
 			return REJECT;
 		
-		//with prob=.5, shift parent cluster down or shift child cluster up
-		boolean goUp = currPedigree.rGen.nextDouble() < .5 ? true : false;
 		
-		//reject if going up violates depth constraint
-		if(goUp){
+		//choose 1) shift child cluster up or 2) shift parent cluster down
+		int shift = currPedigree.rGen.nextDouble() < .5 ? 1 : -1;
+
+		
+		
+		//depth constraint
+		if(shift==1){ //case 1: shift child cluster up
 			currPedigree.clearVisit();
 			parent.setNumVisit(1);
-			int maxDepth = currPedigree.getMaxDepth(child);
-			if(maxDepth+2 > currPedigree.maxDepth)
-				return REJECT;
+			int maxDepth = Math.max(currPedigree.getMaxDepth(child), child.getDepth()+1);
+			if(maxDepth==currPedigree.maxDepth) return REJECT;
 		}
-		else{
-			
-
+		else{ //case 2: shift parent cluster down
 			currPedigree.clearVisit();
 			child.setNumVisit(1);
 			int minDepth = currPedigree.getMinDepth(parent);
-			if(minDepth==0)
-				return REJECT;
-			
-			
-		}
-		
+			if(minDepth==0) return REJECT;
+		} 
 
+		
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 		
-		
-		//old to new
-		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) +  Math.log(moveProbs.get("POtoFS"));
-		
-		//modify pedigree
-		double prevLogLikelihood = currPedigree.getLogLikelihood();
-		currPedigree.POtoFS(child, parent, goUp);
-		
-		
-		//new to old
-		int nSibs = currPedigree.getFullSibs(child).size();
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nSibs) +Math.log(moveProbs.get("FStoPO"));
-		
 
+		//modify pedigree
+		double prevLkhd = currPedigree.getLogLikelihood();
+		currPedigree.POtoFS(child, parent, shift);
+		
 		
 		//accept ratio
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, heat);
 		
+		
+
 
 		
 	}

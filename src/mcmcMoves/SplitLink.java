@@ -18,15 +18,12 @@ public class SplitLink extends Move {//WORKS
 
 	//for split
 	private boolean hasFullSib;
-	private int[] iDepthToCount = new int[maxDepth];
-	private int[] jDepthToCount = new int[maxDepth];
 	private List<Node> splitChildren = new ArrayList<Node>();
 	private List<Node> stayChildren = new ArrayList<Node>();
 	
 	//for link
 	private Node donor;
 	private Node recipient;
-	int nCuttableNode;
 	private boolean specialMerge;
 	private boolean mergingFormsFullSibs;
 	
@@ -66,15 +63,6 @@ public class SplitLink extends Move {//WORKS
 	        }
 	    }
 	    
-	    
-	    
-	    //TODO
-	    //reject if split creates illegal cycles
-	    if(createsIllegalCycle(currPedigree, splitChildren, stayChildren, parent)) 
-	    	return REJECT;
-	    	
-	    
-
 
 
 	    //check if any of the children between split and stay form full sibs
@@ -89,59 +77,32 @@ public class SplitLink extends Move {//WORKS
 	    }
 	    
 	    
+	    //reject if split creates illegal cycles
+	    if(createsIllegalCycle(currPedigree, splitChildren, stayChildren, parent)) 
+	    	return REJECT;
+	    	
 	    
-		//old to new
-		//via split
-	    int symmetric = (!parent.sampled && parent.getParents().size()==0) ? 1 : 0;
-		double oldToNewSplit = (1+symmetric) * getPowersOfHalf2(nChildren) * moveProbs.get("splitLink");
+	    
 	    
 		//save current pedigree
 		currPedigree.copyCurrPedigree();
 	    double prevLogLikelihood = currPedigree.getLogLikelihood();
-	    int nBefore = currPedigree.getNActiveNodes();
 	    int targetDepth = parent.getDepth();
 	    
 	    //split
 	    Node splitParent = currPedigree.makeNewNode(parent.getDepth(), parent.getSex());
 	    currPedigree.split(parent, splitParent, splitChildren, hasFullSib);
-	    Node iPrime = currPedigree.clean(parent);
-	    Node jPrime = currPedigree.clean(splitParent);	    
-	    int nAfter = currPedigree.getNActiveNodes();
-	    
+	    currPedigree.clean(parent);
+	    currPedigree.clean(splitParent);	    
 
-		//via cut
-		oldToNewSplit += .5 * (nBefore + 1 - nAfter) * moveProbs.get("cutLink");
-		oldToNewSplit = getLogChooseOne(nBefore) + Math.log(oldToNewSplit);
-		
-		
-		//new to old	
-		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
-		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
-		
-		double outerSum = 0d;
-		double innerSum = 0d;
-		for(int l1=0; l1<=iPrime.getDepth(); l1++){
-			innerSum = 0d;
-			for(int l2=0; l2<=jPrime.getDepth(); l2++){
-				
-				//if(l1==targetDepth && l2==targetDepth) continue;
-				
-				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
-			}
-			outerSum += iDepthToCount[l1] * innerSum;
-		}
-		double newToOldSplit =  getLogChooseTwo(nAfter) + Math.log(outerSum);
 
-		
 		
 		
 		////////////////////// LINK /////////////////////
 		//choose nodes i and j
-		nBefore = currPedigree.getNActiveNodes();
 		Node[] nodes = currPedigree.getNRandomNodes(2);
 		Node i = nodes[0];
 		Node j = nodes[1];
-		//int offset = currPedigree.rGen.nextInt(currPedigree.getNActiveNodes()-1) + 1;
 
 		
 		//choose target depth
@@ -171,13 +132,11 @@ public class SplitLink extends Move {//WORKS
 		
 		
 		//take a random path to targetDepth-1
-		nCuttableNode = 0;
 		Node[] iCluster = getRandomPathAncestor(currPedigree, i, targetDepth, targetSex);
 		Node[] jCluster = getRandomPathAncestor(currPedigree, j, targetDepth, targetSex);
 		Node iAnc = iCluster[0];
 		Node jAnc = jCluster[0];
-		iPrime = iCluster[1];
-		jPrime = jCluster[1];
+
 		
 		//reject if both merging nodes are sampled, or both have ancestors, or they're the same node
 		if((iAnc==jAnc) || (iAnc.sampled && jAnc.sampled) || (iAnc.getParents().size()>0 && jAnc.getParents().size()>0)){
@@ -203,73 +162,19 @@ public class SplitLink extends Move {//WORKS
 		}
 
 
-		//for later //TODO
+		//reject specialMerge
 		specialMerge = recipient.sampled && donor.getParents().size() > 0;
 		if(specialMerge){
 			reverseMove(currPedigree);
 			return REJECT;
 		}
 		
-		
-		//reject bad cases
-		/*
-		if(violatesAgeConstraints(currPedigree, donor, recipient)){
-			reverseMove(currPedigree);
-			return REJECT;
-		}
-		*/
-
-		
-		
-		//old to new via link
-		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
-		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
-		
-		outerSum = 0d;
-		innerSum = 0d;
-		for(int l1=0; l1<=iPrime.getDepth(); l1++){
-			innerSum = 0d;
-			for(int l2=0; l2<=jPrime.getDepth(); l2++){
-				
-				//if(l1==targetDepth && l2==targetDepth) continue;
-				
-				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
-			}
-			outerSum += iDepthToCount[l1] * innerSum;
-		}
-
-		double oldToNewLink = getLogChooseTwo(nBefore) + Math.log(outerSum);
 
 		
 		//merge
 		currPedigree.merge(donor, recipient, mergingFormsFullSibs);
 		currPedigree.clean(donor);
-		nAfter = currPedigree.getNActiveNodes(); //add number of nodes created; subtract donor node (which will be deleted)
-
-		//new to old
-		double newToOldLink = 0d;
-		double cutProb = 0d;
-		double splitProb = 0d;
-
-		//via cut
-		cutProb = nCuttableNode * .5 * moveProbs.get("cutLink");
-
-		//via split
-		if(recipient.getChildren().size()>=2){ 
-			int symm = !recipient.sampled && recipient.getParents().size()==0 ? 1 : 0;
-			splitProb = (1+symm) * getPowersOfHalf2(recipient.getChildren().size()) * moveProbs.get("splitLink");		
-		}
-		
-
-
-		newToOldLink = getLogChooseOne(nAfter) + Math.log(cutProb + splitProb);
-		
-		
-		
-		double oldToNew = oldToNewSplit + oldToNewLink;
-		double newToOld = newToOldSplit + newToOldLink;
-		
-
+	
 		
 		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
 	}
@@ -329,7 +234,6 @@ public class SplitLink extends Move {//WORKS
 					parent = currPedigree.makeNewNode(currNode.getDepth() + 1, sex);
 					currNode.addParent(parent);
 					parent.addChild(currNode);
-					nCuttableNode++;
 				}
 				else{
 					lastExistingNode = parent;

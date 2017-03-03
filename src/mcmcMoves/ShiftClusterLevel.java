@@ -54,10 +54,6 @@ public class ShiftClusterLevel extends Move {
 		currPedigree.shiftCluster(cluster, offset);
 		
 		
-		//hastings ratio
-		double oldToNew = Math.log(getPowersOfHalf(k));
-		double newToOld = Math.log(getPowersOfHalf(oldLowestLevel+1));
-		
 		
 		//accept ratio
 		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, heat);

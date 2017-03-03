@@ -12,7 +12,9 @@ import dataStructures.Pedigree;
 
 public class SwapDescAnc extends Move {
 
-
+	List<Node> testing = new ArrayList<Node>();
+	List<Node> ancestors = new ArrayList<Node>();
+	
 	
 	public SwapDescAnc(String name, double moveProb) {
 		super(name, moveProb);
@@ -27,11 +29,15 @@ public class SwapDescAnc extends Move {
 		
 		
 		//reject if the sampled node does not have any sampled ancestors
-		List<Node> testing = new ArrayList<Node>();
+		testing.clear();
 		child.getAncestors(testing);
-		List<Node> ancestors = new ArrayList<Node>();
+		ancestors.clear();
+
+
 		for(Node parent : testing){
-			if(parent.sampled) ancestors.add(parent);
+			//sampled, and sex compatible
+			if(parent.sampled && parent.getSex()==child.getSex())
+				ancestors.add(parent);
 		}
 
 		
@@ -42,29 +48,6 @@ public class SwapDescAnc extends Move {
 		Node anc = ancestors.get(currPedigree.rGen.nextInt(ancestors.size()));
 
 		
-		//reject if age incompatible 
-		//TODO fix this!!!
-		if(anc.getAge()!=-1 && child.getAge()!=-1)
-			return REJECT;
-		
-		//reject if parent-offspring
-		if(child.getParents().contains(anc))
-			return REJECT;
-		
-		//check sex compatibility
-		if(child.getSex() != anc.getSex()){
-			
-			for(Node c : child.getChildren()){
-				if(c.getParents().size()==2) return REJECT;
-			}
-			
-			for(Node c : anc.getChildren()){
-				if(c.getParents().size()==2) return REJECT;
-			}
-			
-		}
-		
-
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
@@ -72,13 +55,12 @@ public class SwapDescAnc extends Move {
 
 		
 		//swap
-		double prevLogLikelihood = currPedigree.getLogLikelihood();		
+		double prevLkhd = currPedigree.getLogLikelihood();		
 		currPedigree.swapAncDesc(anc, child);
 		
 
-		
 		//likelihood
-		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
+		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, heat);
 		
 		
 	}
@@ -98,60 +80,6 @@ public class SwapDescAnc extends Move {
 		
 	}
 
-
-	
-	/*
-	private boolean ageIncompatible(Pedigree currPedigree, Node child, Node parent){
-
-		//both are ghost nodes
-		if(child.getAge()==-1 && parent.getAge()==-1)
-			return false;
-		
-		//both are individuals and have different ages
-		if(child.getAge()!=-1 && parent.getAge()!=-1){
-			return true;
-		}
-		
-		
-		if(child.getAge()!=-1){
-			
-			//child is too young to be an ancestor of its would-be descendants
-			Node maxAgeDesc;
-			for(Node c : parent.getChildren()){
-				if(c==child) continue; //skip child
-				if(c.sampled){
-					maxAgeDesc = c;
-				}
-				else{
-					maxAgeDesc = currPedigree.getDescendantWithMaxAge(c);
-				}
-				
-				if(maxAgeDesc!=null && (child.getAge() <= maxAgeDesc.getAge())){
-					return true;
-				}
-				
-			}
-
-				
-		}
-		
-		
-		if(parent.getAge()!=-1){
-			
-			//parent is too old to be its current ancestors's younger relative
-			Node minAgeAnc = currPedigree.getAncestorWithMinAge(parent);
-			if(minAgeAnc!=null && (minAgeAnc.getAge() <= parent.getAge())){
-				return true;
-			}
-			
-			
-		}
-		
-		
-		return false;
-		
-	}
-	*/
 
 	
 }

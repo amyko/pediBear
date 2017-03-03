@@ -15,15 +15,10 @@ public class CutLink extends Move {//WORKS
 		super(name, moveProb);
 	}
 
-	//for cut
-	private int[] iDepthToCount = new int[maxDepth];
-	private int[] jDepthToCount = new int[maxDepth];
-
 	
 	//for link
 	private Node donor;
 	private Node recipient;
-	private int nCuttableNode;
 	private boolean specialMerge;
 	private boolean mergingFormsFullSibs;
 	
@@ -52,55 +47,20 @@ public class CutLink extends Move {//WORKS
 		currPedigree.copyCurrPedigree();
 		
 		//old to new  via split
-		double oldToNewCut = 0d;
 		Node highestNode = currPedigree.getHighestNode(parent);
 		int targetDepth = highestNode.getDepth();
 
-		if(highestNode.getChildren().size() > 1){ //split prob of the highest node
-			int symm = (!highestNode.sampled && highestNode.getParents().size()==0) ? 1 : 0;
-			oldToNewCut += (1+symm) * getPowersOfHalf2(highestNode.getChildren().size()) * moveProbs.get("splitLink");
-		}
-		
 		//cut 
-		int nBefore = currPedigree.getNActiveNodes();
 		double prevLogLikelihood = currPedigree.getLogLikelihood();
 		currPedigree.cut(child, parent, hasFullSib);
-		Node iPrime = currPedigree.clean(child);
-		Node jPrime = currPedigree.clean(parent);
-		int nAfter = currPedigree.getNActiveNodes();
-		
-		
-		//old to new via cut
-		oldToNewCut += (1 + nBefore - nAfter) * .5 * moveProbs.get("cutLink");
-		oldToNewCut = getLogChooseOne(nBefore) + Math.log(oldToNewCut);
-		
+		currPedigree.clean(child);
+		currPedigree.clean(parent);
 
-		//new to old
-		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
-		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
-		
 	
-		double outerSum = 0d;
-		double innerSum = 0d;
-		for(int l1=0; l1<=iPrime.getDepth(); l1++){
-			innerSum = 0d;
-			for(int l2=0; l2<=jPrime.getDepth(); l2++){
-				
-				//if(l1==targetDepth && l2==targetDepth) continue;
-				
-				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
-			}
-			outerSum += iDepthToCount[l1] * innerSum;
-		}
-		double newToOldCut =  getLogChooseTwo(nAfter) + Math.log(outerSum);
-
-
-		
 		
 		
 		////////////////////// LINK /////////////////////
 		//choose nodes i and j
-		nBefore = currPedigree.getNActiveNodes();
 		Node[] nodes = currPedigree.getNRandomNodes(2);
 		Node i = nodes[0];
 		Node j = nodes[1];
@@ -133,14 +93,11 @@ public class CutLink extends Move {//WORKS
 		
 		
 		//take a random path to targetDepth-1
-		nCuttableNode = 0;
 		Node[] iCluster = getRandomPathAncestor(currPedigree, i, targetDepth, targetSex);
 		Node[] jCluster = getRandomPathAncestor(currPedigree, j, targetDepth, targetSex);
 		Node iAnc = iCluster[0];
 		Node jAnc = jCluster[0];
-		iPrime = iCluster[1];
-		jPrime = jCluster[1];
-		
+
 		//reject if both merging nodes are sampled, or both have ancestors, or they're the same node
 		if((iAnc==jAnc) || (iAnc.sampled && jAnc.sampled) || (iAnc.getParents().size()>0 && jAnc.getParents().size()>0)){
 			reverseMove(currPedigree);
@@ -150,9 +107,7 @@ public class CutLink extends Move {//WORKS
 			reverseMove(currPedigree);
 			return REJECT;
 		}
-		
-		
-		
+
 		
 		//assign donor & recipient; recipient is sampled or has parents
 		if((iAnc.sampled || iAnc.getParents().size() > 0) && !jAnc.sampled){
@@ -165,71 +120,19 @@ public class CutLink extends Move {//WORKS
 		}
 
 
-		//for later //TODO
+		//reject special merge
 		specialMerge = recipient.sampled && donor.getParents().size() > 0;
 		if(specialMerge){
 			reverseMove(currPedigree);
 			return REJECT;
 		}
 
-		
-		//reject bad cases
-		/*
-		if(violatesAgeConstraints(currPedigree, donor, recipient)){
-			reverseMove(currPedigree);
-			return REJECT;
-		}
-		*/
 
-		
-
-		//old to new via link
-		iDepthToCount = currPedigree.getDepthToCount(iPrime, iDepthToCount);
-		jDepthToCount = currPedigree.getDepthToCount(jPrime, jDepthToCount);
-		
-		outerSum = 0d;
-		innerSum = 0d;
-		for(int l1=0; l1<=iPrime.getDepth(); l1++){
-			innerSum = 0d;
-			for(int l2=0; l2<=jPrime.getDepth(); l2++){
-				
-				//if(l1==targetDepth && l2==targetDepth) continue;
-				
-				innerSum += jDepthToCount[l2] * getPowersOfHalf(3*targetDepth  - Math.max(l1,l2) - l1 - l2);
-			}
-			outerSum += iDepthToCount[l1] * innerSum;
-		}
-
-		double oldToNewLink = getLogChooseTwo(nBefore) + Math.log(outerSum);
-		
-		
 		//merge
 		currPedigree.merge(donor, recipient, mergingFormsFullSibs);
 		currPedigree.clean(donor);
-		nAfter = currPedigree.getNActiveNodes(); //add number of nodes created; subtract donor node (which will be deleted)
-	
 
-		//new to old via cut/split
-		double newToOldLink = 0d;
-		double cutProb = 0d;
-		double splitProb = 0d;
-		
-		cutProb += nCuttableNode * .5 * moveProbs.get("cutLink");
 
-		
-		if(recipient.getChildren().size()>=2){ //split
-			int symm = !recipient.sampled && recipient.getParents().size()==0 ? 1 : 0;
-			splitProb = (1+symm) * getPowersOfHalf2(recipient.getChildren().size()) * moveProbs.get("splitLink");
-		}
-
-		newToOldLink = getLogChooseOne(nAfter) + Math.log(cutProb + splitProb);
-		
-			
-		double oldToNew = oldToNewCut + oldToNewLink;
-		double newToOld = newToOldCut + newToOldLink;
-		
-	
-		
 		return SimulatedAnnealing.acceptanceRatio(currPedigree.getLogLikelihood(), prevLogLikelihood, heat);
 	}
 	
@@ -302,7 +205,6 @@ public class CutLink extends Move {//WORKS
 					parent = currPedigree.makeNewNode(currNode.getDepth() + 1, sex);
 					currNode.addParent(parent);
 					parent.addChild(currNode);
-					nCuttableNode++;
 				}
 				else{
 					lastExistingNode = parent;
@@ -347,49 +249,6 @@ public class CutLink extends Move {//WORKS
 		}
 		
 	}
-	
-
-	/*
-	private boolean violatesAgeConstraints(Pedigree currPedigree, Node donor, Node recipient){
-
-		//check maxD < minR
-		Node maxDonorDesc = currPedigree.getDescendantWithMaxAge(donor);
-		Node minRecipientAnc = null;
-		
-		if(recipient.sampled){
-			minRecipientAnc = recipient;
-		}
-		else{
-			minRecipientAnc = currPedigree.getAncestorWithMinAge(recipient);
-		}
-		
-		if(maxDonorDesc!=null && minRecipientAnc!=null && (minRecipientAnc.getAge() <= maxDonorDesc.getAge())){
-			return true;
-		}
-
-		
-
-		//check minD > maxR
-		Node minDonorAnc = currPedigree.getAncestorWithMinAge(donor);
-		Node maxRecipientDesc = null;
-		
-		if(recipient.sampled){
-			maxRecipientDesc = recipient;
-		}
-		else{
-			maxRecipientDesc = currPedigree.getDescendantWithMaxAge(recipient);
-		}
-		
-		if(minDonorAnc!=null && maxRecipientDesc!=null && (minDonorAnc.getAge() <= maxRecipientDesc.getAge())){
-			return true;
-		}
-		
-		
-		return false;
-		
-		
-	}
-	*/
 
 	
 	
