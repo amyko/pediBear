@@ -70,6 +70,9 @@ def getMeanErrorSortByMeisosis(inPath, trueDict, pathToOmega, nIndiv):
         k1k2 = pathToOmega[trueDict[(i,j)]]
         key = .25*k1k2[0] + .5*k1k2[1]
         
+        #if(key==.25 and acc==1):
+            #pdb.set_trace()
+        
     
         if key in accDict:
             accDict[key].append(acc)
@@ -96,9 +99,8 @@ def getMeanErrorSortByMeisosis(inPath, trueDict, pathToOmega, nIndiv):
     for k in keys:
         data.append(accDict[k])
 
-
     means = [np.mean(x) for x in data]
-
+    
 
     return means
 
@@ -165,21 +167,34 @@ if __name__ == "__main__":
     #dir
     resultDir = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/"
 
+    
+        #test D
+    nIndiv = 20
+    saPath = resultDir + "sim5.sa.revised.mapAcc"
+    otherPath = resultDir + "sim5.primus.relate.mapAcc"
+    truePath = resultDir + "sim5.true"
+    saD, otherD = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
+    
+    
+    
     #test A
     nIndiv = 20
-    testName = "sim2"
-    saPath = resultDir + testName + ".n1.mapAcc"
-    otherPath = resultDir + testName + ".5.pairwise.mapAcc"
-    truePath = resultDir + "sim2.true"
-    saB, otherB = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
+    #saPath = resultDir + "sim1.n1.mapAcc"
+    saPath = resultDir + "sim6.sa.revised.mapAcc"
+    otherPath = resultDir + "sim6.5.pairwise.mapAcc"
+    truePath = resultDir + "sim6.true"
+    saA, otherA = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
 
 
     #test B
     nIndiv = 20
-    saPath = resultDir + "sim1.n1.mapAcc"
-    otherPath = resultDir + "sim1.5.pairwise.mapAcc"
-    truePath = resultDir + "test12.true"
-    saA, otherA = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
+    testName = "sim2"
+    #saPath = resultDir + testName + ".n1.mapAcc"
+    saPath = resultDir + "sim2.sa.revised.mapAcc"
+    otherPath = resultDir + testName + ".6.pairwise.mapAcc"
+    truePath = resultDir + "sim2.true"
+    saB, otherB = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
+
     
     
     
@@ -190,6 +205,7 @@ if __name__ == "__main__":
     truePath = resultDir + "sim4.true"
     saC, otherC = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
     
+
     
  
     #PLOT
@@ -197,11 +213,10 @@ if __name__ == "__main__":
 
     tickMarks = ['0', '1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256']
 
-    
     #plot
     fig = plt.figure(facecolor='white')
     ax = fig.add_subplot(111)
-    ax3 = fig.add_subplot(313)
+    ax4 = fig.add_subplot(313)
     ax1 = fig.add_subplot(311, sharex=ax3)
     ax2 = fig.add_subplot(312, sharex=ax3)
 
@@ -244,4 +259,5 @@ if __name__ == "__main__":
     plt.setp(ax1.get_xticklabels(), visible=False)
     plt.setp(ax2.get_xticklabels(), visible=False)
     
-    plt.show()   
+    plt.show()  
+    

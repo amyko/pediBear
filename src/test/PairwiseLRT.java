@@ -62,7 +62,7 @@ public class PairwiseLRT {
 				//penalty
 				double coeff = 1;
 				if(path.getNumVisit()==0){
-					 coeff = 1;
+					 coeff = 13;
 				}
 				
 				
@@ -215,13 +215,13 @@ public class PairwiseLRT {
 	public static void main(String[] args) throws IOException{
 		
 		//param
-		int numIndiv = 18;
+		int numIndiv = 20;
 		double c = 0;
 		
 		//files
 		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
 		String pathToOmegaPath = dir + "pathToOmega.txt";
-		String truePath = dir + "results/sim4.true";
+		String truePath = dir + "results/sim5.true";
 
 		
 		//get true omega
@@ -229,11 +229,11 @@ public class PairwiseLRT {
 		double[][][] trueOmega = Accuracy.getTrueOmega(truePath, numIndiv, pathToKinship);
 		
 		//test name
-		String testName = "sim4";
+		String testName = "sim5";
 		
 		
 		//open outfiles
-		String outPath = dir + "results/" +testName + ".12.pairwise";
+		String outPath = dir + "results/" +testName + ".13.pairwise";
 		PrintWriter mapWriter = DataParser.openWriter(outPath+".mapAcc");
 		PrintWriter outWriter = DataParser.openWriter(outPath+".out");
 		PrintWriter distWriter = DataParser.openWriter(outPath+".kinshipDist");
@@ -241,7 +241,7 @@ public class PairwiseLRT {
 		//run pairwise test
 		for(int t=0; t<100; t++){
 			
-			String lkhdPath = String.format(dir + "simPed4/sim4.%d.pairwise", t);
+			String lkhdPath = String.format(dir + "simPed5/sim5.%d.pairwise", t);
 			
 			//write header
 			outWriter.write(String.format(">\t%d\n", t));

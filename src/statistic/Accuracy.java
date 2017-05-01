@@ -631,4 +631,78 @@ public class Accuracy {
 	}
 	
 	
+	//accuracy based on MAP estimate; acc=1 if the kinship coefficients are equal
+	public static int numCorrect(String outPath, String truePath, int totalIndiv, int numIndiv, Map<Path, double[]> pathToOmega) throws NumberFormatException, IOException{
+		
+		Path[][] mapPed = new Path[numIndiv][numIndiv];
+		
+		//read true relationship
+		double[][][] trueOmega = getTrueOmega(truePath, totalIndiv, pathToOmega);
+			
+		//read output
+		BufferedReader reader = DataParser.openReader(outPath);
+		String line;
+		double bestLkhd = Double.NEGATIVE_INFINITY;
+		boolean process = false;
+		
+		while((line = reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			if(fields[0].equals(">")){
+				
+				double currLkhd = Double.parseDouble(fields[1]);
+				
+				if(currLkhd > bestLkhd){
+					bestLkhd = currLkhd;
+					process = true;
+				}
+				else
+					process = false;
+				
+				continue;
+			}
+			
+			
+			if(process){
+				
+				int i = Integer.parseInt(fields[IND1]);
+				int j = Integer.parseInt(fields[IND2]);
+				Path key = new Path(Integer.parseInt(fields[UP]) , Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[NUMVISIT]));
+
+				
+				//best path
+				mapPed[i][j] = key;
+				
+			}
+
+			
+
+			
+		}
+		
+		reader.close();
+		
+		
+		//count num currect
+		Path[][] trueMat = getTruePath(truePath, numIndiv);
+
+		for(int i=0; i<numIndiv; i++){
+			for(int j=i+1; j<numIndiv; j++){
+				
+				Path inferred = mapPed[i][j];
+				Path truth = trueMat[i][j];
+				
+				if(inferred.getUp()!=truth.getUp() || inferred.getDown()!=truth.getDown() || inferred.getNumVisit()!=truth.getNumVisit()){
+					return 0;
+				}
+				
+			}
+		}
+	
+		return 1;
+		
+		
+	}
+	
+	
 }

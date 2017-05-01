@@ -1,5 +1,7 @@
+/pedi
 /Unused/
 /dataStructures/
+/executables/
 /likelihood/
 /mcmc/
 /mcmcMoves/
@@ -7,8 +9,3 @@
 /statistic/
 /test/
 /utility/
-/executables/
-/pediBear
-/pedi
-/Makefile
-/makefile

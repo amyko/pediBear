@@ -177,7 +177,7 @@ if __name__ == "__main__":
     nIndiv = 20
     saPath = resultDir + "sim1.n1.kinshipDist"
     otherPath = resultDir + "test12.pruned.10k.primus.mapAcc"
-    truePath = resultDir + "test12.true"
+    truePath = resultDir + "sim1.true"
     saA, otherA = getResult(nIndiv, truePath, saPath, otherPath, pathToOmega)
     
     
@@ -202,7 +202,7 @@ if __name__ == "__main__":
     plt.show()
     
     pdb.set_trace()
-    
+
 
     tickMarks = ['0', '1/4', '1/8', '1/16', '1/32', '1/64', '1/128', '1/256']
 

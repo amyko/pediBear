@@ -49,6 +49,10 @@ def plotGreenland():
 
 if __name__=='__main__':
     
+    plotSimPed()
+    
+    pdb.set_trace()
+    
     dir = '/Users/kokocakes/Google Drive/Research/pediBear/manuscript/'
 
     img = loadImage(dir+"greenland.1844snps.n2.tiff")

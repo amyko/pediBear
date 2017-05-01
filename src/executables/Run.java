@@ -300,7 +300,7 @@ public class Run{
 		//read files
 		setName2age();
 		
-		computeLikelihoods();
+		//computeLikelihoods();
 		
 
 		

@@ -1,6 +1,7 @@
 package simulator;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Random;
@@ -237,7 +238,50 @@ public class SimulatorStreamPed {
 			
 		}
 	
+		
+		public void addError(String inPath, String outPath, double seqError, Random rgen) throws IOException{
+			
+			BufferedReader reader = DataParser.openReader(inPath);
+			PrintWriter writer = DataParser.openWriter(outPath);
+			
+			String line;
 
+			while((line=reader.readLine())!=null){
+
+				String[] fields = line.split("\\s");
+				
+				for(int i=4; i<fields.length; i++){
+					
+					if(rgen.nextDouble() < seqError){
+	
+						String a = fields[i];
+						
+						if(a.equals("A"))
+							fields[i] = "T";
+						else if(a.equals("T"))
+							fields[i] = "A";
+						else throw new RuntimeException();
+						
+					}
+					
+				}
+				
+				for(String x : fields){
+					writer.write(x+" ");
+				}
+				
+				writer.write("\n");
+
+			}
+			
+			writer.close();
+
+		
+			
+		}
+		
+		
+		
 
 }
 

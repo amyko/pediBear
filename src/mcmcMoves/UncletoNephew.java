@@ -32,7 +32,7 @@ public class UncletoNephew extends Move{
 		//full sibs
 		List<Node> sibs = currPedigree.getFullSibs(uncle);
 		
-		//fulls sibs with children
+		//full sibs with children
 		fullSibs.clear();
 		for(Node x : sibs){
 			if(x.getChildren().size()>0) fullSibs.add(x);

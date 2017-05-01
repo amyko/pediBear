@@ -17,7 +17,7 @@ def getLkhds(inPath, plotInterval):
         
         if(fields[0]=='>'): continue
         
-        #if(int(fields[0]) < 1e7): continue
+        if(int(fields[0]) < 400000): continue
             
             #increment
         n+=1
@@ -121,15 +121,17 @@ if __name__ == "__main__":
     truePath = os.path.expanduser('~') + "/Google Drive/Research/pediBear/data/simulations/results/" + testName + ".true"
     nIndiv = 20
     nPairs = nIndiv*(nIndiv-1)/2
+    
+    convPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/mcmc."
 
     
     # get likelihood
-    xdata, lkhd1 = getLkhds(convPath+str(0)+".lkhd", 2)
-    xdata, lkhd2 = getLkhds(convPath+str(1)+".lkhd", 2)
-    xdata, lkhd3 = getLkhds(convPath+str(2)+".lkhd", 2)
-    xdata, lkhd4 = getLkhds(convPath+str(3)+".lkhd", 2)
-    xdata, lkhd5 = getLkhds(convPath+str(4)+".lkhd", 2)
-    #pdb.set_trace()
+    xdata1, lkhd1 = getLkhds(convPath+str(0)+".lkhd", 2)
+    xdata2, lkhd2 = getLkhds(convPath+str(1)+".lkhd", 2)
+    xdata3, lkhd3 = getLkhds(convPath+str(2)+".lkhd", 2)
+    xdata4, lkhd4 = getLkhds(convPath+str(3)+".lkhd", 2)
+    xdata5, lkhd5 = getLkhds(convPath+str(4)+".lkhd", 2)
+    print [lkhd1[-1], lkhd2[-1], lkhd3[-1], lkhd4[-1], lkhd5[-1]]
 
     
     #pdb.set_trace()
@@ -137,10 +139,10 @@ if __name__ == "__main__":
     
     #plot
     plt.figure(facecolor='white')
-    plt.plot(xdata, lkhd1, xdata, lkhd2, xdata, lkhd3, xdata, lkhd4, xdata, lkhd5)
-    plt.plot(xdata, lkhd1)
+    plt.plot(xdata1, lkhd1, xdata2, lkhd2, xdata3, lkhd3, xdata4, lkhd4)
+    #plt.plot(xdata, lkhd1)
     #plt.plot(xdata, conv, xdata, expected)
-    plt.ylim([min(lkhd1)-100, max(lkhd1)+100])
+   # plt.ylim([min(lkhd1)-100, max(lkhd1)+100])
     #plt.xlim([-1,len(xdata)+1])
     plt.xlabel("Iteration")
     plt.ylabel("Composite likelihood")

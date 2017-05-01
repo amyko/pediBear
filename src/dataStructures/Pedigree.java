@@ -2567,7 +2567,7 @@ public class Pedigree {
 	}
 	
 	
-	private double getSingletonProb(){
+	public double getSingletonProb(){
 		
 		return this.nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]];
 
@@ -2646,27 +2646,6 @@ public class Pedigree {
 	}
 	
 	
-	/*
-	private double ageLikelihood(List<Node> connectedSamples){
-		
-		double toReturn = 0d;
-		
-		for(Node i : connectedSamples){
-
-				if(i.getAge()==-1) continue;
-			
-				NormalDistribution normalDist = new NormalDistribution((i.getDepth()+1)*muGenTime, varGenTime); //TODO precompute
-				
-				toReturn += Math.log(normalDist.density(i.getAge()));
-				
-			
-		}
-		
-		
-		return toReturn;
-		
-	}
-	*/
 	
 	
 	public double totalLikelihood(){
