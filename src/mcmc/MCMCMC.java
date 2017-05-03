@@ -478,10 +478,10 @@ public class MCMCMC {
 				Path rel = currPedigree.getRelationships()[i][j];
 				 
 				
-				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				//writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
 				
 				//TODO for hastings test
-				//toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
+				toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
 				
 			}
 			
@@ -493,7 +493,7 @@ public class MCMCMC {
 		toWrite += numAncString;
 		
 		//TODO testing
-		//writer.write(toWrite+"\n");
+		writer.write(toWrite+"\n");
 		
 		
 		//multiplier and likelihood
@@ -740,7 +740,7 @@ public class MCMCMC {
 		
 		
 		//TODO testing
-		//heat = 0;
+		heat = 0;
 		
 		
 		

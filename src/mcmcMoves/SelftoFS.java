@@ -73,7 +73,7 @@ public class SelftoFS extends Move{
 	    
 	    //old2new: choose node, choose children set; symmetry if chosen node is ghost
 	    int symm = parent.sampled ? 1 : 2;
-	    double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getPowersOfHalf2(nChildren) + Math.log(symm * moveProbs.get("self2fs"));
+	    double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(getPowersOfHalf2(nChildren) * symm * moveProbs.get("self2fs"));
 
 		
 		//copy pedigree
@@ -88,11 +88,11 @@ public class SelftoFS extends Move{
 		//new2old
 		int nFS = 0;
 		for(Node x : currPedigree.getFullSibs(parent)){
-			if(x.getSex()==parent.getSex() && !(x.sampled && parent.sampled))
+			if(x.getSex()==parent.getSex())
 				nFS++;
 		}
 		
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nFS) + Math.log(2 * moveProbs.get("fs2self"));
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nFS) + Math.log(2* moveProbs.get("fs2self"));
 
 		//accept ratio
 		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, oldToNew, newToOld, heat);

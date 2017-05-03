@@ -24,12 +24,12 @@ public class FStoSelf extends Move{
 
 		//choose a node merge
 		Node child = currPedigree.getRandomNode();
+		
 
 		//choose full sib
 		fullSibs.clear();
-		List<Node> temp = currPedigree.getFullSibs(child);
-		for(Node x : temp){
-			if(x.getSex()==child.getSex() && !(x.sampled && child.sampled))
+		for(Node x : currPedigree.getFullSibs(child)){
+			if(x.getSex()==child.getSex())
 				fullSibs.add(x);
 		}
 		
@@ -40,6 +40,10 @@ public class FStoSelf extends Move{
 
 		//choose full sib
 		Node fs = fullSibs.get(currPedigree.rGen.nextInt(fullSibs.size()));
+		
+		
+		//if both sampled, reject
+		if(child.sampled && fs.sampled) return REJECT;
 		
 
 		//donor
@@ -55,7 +59,7 @@ public class FStoSelf extends Move{
 		}
 		
 		
-		//oldToNew: choose node, choose fs to merge with; symmetry
+		//oldToNew: choose node, choose fs to merge with; symmetry for choosing fs instead
 		double oldToNew = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(fullSibs.size()) + Math.log(2 * moveProbs.get("fs2self"));
 		
 		
@@ -68,9 +72,9 @@ public class FStoSelf extends Move{
 		currPedigree.FStoSelf(donor, recipient);
 		
 		
-		//newToOld: choose node, choose children set, symmetery
-		int symm = recipient.sampled ? 1 : 2;
-		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getPowersOfHalf2(recipient.getChildren().size()) + Math.log(symm * moveProbs.get("self2fs"));
+		//newToOld: choose node, choose children set, symmetry
+		int symm = recipient.sampled? 1 : 2;
+		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + Math.log(symm * getPowersOfHalf2(recipient.getChildren().size()) * moveProbs.get("self2fs"));
 		
 
 		//accept ratio

@@ -32,7 +32,7 @@ import mcmcMoves.HStoPO;
 import mcmcMoves.HStoFU;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
-import mcmcMoves.NephewToUncle;
+import mcmcMoves.NephewtoUncle;
 import mcmcMoves.OPtoPO;
 import mcmcMoves.POtoFS;
 import mcmcMoves.POtoHS;
@@ -59,7 +59,7 @@ public class RunMCMC{
 	public static String ageFileName = "";
 	public static double maf = 0.01;
 	public static double errorRate = 0.01;
-	public static int maxDepth = 4;
+	public static int maxDepth = 2;
 	public static int sampleDepth = maxDepth;
 	public static double back = 0.04;
 	public static double startTemp = 100;
@@ -67,7 +67,7 @@ public class RunMCMC{
 	public static int iterPerTemp = 40000;
 	public static int maxIter = 10000000;
 	public static double conv = 1;
-	public static int numIndiv = 18;
+	public static int numIndiv = 3;
 	public static double poissonMean = numIndiv;
 	public static boolean conditional = true;
 	public static int numRun = 1;
@@ -77,7 +77,7 @@ public class RunMCMC{
 	//misc
 	public static int maxNumNodes = 200;
 	public static Map<String, Double> name2age = null;
-	public static Random rGen = new Random(102762);
+	public static Random rGen = new Random(10257002);
 	
 
 	
@@ -236,19 +236,18 @@ public class RunMCMC{
 
 	public static void runThreads(String myFile, String outfile) throws IOException{
 		
-		//Random rGen = new Random(102762);
 		
 		//arguments
-		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .02), new Split("split", .02),  
+		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .03), new Split("split", .03),  
 				new CutLink("cutLink", .05), new SplitLink("splitLink", .05), 
-				new ShiftClusterLevel("shiftClusterLevel", .02),  new SwitchSex("switchSex", .02),  
-				new FStoSelf("FStoSelf", .07), new SelftoFS("selfToFS", .07),
-				new HStoGP("HStoGP", .06), new GPtoHS("GPtoHS", .06),	
-				new UncletoNephew("uncleToNephew", .07), new NephewToUncle("nephewToUncle", .07),
-				new SwapDescAnc("swapDescAnc", .02),
+				new ShiftClusterLevel("shiftClusterLevel", .03),  new SwitchSex("switchSex", .03),  
+				new FStoSelf("fs2self", .07), new SelftoFS("self2fs", .07),
+				new HStoGP("hs2gp", .05), new GPtoHS("gp2hs", .05),	
+				new UncletoNephew("uncle2nephew", .07), new NephewtoUncle("nephew2uncle", .07),
+				new SwapDescAnc("swapDescAnc", .05),
 				new OPtoPO("OPtoPO", .02), new POtoOP("POtoOP", .02),
 				new FStoPO("FStoPO", .05), new POtoFS("POtoFS", .05), //confounds with HS2FU
-				new HStoPO("HStoPO", .05), new POtoHS("POtoHS", .06),
+				new HStoPO("HStoPO", .03), new POtoHS("POtoHS", .03),
 				new Contract("contract", .05), new Stretch("stretch", .05), //confounds with HS2PO, HS2FU?
 				
 				new HStoFU("HStoFU",.0), new FUtoHS("FUtoHS", .0), //confounds with POtoFU
@@ -266,10 +265,10 @@ public class RunMCMC{
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
 
 		//mcmc parameters
-		int nChain = 7;
+		int nChain = 1;
 		int nBranch = 1;
 		int burnIn = 10;
-		int runLength = 100000;
+		int runLength = 4000000;
 		int sampleRate = 25;
 		double deltaT = .5;
 		int swapInterval = 1;
@@ -590,11 +589,11 @@ public class RunMCMC{
 		PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/testing");
 
 		//run
-		for(int i=0; i<100; i++){
+		for(int i=0; i<1; i++){
 			
 			System.out.println(i);
 			
-			for(int j=0; j<1; j++){
+			for(int j=2; j<3; j++){
 			
 				String myFile = fileName + "sim4." + i;
 				String outfile = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5."+j;
@@ -602,9 +601,9 @@ public class RunMCMC{
 				
 				runThreads(myFile, outfile);
 				
-				//validate(outfile);
+				validate(outfile);
 				
-				writeMap(writer, i);
+				//writeMap(writer, i);
 			}
 			
 		}
