@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -51,6 +50,18 @@ public class Pedigree {
 	private final double[] logFact;
 	public final int[] nSingletons;
 	
+	
+	//NEW PRIOR
+	double prior = 0d;
+	private final int effectivePop = 10000;
+	private int[] nNodes;
+	private int[] nUnsampledDads;
+	private int[] nUnsampledMoms;
+	private int[] nSampledMoms;
+	private int[] nSampledDads;
+	private final double[] log;
+
+	
 	//for primus
 	public boolean looped = false;
 
@@ -73,6 +84,9 @@ public class Pedigree {
 		this.logLambda = 0;
 		logFact = null;
 		nSingletons = null;
+		log = new double[500]; //TODO set this better
+		
+		
 		
 		//relationship
 		this.relationships = new Path[2][numIndiv][numIndiv];
@@ -142,6 +156,8 @@ public class Pedigree {
 		this.logLambda = 0;
 		this.nSingletons = null;
 		logFact = null;
+		log = new double[500]; //TODO set this better
+		
 
 		//relationship
 		this.relationships = new Path[2][184][184];
@@ -162,6 +178,7 @@ public class Pedigree {
 		this.curr = 0;
 		this.copy = 1;
 		nActiveNodes[0] = 200;
+		
 		
 		//set up pedigree
 
@@ -266,7 +283,7 @@ public class Pedigree {
 	
 	
 	
-	//TODO handle known relationships
+	//TODO handle known relationships; effective pop size
 	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age) throws IOException{
 		
 		this.numIndiv = numIndiv;
@@ -278,14 +295,26 @@ public class Pedigree {
 		this.rGen = rGen;
 		this.curr = 0;
 		this.copy = 1;
-		this.logFact = new double[numIndiv+1];
 		this.nSingletons = new int[2];
+		this.logFact = new double[numIndiv+1];
 		nSingletons[curr] = numIndiv;
-		
+		nNodes = new int[maxDepth];
+		nUnsampledDads = new int[maxDepth];
+		nUnsampledMoms = new int[maxDepth];
+		nSampledMoms = new int[maxDepth];
+		nSampledDads = new int[maxDepth];
+		log = new double[effectivePop/2+1]; //TODO set this better
+
 		//log factorials
 		logFact[0] = 0;
 		for(int i=1; i<logFact.length; i++){
 			logFact[i] = logFact[i-1] + Math.log(i);
+		}
+		
+		//log
+		log[0] = 0;
+		for(int i=1; i<log.length; i++){
+			log[i] = Math.log(i);
 		}
 		
 
@@ -2404,6 +2433,119 @@ public class Pedigree {
 	}
 	
 	
+	
+	
+	
+	////////////////////////   PRIOR   ////////////////////////
+	//prior: random mating model
+	public double totalPrior(){
+		
+
+		//clear everything
+		clearVisit();
+		for(int i=0; i<maxDepth; i++) nNodes[i] = 0;
+		for(int i=0; i<maxDepth; i++) nUnsampledDads[i] = 0;
+		for(int i=0; i<maxDepth; i++) nUnsampledMoms[i] = 0;
+		for(int i=0; i<maxDepth; i++) nSampledDads[i] = 0;
+		for(int i=0; i<maxDepth; i++) nSampledMoms[i] = 0;
+		
+		
+		// Count relevant quantities
+		// for every cluster
+		for(int i=0; i<numIndiv; i++){
+			
+			Node node = nodes.get(curr).get(i);
+			
+			if(node.getNumVisit() > 0) continue;
+			
+			List<Node> ped = node.getConnectedNodes(new ArrayList<Node>());
+
+			//for every node in cluster
+			for(Node x : ped){
+				
+				int xDepth = x.getDepth();
+				
+				nNodes[xDepth]++;
+				
+				if(x.sampled){
+					
+					if(x.getSex()==0) nSampledMoms[xDepth]++;
+					else nSampledDads[xDepth]++;
+					
+				}
+				
+				else{
+					
+					if(x.getSex()==0) nUnsampledMoms[xDepth]++;
+					else nUnsampledDads[xDepth]++;
+				}
+				
+				x.setNumVisit(1);
+				
+				
+			}
+			
+			
+		}
+		
+		
+		//compute prior
+		double toReturn = 0d;
+		double fa = 0d;
+		double ma = 0d;
+		
+		//for every generation
+		for(int i=0; i<maxDepth-1; i++){
+		
+			//shared terms: 1/N^n
+			double oneOverNn = -nNodes[i]*log[effectivePop/2];
+			
+			//father probability
+			int start = effectivePop/2 - nSampledDads[i+1];
+			int end = start - nUnsampledDads[i+1] + 1;
+			
+			for(int j=start; j>=end; j--)
+				fa += log[j];	
+
+			fa += oneOverNn;
+			
+			
+			//mother probability
+			start = effectivePop/2 - nSampledMoms[i+1];
+			end = start - nUnsampledMoms[i+1] + 1;
+			
+			for(int j=start; j>=end; j--)
+				ma += log[j];
+			
+			ma += oneOverNn;
+	
+		}
+
+		toReturn = fa + ma + sampleDepthPrior(nNodes);
+		
+		return toReturn;
+		
+		
+	}
+	
+	
+	private double sampleDepthPrior(int[] nNodes){
+		
+		double toReturn = 0d;
+		
+		// P(d) ~ Geo(1/2); P(1) = 1/2, P(2) = 1/4...
+		for(int i=0; i<maxDepth; i++)
+			toReturn += log[nNodes[i]] - log[i+2];
+		
+		
+		return toReturn;
+		
+	}
+	
+	
+
+	
+	
 	///////// UPDATE ADJACENCY MATRIX ////////
 	public void updateAdjMat(Node node){
 		
@@ -2574,11 +2716,8 @@ public class Pedigree {
 		return this.nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]];
 
 		
-		//return 0;
-		
-		//return this.nSingletons[curr]*Math.log(numIndiv)/numIndiv;
-		
 	}
+	
 	
 	
 
@@ -2647,28 +2786,6 @@ public class Pedigree {
 		
 	}
 	
-	
-	/*
-	private double ageLikelihood(List<Node> connectedSamples){
-		
-		double toReturn = 0d;
-		
-		for(Node i : connectedSamples){
-
-				if(i.getAge()==-1) continue;
-			
-				NormalDistribution normalDist = new NormalDistribution((i.getDepth()+1)*muGenTime, varGenTime); //TODO precompute
-				
-				toReturn += Math.log(normalDist.density(i.getAge()));
-				
-			
-		}
-		
-		
-		return toReturn;
-		
-	}
-	*/
 	
 	
 	public double totalLikelihood(){
