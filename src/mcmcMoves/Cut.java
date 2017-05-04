@@ -1,7 +1,6 @@
 package mcmcMoves;
 
 import mcmc.MCMCMC;
-import dataStructures.Path;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -17,6 +16,7 @@ public class Cut extends Move {//WORKS
 
 	private int[] iDepthToCount = new int[maxDepth];
 	private int[] jDepthToCount = new int[maxDepth];
+	private Node[] ijPrime = new Node[2];
 	
 	
 	@Override
@@ -35,13 +35,7 @@ public class Cut extends Move {//WORKS
 		if(parent==null || isSplitNode(parent)) //reject if parent not available or parent is a splitNode
 			return REJECT;
 		
-		/*
-		if(currPedigree.getNActiveNodes()==6 && child.getDepth()==1){
-			currPedigree.printAdjMat();
-			System.out.println();
-		}
-		*/
-
+	
 		
 
 		//determine if the child has full siblings; if so, cutting doens't split the pedigree
@@ -67,9 +61,9 @@ public class Cut extends Move {//WORKS
 		//cut 
 		int nBefore = currPedigree.getNActiveNodes();
 		double prevLkhd = currPedigree.getLogLikelihood();
-		currPedigree.cut(child, parent, hasFullSib);
-		Node iPrime = currPedigree.clean(child);
-		Node jPrime = currPedigree.clean(parent);
+		currPedigree.cut(child, parent, hasFullSib, ijPrime);
+		Node iPrime = ijPrime[0];
+		Node jPrime = ijPrime[1];
 		int nAfter = currPedigree.getNActiveNodes();
 		
 		

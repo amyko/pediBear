@@ -15,6 +15,7 @@ import java.util.Random;
 
 
 
+
 import utility.ArrayUtility;
 import utility.DataParser;
 import likelihood.PairwiseLikelihoodCoreStreamPed;
@@ -39,6 +40,7 @@ public class Pedigree {
 	private final List<ArrayList<Node>> nodes = new ArrayList<ArrayList<Node>>(2);
 	private int[] nActiveNodes = new int[2];
 	private double[] logLikelihood = new double[2];
+	private double[] prior = new double[2];
 	public int curr;
 	private int copy;
 
@@ -52,7 +54,6 @@ public class Pedigree {
 	
 	
 	//NEW PRIOR
-	double prior = 0d;
 	private final int effectivePop = 10000;
 	private int[] nNodes;
 	private int[] nUnsampledDads;
@@ -60,7 +61,8 @@ public class Pedigree {
 	private int[] nSampledMoms;
 	private int[] nSampledDads;
 	private final double[] log;
-
+	private int totalUnits;
+	
 	
 	//for primus
 	public boolean looped = false;
@@ -68,189 +70,7 @@ public class Pedigree {
 	
 	
 	////// CONSTRUCTOR ///////
-	//for primus
-	public Pedigree(String inPath, Map<String, Integer> name2Index) throws IOException{
-		
-		
-		this.numIndiv = name2Index.size();
-		this.maxDepth = 4;
-		this.maxSampleDepth = 4;
-		this.core = null;
-		this.rGen = null;
-		this.curr = 0;
-		this.copy = 1;
-		nActiveNodes[0] = 200;
-		this.lambda = 0;
-		this.logLambda = 0;
-		logFact = null;
-		nSingletons = null;
-		log = new double[500]; //TODO set this better
-		
-		
-		
-		//relationship
-		this.relationships = new Path[2][numIndiv][numIndiv];
 
-		for(int i=0; i<relationships[0][0].length; i++){
-			for(int j=i+1; j<relationships[0][0].length; j++){
-				this.relationships[0][i][j] = new Path(0,0,0);
-			}
-		}
-		
-		
-		//set up pedigree
-
-		//initialize list
-		nodes.add(new ArrayList<Node>(200));
-		
-		//fill up nodes
-		for(int i=0; i<200; i++){
-			nodes.get(0).add(new Node("missing", String.format("%d", i), -1, true, i));
-		}
-		
-		
-		BufferedReader reader = DataParser.openReader(inPath);
-		String line;
-		while((line=reader.readLine())!=null){
-			
-			String[] fields = line.split("\t");
-			
-			int childIdx = name2Index.get(fields[1]);
-			Node child = nodes.get(0).get(childIdx);
-			
-			if(!fields[2].equals("0")){
-				int momIdx = name2Index.get(fields[2]);
-				Node mom = nodes.get(0).get(momIdx);
-				child.addParent(mom);
-				mom.addChild(child);
-			}
-			if(!fields[3].equals("0")){
-				int momIdx = name2Index.get(fields[3]);
-				Node mom = nodes.get(0).get(momIdx);
-				child.addParent(mom);
-				mom.addChild(child);
-			}
-			
-			
-		}
-		
-		reader.close();
-		
-		
-		//record paths
-		for(String name : name2Index.keySet()){
-			
-			updateAdjMat(nodes.get(0).get(name2Index.get(name)));
-			
-		}
-
-		
-	}
-	
-	
-	
-	//this is for simulation only
-	public Pedigree(String inPath, String outPath, int numIndiv, int[] ids) throws IOException{
-		
-		this.lambda = 0;
-		this.logLambda = 0;
-		this.nSingletons = null;
-		logFact = null;
-		log = new double[500]; //TODO set this better
-		
-
-		//relationship
-		this.relationships = new Path[2][184][184];
-
-		for(int i=0; i<relationships[0][0].length; i++){
-			for(int j=i+1; j<relationships[0][0].length; j++){
-				this.relationships[0][i][j] = new Path(0,0,0);
-			}
-		}
-
-	 
-		
-		this.numIndiv = numIndiv;
-		this.maxDepth = 5;
-		this.maxSampleDepth = this.maxDepth;
-		this.core = null;
-		this.rGen = null;
-		this.curr = 0;
-		this.copy = 1;
-		nActiveNodes[0] = 200;
-		
-		
-		//set up pedigree
-
-		//initialize list
-		nodes.add(new ArrayList<Node>(200));
-		
-		//fill up nodes
-		for(int i=0; i<200; i++){
-
-			nodes.get(0).add(new Node("1", String.format("%d", i+1), -1, false, i));
-		}
-		
-		
-		BufferedReader reader = DataParser.openReader(inPath);
-		String line;
-		while((line=reader.readLine())!=null){
-			
-			String[] fields = line.split("\t");
-			
-			int childIdx = Integer.parseInt(fields[0]);
-			int momIdx = Integer.parseInt(fields[1]);
-			int dadIdx = Integer.parseInt(fields[2]);
-			
-			Node child = nodes.get(0).get(childIdx);
-			Node mom = nodes.get(0).get(momIdx);
-			Node dad = nodes.get(0).get(dadIdx);
-			
-			mom.setSex(0);
-			dad.setSex(1);
-			
-			
-			child.addParent(dad);
-			child.addParent(mom);
-			mom.addChild(child);
-			dad.addChild(child);
-			
-			
-		}
-		
-		
-		//record paths
-		for(int i=0; i<ids.length; i++){
-			
-			updateAdjMat(nodes.get(0).get(ids[i]));
-			
-		}
-		
-		
-		//write to path
-		PrintWriter writer = DataParser.openWriter(outPath);
-		
-		this.clearVisit();
-		for(int i=0; i<this.numIndiv; i++){
-			recordFam(this.getNode(ids[i]), writer);
-		}
-		
-		
-		
-		/*
-		for(int i=0; i<ids.length; i++){
-			for(int j=i+1; j<ids.length; j++){
-				Path rel =  relationships[0][ids[i]][ids[j]];
-				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
-			}
-		}
-		*/
-
-		writer.close();
-		
-	}
-	
-	
 	private void recordFam(Node ind, PrintWriter famWriter){
 		
 		//visit
@@ -298,12 +118,16 @@ public class Pedigree {
 		this.nSingletons = new int[2];
 		this.logFact = new double[numIndiv+1];
 		nSingletons[curr] = numIndiv;
-		nNodes = new int[maxDepth];
-		nUnsampledDads = new int[maxDepth];
-		nUnsampledMoms = new int[maxDepth];
-		nSampledMoms = new int[maxDepth];
-		nSampledDads = new int[maxDepth];
+		nNodes = new int[maxDepth+1];
+		nUnsampledDads = new int[maxDepth+1];
+		nUnsampledMoms = new int[maxDepth+1];
+		nSampledMoms = new int[maxDepth+1];
+		nSampledDads = new int[maxDepth+1];
 		log = new double[effectivePop/2+1]; //TODO set this better
+		
+		for(int i=0; i<=maxDepth; i++) totalUnits+=(i+1);
+		
+		
 
 		//log factorials
 		logFact[0] = 0;
@@ -389,9 +213,11 @@ public class Pedigree {
 
 		}
 		
-		logLikelihood[curr] += getSingletonProb();
 		
-		
+		//prior
+		//logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		logLikelihood[curr] += prior[curr];
 		
 		
 	}
@@ -420,6 +246,10 @@ public class Pedigree {
 	public double getLogLikelihood(){
 		//return logLikelihood;
 		return logLikelihood[curr];
+	}
+	
+	public double getPrior(){
+		return prior[curr];
 	}
 	
 	
@@ -666,14 +496,15 @@ public class Pedigree {
 	
 	
 	//returns highest node touched
-	public void cut(Node child, Node parent, boolean hasFullSib){ //works
+	public void cut(Node child, Node parent, boolean hasFullSib, Node[] ijPrime){ //works
 		
 		//subtract old likelihood
 		clearVisit();
 		List<Node> nodesBeforeCut = parent.getConnectedSampledNodes(new ArrayList<Node>());
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(nodesBeforeCut);
 
-		this.logLikelihood[curr] -= getSingletonProb();
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
 		
 		// update graph structure
 		child.removeParent(parent);
@@ -702,21 +533,30 @@ public class Pedigree {
 			this.logLikelihood[curr] += likelihoodLocalPedigree(parentPed);
 		}
 		
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		
+		ijPrime[0] = clean(child);
+		ijPrime[1] = clean(parent);
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
+		
+	
 		
 	}
 	
 	
 	//make a ghost copy and randomly assign children to the copy
-	public void split(Node parent, Node splitParent, List<Node> splitChildren, boolean hasFullSib){ //works
+	public void split(Node parent, Node splitParent, List<Node> splitChildren, boolean hasFullSib, Node[] ijPrime){ //works
 
 		
 		//subtract old likelihood
 		clearVisit();
 		List<Node> nodesBeforeSplit = parent.getConnectedSampledNodes(new ArrayList<Node>());
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(nodesBeforeSplit);
-		this.logLikelihood[curr] -= getSingletonProb();
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
+		
 		
 		//make ghost parent
 		splitParent.setChildren(splitChildren);
@@ -752,8 +592,12 @@ public class Pedigree {
 
 		}
 		
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		ijPrime[0] = clean(parent);
+	    ijPrime[1] = clean(splitParent);
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		       
 		
 		
@@ -761,62 +605,6 @@ public class Pedigree {
 	
 
 	
-	//make a ghost copy and randomly assign children to the copy
-	public void split2(Node parent, Node stayParent, List<Node> stayChildren, boolean hasFullSib){ //works
-
-		
-		//subtract old likelihood
-		clearVisit();
-		List<Node> nodesBeforeSplit =  parent.getConnectedSampledNodes(new ArrayList<Node>());
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(nodesBeforeSplit);
-		
-		//subtract prior
-		this.logLikelihood[curr] -= getSingletonProb();
-		
-		
-		//grand parents
-		for(Node i : parent.getParents()){
-			i.addChild(stayParent);
-			stayParent.addParent(i);
-			i.removeChild(parent);
-		}
-		parent.getParents().clear();
-		
-		//children
-		for(Node i : stayChildren){
-			i.removeParent(parent);
-			parent.removeChild(i);
-			i.addParent(stayParent);
-			stayParent.addChild(i);
-		}
-		
-		for(Node ind : nodesBeforeSplit){
-			updateAdjMat(ind);
-		}
-		
-		//add new lkhd
-		if(hasFullSib){//one pedigree
-			
-			this.logLikelihood[curr] += likelihoodLocalPedigree(nodesBeforeSplit);
-			
-		}
-		else{
-			clearVisit();
-			List<Node> parentPed = parent.getConnectedSampledNodes(new ArrayList<Node>());
-			clearVisit();
-			List<Node> stayPed = stayParent.getConnectedSampledNodes(new ArrayList<Node>());
-
-			
-			this.logLikelihood[curr] += likelihoodLocalPedigree(stayPed);
-			this.logLikelihood[curr] += likelihoodLocalPedigree(parentPed);
-			
-		}
-		
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
-		
-	}
 	
 	
 	//recipient gets donor's children & parents
@@ -836,7 +624,8 @@ public class Pedigree {
 		}
 		
 		//subtract prior
-		this.logLikelihood[curr] -= getSingletonProb();
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
 
 		
 		//merge
@@ -854,7 +643,6 @@ public class Pedigree {
 		}
 		donor.getParents().clear();
 
-		//deleteNode(donor);
 		
 		
 		//add new likelihood 
@@ -881,9 +669,12 @@ public class Pedigree {
 		}
 	
 		
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-
+		deleteNode(donor);
+		
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 		
 	}
@@ -982,7 +773,7 @@ public class Pedigree {
 
 		//subtract old terms
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);	
-
+		this.logLikelihood[curr] -= prior[curr];
 		
 		
 		//switch nodes
@@ -1042,277 +833,34 @@ public class Pedigree {
 
 		//add new terms
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 	
 		
 		
 	}
 	
 	
-	
-	
-	public void cutOneLinkTwo(Node child){
-		
-		//cluster containing child
-		clearVisit();
-		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
-		
-		//subtract likelihood for old cluster
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-		
-		//cut child from parent
-		Node parent = child.getParents().get(0);
-		disconnect(parent, child);
-		
-		//make a new ghost parent for child
-		Node newParent = makeNewNode(parent.getDepth(), (parent.getSex()+1)%2); //choose the opposite sex; this way, there will no symmetry 
-		connect(newParent, child);
-		
-		
-		//connect parent and newParent to two grand parents
-		List<Node> grandParents = parent.getParents();
-		for(int i=0; i<2; i++){
-			
-			Node gp;
-			
-			if(i < grandParents.size()){ //grand parent exists
-				gp = grandParents.get(i);
-			}
-			else{ // doesn't exist yet
-				
-				//make gp
-				int gpSex = 0;
-				
-				if(i==1){
-					gpSex = (grandParents.get(i-1).getSex()+1)%2;
-				}
-				
-				gp = makeNewNode(parent.getDepth()+1, gpSex);
-				
-				//connect gp to parent
-				connect(gp, parent);
-			}
-			
-			//add to new parent
-			connect(gp, newParent);
-			
-		}
-		
-		//sanity check
-		//if(grandParents.get(0).getSex()==grandParents.get(1).getSex()) throw new RuntimeException("Same sex parents");
-		
-		
-		//adjust adj matrix
-		for(Node ind : ped){
-			updateAdjMat(ind);
-		}
-		
-		
-		//add new likelihood
-		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
-	}
-	
-	
-	
-	public void cutTwoLinkOne(Node parent, Node newParent){
-		
-		//cluster containing child
-		clearVisit();
-		List<Node> ped = parent.getConnectedSampledNodes(new ArrayList<Node>());
-		
-		//subtract likelihood for old cluster
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-		
-		
-		//cut parent from grandparents & clean up
-		for(Node gp : parent.getParents()){
-			gp.removeChild(parent);
-			//clean(gp);
-			
-			//clean gp
-			if(!gp.sampled && gp.getNumEdges() < 2)
-				deleteNode(gp);
-			
-		}
-		parent.getParents().clear();
-		
-		
-		//cut child from parent & delete parent
-		Node child = parent.getChildren().get(0);
-		disconnect(parent, child);
-		deleteNode(parent);
-		
-		//connect child with new parent
-		connect(newParent, child);
-		
-		
-		//update adj matrix
-		for(Node ind : ped){
-			updateAdjMat(ind);
-		}
-		
-		
-		//add new likelihood
-		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
-		
-	}
+
 	
 	
 	public void shiftCluster(List<Node> cluster, int offset){
 		
+
+		this.logLikelihood[curr] -= prior[curr];
+		
+
 		//shift cluster
 		for(Node i : cluster){
 			i.setDepth(i.getDepth() + offset);
 		}
+		
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 	
 	}
 	
-	
-	public void greatUncleToCousin(Node child, Node sibChild){
-		
-		//cluster containing child
-		clearVisit();
-		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
-		
-		
-		//subtract likelihood for old cluster
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-		
 
-
-		//cut from parents
-		Node p1 = child.getParents().get(0);
-		Node p2 = child.getParents().get(1);
-		disconnect(p1, child);
-		disconnect(p2, child);
-		
-		
-		//shift child cluster down
-		clearVisit();
-		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
-		for(Node i : childCluster){
-			i.setDepth(i.getDepth() - 2);
-		}
-		
-		//make a ghost node for child
-		int parentSex = rGen.nextDouble() < .5 ? 0 : 1;
-		Node newParent = makeNewNode(child.getDepth() + 1 , parentSex);
-		connect(newParent, child);
-		
-		
-		//connect new parent to grand parents
-		List<Node> gp = sibChild.getParents();
-		for(int i=0; i<2; i++){
-			
-			if(i < gp.size()){
-				connect(gp.get(i), newParent);
-			}
-			else{
-				Node newGP = makeNewNode(gp.get(0).getDepth(), (gp.get(0).getSex()+1)%2);
-				connect(newGP, sibChild);
-				connect(newGP, newParent);
-			}
-			
-		}
-		
-		
-		//update adj matrix
-		for(Node ind : ped){
-			updateAdjMat(ind);
-		}
-		
-		
-		//clean
-		clean(p1);
-		clean(p2);
-		
-		//add new likelihood
-		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-
-		
-		
-	}
-	
-	
-	
-	public void cousinToGreatUncle(Node child, Node newSib){
-		
-		//cluster containing child
-		clearVisit();
-		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
-		
-		//subtract likelihood for old cluster
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
-		
-		//disconnect parent
-		Node parent = child.getParents().get(0);
-		Node gp1 = parent.getParents().get(0);
-		Node gp2 = parent.getParents().get(1);
-		deleteNode(parent);
-		
-			
-		//shift child cluster up
-		clearVisit();
-		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
-		for(Node i : childCluster){
-			i.setDepth(i.getDepth() + 2);
-		}
-		
-				
-		//make sib and child siblings
-		List<Node> newParents = newSib.getParents();
-		for(int i=0; i<2; i++){
-			
-			if(i < newParents.size()){
-				connect(newParents.get(i), child);
-			}
-			else{
-				
-				int parentSex = 0;
-				if(i==1){
-					parentSex = (newParents.get(0).getSex()+1)%2;
-				}
-				
-				Node newParent = makeNewNode(child.getDepth()+1, parentSex);
-				connect(newParent, newSib);
-				connect(newParent, child);
-			}
-			
-		}
-		
-		//clean
-		clean(gp1);
-		clean(gp2);
-		
-		
-		//update adj matrix
-		for(Node ind : ped){
-			updateAdjMat(ind);
-		}
-		
-		
-		//add new likelihood
-		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
-		
-		
-	}
-	
 	
 	
 	public void POtoFS(Node child, Node parent, int shift){
@@ -1324,8 +872,8 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
 		
 		//cut child from parent
 		disconnect(parent, child);
@@ -1360,8 +908,11 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 		
 	}
@@ -1377,8 +928,8 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
 		
 		//cut child from parent
 		Node p1 = child.getParents().get(0);
@@ -1435,9 +986,10 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 	}
 	
@@ -1450,8 +1002,9 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
+		
 		
 		//donate children
 		for(Node x : donor.getChildren()){
@@ -1472,9 +1025,10 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 	}
 	
@@ -1488,8 +1042,9 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
+		
 		
 		//make split parent
 		Node splitParent = makeNewNode(parent.getDepth(), parent.getSex());
@@ -1515,9 +1070,10 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 		
 		
@@ -1533,8 +1089,8 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
 		
 		
 		//cut child cluster from parent
@@ -1574,9 +1130,10 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 	}
 
@@ -1590,8 +1147,8 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
 			
 		//cut child from parent
 		disconnect(parent, child);
@@ -1640,9 +1197,10 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 	}
 	
@@ -1655,8 +1213,8 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
 		
 		clearVisit();
 		parent.setNumVisit(1);
@@ -1699,8 +1257,10 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 	}
 
@@ -1714,8 +1274,8 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
 	
 		
 
@@ -1765,241 +1325,14 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
-		
-	}
-	
-	
-	
-	public void halfUncleToCousin(Node child, Node halfSib){
-		
-		
-		//cluster containing child
-		clearVisit();
-		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
-		
-		
-		//subtract likelihood for old cluster
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-		
-		
-		//cut from parent
-		disconnect(child.getParents().get(0), child);
-		
-		
-		//shift child cluster down
-		clearVisit();
-		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
-		for(Node i : childCluster){
-			i.setDepth(i.getDepth() - 1);
-		}
-		
-		//make a ghost parent node for child
-		int parentSex = rGen.nextDouble() < .5 ? 0 : 1;
-		Node newParent = makeNewNode(child.getDepth() + 1 , parentSex);
-		connect(newParent, child);
-		
-		
-		//connect new parent to grand parents
-		List<Node> gp = halfSib.getParents();
-		for(int i=0; i<2; i++){
-			
-
-			if(i < gp.size()){
-				connect(gp.get(i), newParent);
-			}
-			else{
-				Node newGP = makeNewNode(gp.get(0).getDepth(), (gp.get(0).getSex()+1)%2);
-				connect(newGP, halfSib);
-				connect(newGP, newParent);
-			}
-			
-		}
-		
-		
-		//update adj matrix
-		for(Node ind : ped){
-			updateAdjMat(ind);
-		}
-		
-		
-		//add new likelihood
-		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 	}
 	
 	
-	
-	public void cousinToHalfUncle(Node child){
-		
-		//cluster containing child
-		clearVisit();
-		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
-		
-		//subtract likelihood for old cluster
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
-		
-		//choose sib
-		Node parent = child.getParents().get(0);
-		List<Node> gp = new ArrayList<Node>();
-		gp.addAll(parent.getParents());
-
-
-		//disconnect parent
-		deleteNode(parent);
-			
-		//shift child cluster up
-		clearVisit();
-		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
-		for(Node i : childCluster){
-			i.setDepth(i.getDepth() + 1);
-		}
-		
-		//choose a new parent
-		Node newParent = gp.get(rGen.nextInt(2));
-				
-		//connect new parent to child
-		connect(newParent, child);
-		
-
-		//clean
-		for(Node i : gp){
-			clean(i);
-		}
-		
-		
-		//update adj matrix
-		for(Node ind : ped){
-			updateAdjMat(ind);
-		}
-		
-		
-		//add new likelihood
-		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
-		
-	}
-	
-	
-	
-	public void halfGreatUncleToHalfCousin(Node child, Node newGP){
-		
-		
-		//cluster containing child
-		clearVisit();
-		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
-		
-		
-		//subtract likelihood for old cluster
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-		
-		
-		//cut from parent
-		Node oldParent = child.getParents().get(0);
-		disconnect(oldParent, child);
-		
-		
-		//shift child cluster down
-		clearVisit();
-		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
-		for(Node i : childCluster){
-			i.setDepth(i.getDepth() - 2);
-		}
-		
-		//make a ghost parent node for child
-		int parentSex = rGen.nextDouble() < .5 ? 0 : 1;
-		Node newParent = makeNewNode(child.getDepth() + 1 , parentSex);
-		connect(newParent, child);
-		
-		
-		//connect new parent to grand parents
-		connect(newGP, newParent);
-		
-		
-		//clean old parent
-		clean(oldParent);
-		
-		
-		//update adj matrix
-		for(Node ind : ped){
-			updateAdjMat(ind);
-		}
-		
-		
-		//add new likelihood
-		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
-		
-	}
-	
-	
-	public void halfCousinToHalfGreatUncle(Node child, Node newSib){
-		
-		//cluster containing child
-		clearVisit();
-		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
-		
-		//subtract likelihood for old cluster
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
-
-		//disconnect parent
-		Node parent = child.getParents().get(0);
-		deleteNode(parent);
-			
-		//shift child cluster up
-		clearVisit();
-		List<Node> childCluster = child.getConnectedNodes(new ArrayList<Node>());
-		for(Node i : childCluster){
-			i.setDepth(i.getDepth() + 2);
-		}
-		
-		
-		//choose new parent's sex
-		int newParentSex = rGen.nextDouble() < .5 ? 0 : 1;
-		
-		
-		//get new parent with target sex
-		Node newParent = newSib.getParentWithSex(newParentSex);
-		if(newParent==null){
-			newParent = makeNewNode(child.getDepth()+1, newParentSex);
-			connect(newParent, newSib);
-		}
-		
-		
-		//connect new parent to child
-		connect(newParent, child);
-		
-
-		
-		//update adj matrix
-		for(Node ind : ped){
-			updateAdjMat(ind);
-		}
-		
-		
-		//add new likelihood
-		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
-		
-		
-	}
 	
 	
 	public void contract(Node parent, Node child, int shift){
@@ -2011,8 +1344,8 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
 
 		//disconnect child cluster
 		this.disconnect(parent, child);
@@ -2054,9 +1387,10 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 		
 	}
@@ -2071,8 +1405,8 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
 		
 		Node newParent = this.makeNewNode(child.getDepth(), child.getSex());
 		
@@ -2112,9 +1446,10 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 		
 		
@@ -2122,7 +1457,7 @@ public class Pedigree {
 	
 	
 	
-	//both are sampled; not parent-offspring
+	//both are sampled NEW: at least one of them is sampled; no node is deleted
 	public void swapAncDesc(Node anc, Node desc){
 		
 		//get cluster
@@ -2132,7 +1467,7 @@ public class Pedigree {
 
 		//subtract old terms
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);	
-
+		this.logLikelihood[curr] -= prior[curr];
 		
 		if(anc.getDepth() == desc.getDepth()+1){
 			switchParentChild(anc,desc);
@@ -2194,136 +1529,15 @@ public class Pedigree {
 
 		//add new terms
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 	
 	
 		
 	}
 	
 	
-	public void HStoFU(Node child, Node parent, Node halfSib, int targetSex, List<Node> fullSibs, int shift){
-		
-		
-		//cluster containing child
-		clearVisit();
-		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
-		
-		
-		//subtract likelihood for old cluster
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-		
-		
-		//cut from parent
-		disconnect(parent, child);
-		for(Node x : fullSibs) disconnect(parent, x);
-		
-		
-		//shift
-		if(shift==-1){//case1: shift down child & its full sib cluster
-			clearVisit();
-			List<Node> cluster = child.getConnectedNodes(new ArrayList<Node>());
-			for(Node i : cluster){
-				i.setDepth(i.getDepth() - 1);
-			}	
-		}
-		else{ //case2 : shift up parent cluster
-			clearVisit();
-			List<Node> cluster = parent.getConnectedNodes(new ArrayList<Node>());
-			for(Node i : cluster){
-				i.setDepth(i.getDepth() + 1);
-			}	
-		}
-		
 
-		
-		//make a ghost parent node for child
-		Node newParent = makeNewNode(child.getDepth() + 1 , targetSex);
-		connect(newParent, child);
-		for(Node x : fullSibs) connect(newParent, x);
-		
-	
-		makeFullSibs(halfSib, newParent);
-		
-		
-		//update adj matrix
-		for(Node ind : ped){
-			updateAdjMat(ind);
-		}
-		
-		
-		//add new likelihood
-		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
-		
-	}
-	
-	
-	
-	public void FUtoHS(Node child, Node parent, int targetSex, List<Node> fullSibs, int shift){
-		
-		//cluster containing child
-		clearVisit();
-		List<Node> ped = child.getConnectedSampledNodes(new ArrayList<Node>());
-		
-		//subtract likelihood for old cluster
-		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
-		
-		//disconnect parent
-		disconnect(parent, child);
-		for(Node x : fullSibs) disconnect(parent, x);
-		
-		
-		
-		
-		//shift cluster
-		if(shift==1){ //case1 : shift child cluster up
-			clearVisit();
-			List<Node> shiftCluster = child.getConnectedNodes(new ArrayList<Node>());
-			for(Node i : shiftCluster){
-				i.setDepth(i.getDepth() + 1);
-			}	
-		}
-		else{//case2 : shift parent cluster down
-			clearVisit();
-			List<Node> cluster = parent.getConnectedNodes(new ArrayList<Node>());
-			for(Node i : cluster){
-				i.setDepth(i.getDepth() - 1);
-			}		
-		}
-
-		
-		//choose gp to disconnect from
-		Node goodGP = parent.getParentWithSex(targetSex);
-
-		
-		//connect to new parent
-		connect(goodGP, child);
-		for(Node x : fullSibs) connect(goodGP, x);
-		
-
-		//clean
-		clean(parent);
-
-		
-		
-		//update adj matrix
-		for(Node ind : ped){
-			updateAdjMat(ind);
-		}
-		
-		
-		//add new likelihood
-		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
-		
-		
-	}
-	
 	
 	public void uncle2nephew(Node uncle, Node nephew, Node fs, int targetSex, int uncleShift, int nephewShift){
 		
@@ -2333,8 +1547,9 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
+		
 		
 		//cut child from parents
 		for(Node x : fs.getParents()){
@@ -2375,8 +1590,10 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 		
 	}
@@ -2391,8 +1608,9 @@ public class Pedigree {
 		
 		//subtract likelihood for old cluster
 		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);
-		this.logLikelihood[curr] -= getSingletonProb();
-
+		//this.logLikelihood[curr] -= getSingletonProb();
+		this.logLikelihood[curr] -= prior[curr];
+		
 		
 		//cut child from parents
 		Node parent = child.getParents().get(0);
@@ -2426,8 +1644,10 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updateNumSingletons();
-		this.logLikelihood[curr] += getSingletonProb();
+		//updateNumSingletons();
+		//this.logLikelihood[curr] += getSingletonProb();
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
 		
 		
 	}
@@ -2438,16 +1658,15 @@ public class Pedigree {
 	
 	////////////////////////   PRIOR   ////////////////////////
 	//prior: random mating model
-	public double totalPrior(){
-		
+	public void updatePrior(){	
 
 		//clear everything
 		clearVisit();
-		for(int i=0; i<maxDepth; i++) nNodes[i] = 0;
-		for(int i=0; i<maxDepth; i++) nUnsampledDads[i] = 0;
-		for(int i=0; i<maxDepth; i++) nUnsampledMoms[i] = 0;
-		for(int i=0; i<maxDepth; i++) nSampledDads[i] = 0;
-		for(int i=0; i<maxDepth; i++) nSampledMoms[i] = 0;
+		for(int i=0; i<nNodes.length; i++) nNodes[i] = 0;
+		for(int i=0; i<nNodes.length; i++) nUnsampledDads[i] = 0;
+		for(int i=0; i<nNodes.length; i++) nUnsampledMoms[i] = 0;
+		for(int i=0; i<nNodes.length; i++) nSampledDads[i] = 0;
+		for(int i=0; i<nNodes.length; i++) nSampledMoms[i] = 0;
 		
 		
 		// Count relevant quantities
@@ -2480,6 +1699,17 @@ public class Pedigree {
 					else nUnsampledDads[xDepth]++;
 				}
 				
+				
+				//increment unlabeled parents even if they're not actually represented
+				if(x.getParents().size()==0){
+					countGhostNode(xDepth+1, 0);
+					countGhostNode(xDepth+1, 1);
+				}
+				else if(x.getParents().size()==1){
+					int ghostParentSex = (x.getParents().get(0).getSex()+1) % 2;
+					countGhostNode(xDepth+1, ghostParentSex);
+				}
+				
 				x.setNumVisit(1);
 				
 				
@@ -2490,12 +1720,11 @@ public class Pedigree {
 		
 		
 		//compute prior
-		double toReturn = 0d;
 		double fa = 0d;
 		double ma = 0d;
 		
 		//for every generation
-		for(int i=0; i<maxDepth-1; i++){
+		for(int i=0; i<maxDepth; i++){
 		
 			//shared terms: 1/N^n
 			double oneOverNn = -nNodes[i]*log[effectivePop/2];
@@ -2520,10 +1749,8 @@ public class Pedigree {
 			ma += oneOverNn;
 	
 		}
-
-		toReturn = fa + ma + sampleDepthPrior(nNodes);
 		
-		return toReturn;
+		prior[curr] = fa + ma + sampleDepthPrior(nNodes);
 		
 		
 	}
@@ -2533,17 +1760,34 @@ public class Pedigree {
 		
 		double toReturn = 0d;
 		
-		// P(d) ~ Geo(1/2); P(1) = 1/2, P(2) = 1/4...
-		for(int i=0; i<maxDepth; i++)
-			toReturn += log[nNodes[i]] - log[i+2];
-		
-		
+		// P(max) = 1/totalUnits, P(max-1) = 2/totalUnits, ..., P(0)=(maxDepth+1)/totalUnits
+		for(int i=0; i<nNodes.length; i++){
+
+			toReturn += log[nNodes[i]] * (log[maxDepth+1-i] - log[totalUnits]);
+			
+			//toReturn += (log[nNodes[i]] - (i+1)*log[2]);
+			
+		}
+
 		return toReturn;
 		
 	}
 	
 	
-
+	private void countGhostNode(int currDepth, int sex){
+		
+		if(currDepth > maxDepth) return;
+		
+		nNodes[currDepth]++;
+		
+		if(sex==0) nUnsampledMoms[currDepth]++;
+		else nUnsampledDads[currDepth]++;
+		
+		//recurse
+		countGhostNode(currDepth+1, 0);
+		countGhostNode(currDepth+1, 1);
+		
+	}
 	
 	
 	///////// UPDATE ADJACENCY MATRIX ////////
@@ -2710,13 +1954,14 @@ public class Pedigree {
 		
 	}
 	
-	
+	/*
 	private double getSingletonProb(){
 		
 		return this.nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]];
 
 		
 	}
+	*/
 	
 	
 	
@@ -2751,7 +1996,8 @@ public class Pedigree {
 		
 		//System.out.println(String.format("Number of clusters: %d", n));
 		
-		return toReturn + getSingletonProb();
+		//return toReturn + getSingletonProb();
+		return toReturn;
 		
 		
 	}
@@ -2807,8 +2053,9 @@ public class Pedigree {
 			
 		}
 		
-		return toReturn + getSingletonProb();
-		
+		//return toReturn + getSingletonProb();
+		updatePrior();
+		return toReturn + prior[curr];
 		
 	}
 	
@@ -2880,6 +2127,7 @@ public class Pedigree {
 		nActiveNodes[copy] = nActiveNodes[curr];
 		logLikelihood[copy] = logLikelihood[curr];
 		nSingletons[copy] = nSingletons[curr];
+		prior[copy] = prior[curr];
 		
 		
 	}

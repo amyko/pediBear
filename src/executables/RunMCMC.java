@@ -9,6 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import Unused.CutOneLinkTwo;
+import Unused.CutTwoLinkOne;
+import Unused.FUtoHS;
+import Unused.HStoFU;
+import Unused.Split2;
 import dataStructures.Chain;
 import dataStructures.Path;
 import dataStructures.PedInfo;
@@ -21,15 +26,11 @@ import mcmc.MCMCMC;
 import mcmcMoves.Contract;
 import mcmcMoves.Cut;
 import mcmcMoves.CutLink;
-import mcmcMoves.CutOneLinkTwo;
-import mcmcMoves.CutTwoLinkOne;
 import mcmcMoves.FStoPO;
 import mcmcMoves.FStoSelf;
-import mcmcMoves.FUtoHS;
 import mcmcMoves.GPtoHS;
 import mcmcMoves.HStoGP;
 import mcmcMoves.HStoPO;
-import mcmcMoves.HStoFU;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
 import mcmcMoves.NephewtoUncle;
@@ -40,7 +41,6 @@ import mcmcMoves.POtoOP;
 import mcmcMoves.SelftoFS;
 import mcmcMoves.ShiftClusterLevel;
 import mcmcMoves.Split;
-import mcmcMoves.Split2;
 import mcmcMoves.SplitLink;
 import mcmcMoves.Stretch;
 import mcmcMoves.SwapDescAnc;
@@ -59,7 +59,7 @@ public class RunMCMC{
 	public static String ageFileName = "";
 	public static double maf = 0.01;
 	public static double errorRate = 0.01;
-	public static int maxDepth = 2;
+	public static int maxDepth = 4;
 	public static int sampleDepth = maxDepth;
 	public static double back = 0.04;
 	public static double startTemp = 100;
@@ -67,7 +67,7 @@ public class RunMCMC{
 	public static int iterPerTemp = 40000;
 	public static int maxIter = 10000000;
 	public static double conv = 1;
-	public static int numIndiv = 3;
+	public static int numIndiv = 18;
 	public static double poissonMean = numIndiv;
 	public static boolean conditional = true;
 	public static int numRun = 1;
@@ -77,7 +77,7 @@ public class RunMCMC{
 	//misc
 	public static int maxNumNodes = 200;
 	public static Map<String, Double> name2age = null;
-	public static Random rGen = new Random(10257002);
+	public static Random rGen = new Random(102572);
 	
 
 	
@@ -238,18 +238,18 @@ public class RunMCMC{
 		
 		
 		//arguments
-		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .03), new Split("split", .03),  
-				new CutLink("cutLink", .05), new SplitLink("splitLink", .05), 
-				new ShiftClusterLevel("shiftClusterLevel", .03),  new SwitchSex("switchSex", .03),  
-				new FStoSelf("fs2self", .07), new SelftoFS("self2fs", .07),
+		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .05),  
+				new ShiftClusterLevel("shiftClusterLevel", .05),  new SwitchSex("switchSex", .05),  
+				new FStoSelf("fs2self", .05), new SelftoFS("self2fs", .05),
 				new HStoGP("hs2gp", .05), new GPtoHS("gp2hs", .05),	
-				new UncletoNephew("uncle2nephew", .07), new NephewtoUncle("nephew2uncle", .07),
+				new UncletoNephew("uncle2nephew", .05), new NephewtoUncle("nephew2uncle", .05),
 				new SwapDescAnc("swapDescAnc", .05),
-				new OPtoPO("OPtoPO", .02), new POtoOP("POtoOP", .02),
+				new OPtoPO("OPtoPO", .05), new POtoOP("POtoOP", .05),
 				new FStoPO("FStoPO", .05), new POtoFS("POtoFS", .05), //confounds with HS2FU
-				new HStoPO("HStoPO", .03), new POtoHS("POtoHS", .03),
+				new HStoPO("HStoPO", .05), new POtoHS("POtoHS", .05),
 				new Contract("contract", .05), new Stretch("stretch", .05), //confounds with HS2PO, HS2FU?
 				
+				new CutLink("cutLink", .0), new SplitLink("splitLink", .0), //these don't work if donor node is deleted in link
 				new HStoFU("HStoFU",.0), new FUtoHS("FUtoHS", .0), //confounds with POtoFU
 				new Split2("split2", 0), new SwapDescAnc("swapDescAnc", .0),
 				new SwapUp("swapUp", .0), new SwapDown("swapDown", .0),
@@ -265,11 +265,11 @@ public class RunMCMC{
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
 
 		//mcmc parameters
-		int nChain = 1;
+		int nChain = 7;
 		int nBranch = 1;
-		int burnIn = 10;
-		int runLength = 4000000;
-		int sampleRate = 25;
+		int burnIn = 10000;
+		int runLength = 100000;
+		int sampleRate = 50;
 		double deltaT = .5;
 		int swapInterval = 1;
 		int nSwaps = 1;
@@ -589,11 +589,11 @@ public class RunMCMC{
 		PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/testing");
 
 		//run
-		for(int i=0; i<1; i++){
+		for(int i=0; i<3; i++){
 			
 			System.out.println(i);
 			
-			for(int j=2; j<3; j++){
+			for(int j=0; j<1; j++){
 			
 				String myFile = fileName + "sim4." + i;
 				String outfile = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5."+j;
@@ -601,9 +601,9 @@ public class RunMCMC{
 				
 				runThreads(myFile, outfile);
 				
-				validate(outfile);
+				//validate(outfile);
 				
-				//writeMap(writer, i);
+				writeMap(writer, i);
 			}
 			
 		}

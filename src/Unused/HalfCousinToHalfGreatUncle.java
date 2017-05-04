@@ -1,8 +1,9 @@
 
-package mcmcMoves;
+package Unused;
 
 
 import mcmc.SimulatedAnnealing;
+import mcmcMoves.Move;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 

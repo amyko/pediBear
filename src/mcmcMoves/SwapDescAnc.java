@@ -12,7 +12,7 @@ import dataStructures.Pedigree;
 public class SwapDescAnc extends Move {
 
 	List<Node> testing = new ArrayList<Node>();
-	List<Node> ancestors = new ArrayList<Node>();
+	List<Node> relatives = new ArrayList<Node>();
 
 	
 	public SwapDescAnc(String name, double moveProb) {
@@ -30,32 +30,48 @@ public class SwapDescAnc extends Move {
 		//reject if the sampled node does not have any sampled ancestors
 		testing.clear();
 		child.getAncestors(testing);
-		ancestors.clear();
-
-
+		child.getDescendants(testing);
+		
+		
+		relatives.clear();
+		
 		for(Node parent : testing){
-			//sampled, and sex compatible
-			if(parent.sampled && parent.getSex()==child.getSex())
-				ancestors.add(parent);
+			//sex compatible
+			if(parent.getSex()==child.getSex())
+				relatives.add(parent);
 		}
 
 		
-		if(ancestors.size()==0)
+		if(relatives.size()==0)
 			return REJECT;
 
+		
 		//choose ancestor
-		Node anc = ancestors.get(currPedigree.rGen.nextInt(ancestors.size()));
+		Node secondNode = relatives.get(currPedigree.rGen.nextInt(relatives.size()));
+		
 
+		//reject if ancestor would be deleted
+		if(!secondNode.sampled){
+			if(child.getChildren().size()==0 || child.getNumEdges() < 2)
+				return REJECT;
+	
+		}
 		
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
 	
+		Node anc = secondNode;
+		Node desc = child;
+		if(secondNode.getDepth() < child.getDepth()){
+			anc = child;
+			desc = secondNode;
+		}
 
-		
+
 		//swap
 		double prevLkhd = currPedigree.getLogLikelihood();		
-		currPedigree.swapAncDesc(anc, child);
+		currPedigree.swapAncDesc(anc, desc);
 		
 
 		//this move is symmetric

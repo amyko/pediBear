@@ -27,6 +27,7 @@ public class Link extends Move{ //WORKS; special merge not tested
 
 	@Override
 	protected double tryMove(Pedigree currPedigree, double heat) {
+
 		
 		//choose nodes i and j
 		Node[] nodes = currPedigree.getNRandomNodes(2);
@@ -213,9 +214,9 @@ public class Link extends Move{ //WORKS; special merge not tested
 	@Override
 	protected void clean(Pedigree currPedigree){
 		
-		currPedigree.deleteNode(donor);
+		//currPedigree.deleteNode(donor);
 	
-		//return;
+		return;
 		
 	}
 	

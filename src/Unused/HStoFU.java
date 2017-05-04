@@ -1,5 +1,5 @@
 
-package mcmcMoves;
+package Unused;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,6 +7,7 @@ import java.util.List;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 import mcmc.MCMCMC;
+import mcmcMoves.Move;
 
 
 //cut child from parent and link to two grand parents

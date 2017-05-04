@@ -3,27 +3,28 @@ package test;
 import java.io.IOException;
 import java.util.Random;
 
+import Unused.CousinToGreatUncle;
+import Unused.CousinToHalfUncle;
+import Unused.CutOneLinkTwo;
+import Unused.CutTwoLinkOne;
+import Unused.FUtoHS;
+import Unused.GreatUncleToCousin;
+import Unused.HStoFU;
+import Unused.HalfCousinToHalfGreatUncle;
+import Unused.HalfGreatUncleToHalfCousin;
+import Unused.HalfUncleToCousin;
+import Unused.Split2;
 import dataStructures.Pedigree;
 import likelihood.PairwiseLikelihoodCoreStreamPed;
 import mcmc.SimulatedAnnealing;
 import mcmcMoves.Contract;
-import mcmcMoves.CousinToGreatUncle;
-import mcmcMoves.CousinToHalfUncle;
 import mcmcMoves.Cut;
 import mcmcMoves.CutLink;
-import mcmcMoves.CutOneLinkTwo;
-import mcmcMoves.CutTwoLinkOne;
 import mcmcMoves.FStoPO;
-import mcmcMoves.FUtoHS;
-import mcmcMoves.HalfCousinToHalfGreatUncle;
-import mcmcMoves.HalfGreatUncleToHalfCousin;
-import mcmcMoves.HStoFU;
-import mcmcMoves.HalfUncleToCousin;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
 import mcmcMoves.POtoFS;
 import mcmcMoves.Split;
-import mcmcMoves.Split2;
 import mcmcMoves.SplitLink;
 import mcmcMoves.Stretch;
 import mcmcMoves.SwapDescAnc;
@@ -31,7 +32,6 @@ import mcmcMoves.SwapDown;
 import mcmcMoves.SwapUp;
 import mcmcMoves.SwitchSex;
 import mcmcMoves.ShiftClusterLevel;
-import mcmcMoves.GreatUncleToCousin;
 
 
 

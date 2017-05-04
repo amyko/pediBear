@@ -7,6 +7,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import Unused.CousinToGreatUncle;
+import Unused.CousinToHalfUncle;
+import Unused.CutOneLinkTwo;
+import Unused.CutTwoLinkOne;
+import Unused.GreatUncleToCousin;
+import Unused.HalfCousinToHalfGreatUncle;
+import Unused.HalfGreatUncleToHalfCousin;
+import Unused.HalfUncleToCousin;
+import Unused.Split2;
 import statistic.Accuracy;
 import statistic.Convergence;
 import utility.DataParser;
@@ -15,27 +24,18 @@ import dataStructures.Path;
 import dataStructures.Pedigree;
 import likelihood.PairwiseLikelihoodCoreStream2;
 import mcmc.MCMCMC;
-import mcmcMoves.CousinToGreatUncle;
-import mcmcMoves.CousinToHalfUncle;
 import mcmcMoves.Cut;
 import mcmcMoves.CutLink;
-import mcmcMoves.CutOneLinkTwo;
-import mcmcMoves.CutTwoLinkOne;
 import mcmcMoves.FStoPO;
-import mcmcMoves.HalfCousinToHalfGreatUncle;
-import mcmcMoves.HalfGreatUncleToHalfCousin;
-import mcmcMoves.HalfUncleToCousin;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
 import mcmcMoves.POtoFS;
 import mcmcMoves.Split;
-import mcmcMoves.Split2;
 import mcmcMoves.SplitLink;
 import mcmcMoves.SwapDown;
 import mcmcMoves.SwapUp;
 import mcmcMoves.SwitchSex;
 import mcmcMoves.ShiftClusterLevel;
-import mcmcMoves.GreatUncleToCousin;
 
 
 

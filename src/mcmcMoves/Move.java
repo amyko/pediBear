@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import dataStructures.Path;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -145,7 +144,10 @@ public abstract class Move {
 			nAccept++;
 			clean(currPedigree);
 		}
-			
+		
+		
+		
+
 	}
 
 	

@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import mcmc.MCMCMC;
-import dataStructures.Path;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -22,6 +21,7 @@ public class Split extends Move {
 	private int[] jDepthToCount = new int[maxDepth];
 	private List<Node> splitChildren = new ArrayList<Node>();
 	private List<Node> stayChildren = new ArrayList<Node>();
+	private Node[] ijPrime = new Node[2];
 	
 	
 	@Override
@@ -96,9 +96,9 @@ public class Split extends Move {
 	    
 	    //split
 	    Node splitParent = currPedigree.makeNewNode(parent.getDepth(), parent.getSex());
-	    currPedigree.split(parent, splitParent, splitChildren, hasFullSib);
-	    Node iPrime = currPedigree.clean(parent);
-	    Node jPrime = currPedigree.clean(splitParent);	    
+	    currPedigree.split(parent, splitParent, splitChildren, hasFullSib, ijPrime);
+	    Node iPrime = ijPrime[0];
+	    Node jPrime = ijPrime[1];	    
 	    int nAfter = currPedigree.getNActiveNodes();
 
 

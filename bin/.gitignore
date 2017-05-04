@@ -1,14 +1,11 @@
 /Unused/
 /dataStructures/
+/executables/
 /likelihood/
 /mcmc/
 /mcmcMoves/
+/pedi
 /simulator/
 /statistic/
 /test/
 /utility/
-/executables/
-/pediBear
-/pedi
-/Makefile
-/makefile
