@@ -74,7 +74,7 @@ public class NephewtoUncle extends Move{
 				return REJECT;
 		}
 		
-
+		
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();
@@ -100,8 +100,6 @@ public class NephewtoUncle extends Move{
 		int symm = currPedigree.getFullSibs(uncles.get(0)).size() + 1;
 		
 		double newToOld = getLogChooseOne(currPedigree.getNActiveNodes()) + getLogChooseOne(nFS) + getLogChooseOne(nNephews) + Math.log(symm * .5 * moveProbs.get("uncle2nephew"));
-		
-		
 		
 		
 		//accept ratio

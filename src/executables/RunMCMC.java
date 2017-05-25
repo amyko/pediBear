@@ -1,6 +1,7 @@
 package executables;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -8,12 +9,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.TreeMap;
 
 import Unused.CutOneLinkTwo;
 import Unused.CutTwoLinkOne;
 import Unused.FUtoHS;
 import Unused.HStoFU;
-import Unused.Split2;
 import dataStructures.Chain;
 import dataStructures.Path;
 import dataStructures.PedInfo;
@@ -54,12 +55,12 @@ import utility.DataParser;
 public class RunMCMC{
 	
 	//MCMC parameter
-	public static String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/simPed4/";
+	public static String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/mcmc/";
 	public static String refPopFileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/mcmcTest/mcmcTest";
 	public static String ageFileName = "";
 	public static double maf = 0.01;
 	public static double errorRate = 0.01;
-	public static int maxDepth = 4;
+	public static int maxDepth = 3; //only simulated up to depth=3
 	public static int sampleDepth = maxDepth;
 	public static double back = 0.04;
 	public static double startTemp = 100;
@@ -67,18 +68,35 @@ public class RunMCMC{
 	public static int iterPerTemp = 40000;
 	public static int maxIter = 10000000;
 	public static double conv = 1;
-	public static int numIndiv = 18;
+	public static int numIndiv = 20;
 	public static double poissonMean = numIndiv;
 	public static boolean conditional = true;
 	public static int numRun = 1;
-	public static int runLength = 1;
+	//public static int runLength = 1;
 	public static int numThreads = 1;
+	public static double credibleInterval = .95;
+	public static double beta = 30;
+	
+	
+	//MCMC parameters
+	public static int nChain = 4;
+	public static int nBranch = 1;
+	public static int burnIn = 500000;
+	public static int runLength = 500000;
+	public static int sampleRate = 50;
+	public static double deltaT = .9;
+	public static int swapInterval = 1;
+	public static int nSwaps = 1;
 	
 	//misc
 	public static int maxNumNodes = 200;
 	public static Map<String, Double> name2age = null;
-	public static Random rGen = new Random(102572);
+	public static Random rGen = new Random(102574);
 	
+	//prior
+	public static int minN = 100;
+	public static int maxN = 800;
+	public static int stepSize = 50;
 
 	
 	
@@ -236,6 +254,7 @@ public class RunMCMC{
 
 	public static void runThreads(String myFile, String outfile) throws IOException{
 		
+		Random rGen = new Random(1025742);
 		
 		//arguments
 		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .05),  
@@ -251,7 +270,6 @@ public class RunMCMC{
 				
 				new CutLink("cutLink", .0), new SplitLink("splitLink", .0), //these don't work if donor node is deleted in link
 				new HStoFU("HStoFU",.0), new FUtoHS("FUtoHS", .0), //confounds with POtoFU
-				new Split2("split2", 0), new SwapDescAnc("swapDescAnc", .0),
 				new SwapUp("swapUp", .0), new SwapDown("swapDown", .0),
 				new CutOneLinkTwo("cutOneLinkTwo", .0), new CutTwoLinkOne("cutTwoLinkOne", .0)};
 		
@@ -264,31 +282,23 @@ public class RunMCMC{
 		
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
 
-		//mcmc parameters
-		int nChain = 7;
-		int nBranch = 1;
-		int burnIn = 10000;
-		int runLength = 100000;
-		int sampleRate = 50;
-		double deltaT = .5;
-		int swapInterval = 1;
-		int nSwaps = 1;
+
 		
 
 		
 		/*
 		//testing age info
 		name2age = new HashMap<String, Double>();
-		name2age.put("1_1", 1d); 
-		name2age.put("1_2", 3d);
-		name2age.put("1_3", 2d);
-		name2age.put("1_4", 1d);
-		name2age.put("1_5", 2d);
-		name2age.put("1_6", 2d);
-		name2age.put("1_7", 1d);
-		name2age.put("1_8", 2d);
+		name2age.put("1_1", 10d); 
+		name2age.put("1_2", 9d);
+		name2age.put("1_3", 9d);
+		name2age.put("1_4", 8d);
+		name2age.put("1_5", 7d);
+		name2age.put("1_6", 6d);
+		name2age.put("1_7", 5d);
+		name2age.put("1_8", 4d);
 		name2age.put("1_9", 3d);
-		name2age.put("1_10", 2d);
+		//name2age.put("1_10", 2d);
 		*/
 		
 		
@@ -302,7 +312,7 @@ public class RunMCMC{
 		if(nChain>1){
 		
 			int currIdx = 0;
-			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age);
+			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta);
 			Chain superHeatedChain = new Chain(nChain-1, ped);
 			superHeatedChain.setHeat(deltaT);
 			chains.add(superHeatedChain);
@@ -313,7 +323,7 @@ public class RunMCMC{
 			
 				for(int chain=nChain-2; chain >= 0; chain--){
 					
-					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age);
+					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta);
 					Chain myChain = new Chain(chain, ped);
 					
 					//temp
@@ -363,7 +373,7 @@ public class RunMCMC{
 		}
 		
 		else{
-			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age);
+			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta);
 			Chain myChain = new Chain(0, ped);
 			
 			//temp
@@ -372,8 +382,15 @@ public class RunMCMC{
 		}
 		
 		
-		MCMCMC mcmcmc = new MCMCMC(chains, deltaT, moves, burnIn, runLength, sampleRate, swapInterval, nSwaps, rGen, outfile);
+		MCMCMC mcmcmc = new MCMCMC(chains, deltaT, moves, burnIn, runLength, sampleRate, swapInterval, nSwaps, rGen, outfile, minN, maxN, stepSize);
 		mcmcmc.run();
+		
+		
+		//print prior
+		int numSamples = runLength /sampleRate;
+		for(int i=0; i<mcmcmc.logLkhdOfNe.length; i++){
+			System.out.println(String.format("%d %f", i*stepSize + minN, mcmcmc.logLkhdOfNe[i] - numSamples));
+		}
 		
 		
 		
@@ -399,14 +416,14 @@ public class RunMCMC{
 	
 	
 	//validate output
-	public static void validate(String outfile) throws IOException{
+	public static void validate(String outfile, String targetFile) throws IOException{
 		
 		//read target counts
-		int numTarget = DataParser.countLines(outfile+".target");
+		int numTarget = DataParser.countLines(targetFile);
 		String[] target = new String[numTarget];
 		int[] expectedCount = new int[numTarget];
 		
-		BufferedReader targetReader = DataParser.openReader(outfile+".target");
+		BufferedReader targetReader = DataParser.openReader(targetFile);
 		String line;
 		int lineNum=0;
 		while((line=targetReader.readLine())!=null){
@@ -542,36 +559,23 @@ public class RunMCMC{
 	}
 	
 	
-	public static void writeMap(PrintWriter writer, int t) throws NumberFormatException, IOException{
+	public static void writeAcc(PrintWriter writer, String truePed, String countPath, int t) throws NumberFormatException, IOException{
 			
-		//get mapAcc
-		String truePath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim4.true";
-		String outPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5.0.pair";
-		String pathToOmega = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/pathToOmega.txt";
-		Map<Path, double[]> pathToKinship = Accuracy.getPathToOmega(pathToOmega);
-		double[][] mapAcc = Accuracy.mapAccuracy(outPath, truePath, numIndiv, numIndiv, pathToKinship);
-		
-		
-		//header
-		writer.write(String.format(">\t%d\n", t));
-		
-		int count = 0;
-		
-		for(int i=0; i<numIndiv; i++){
-			for(int j=i+1; j<numIndiv; j++){
-				writer.write(String.format("%d\t%d\t%d\n", i, j, (int)mapAcc[i][j]));
-				
-				count += (int)mapAcc[i][j];
-				
-				
-			}
-		}
-		
-		
-		//TODO testing
-		System.out.println(count);
-		
 
+		//in MAP?
+		String[] mapResult = Accuracy.inMAP(countPath, truePed);
+		double denom = runLength / sampleRate;
+		double percentMap = Integer.parseInt(mapResult[1]) / denom;
+
+		
+		//in credible interval?
+		String[] ciResult = Accuracy.inCI(countPath, truePed, credibleInterval, denom);
+		
+		writer.write(String.format("%d\t%s\t%.3f\t%s\t%s\n", t, mapResult[0], percentMap, ciResult[0], ciResult[1]));
+		
+		
+		
+		
 		//flush
 		writer.flush();
 
@@ -580,39 +584,121 @@ public class RunMCMC{
 		
 	}
 	
+	public static String getTruePed(String truePath) throws IOException{
+		
+		BufferedReader reader = DataParser.openReader(truePath);
+		
+		String toReturn = reader.readLine();
+		reader.close();
+		
+		return toReturn;
+		
+	}
+	
+	
+	//write cranefoot fam file for MAP estimate
+	public static void writeMapFam(String outfile) throws NumberFormatException, IOException{
+		
+		//get MAP ped
+		double bestLkhd = Double.NEGATIVE_INFINITY;
+		String bestPed = "";
+		
+		
+		BufferedReader reader = DataParser.openReader(outfile+".count");
+		
+		String line;
+		
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\\s");
+			
+			double currLkhd = Double.parseDouble(fields[1]);
+			
+			if(currLkhd > bestLkhd){
+				bestLkhd = currLkhd;
+				bestPed = fields[0];
+			}
+			
+			
+		}
+		reader.close();
+		
+		
+		//write fam
+		reader = DataParser.openReader(outfile+".fam");
+		PrintWriter writer = DataParser.openWriter(outfile+".mapFam");
+		
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\\s");
+			if(!fields[0].equals(">")) 
+				continue;
+			
+			if(fields[1].equals(bestPed))
+				break;
+			
+		}
+		
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\\s");
+			if(fields[0].equals(">")) 
+				break;
+			
+			writer.write(line+"\n");
+			
+		}
+		
+		reader.close();
+		writer.close();
+		
+	}
+	
+	
+	
+	//get MAP estimate 
+	public static void writePairAcc(){
+		
+		
+		
+	}
+	
+	
 	
 	public static void main(String[] args) throws IOException{
 	
 		
-		//open output file
-		//PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim4.mcmc.5chains.mapAcc");
-		PrintWriter writer = DataParser.openWriter("/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/testing");
-
+		//file paths
+		String outPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/mcmc/";
+		PrintWriter writer = DataParser.openWriter(outPath+"test.acc");
+		String sim = "sample";
+		
+		//get truePed
+		String truePed = getTruePed(String.format("%s%s.true", outPath, sim));
+		
 		//run
-		for(int i=0; i<3; i++){
+		for(int i=0; i<1; i++){
 			
 			System.out.println(i);
 			
-			for(int j=0; j<1; j++){
+			//String myFile = String.format("%s%s.%d", fileName, sim, i);
+			String myFile = String.format("%s%s", fileName, sim);
+			String outfile = outPath + "test";
 			
-				String myFile = fileName + "sim4." + i;
-				String outfile = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/results/sim5."+j;
-
-				
-				runThreads(myFile, outfile);
-				
-				//validate(outfile);
-				
-				writeMap(writer, i);
-			}
+			runThreads(myFile, outfile);
+			
+			//writeAcc(writer, truePed, outfile+".count", i);
+			//writeMapFam(outfile);
+			
+			//testing relative occupancy without likelihood
+			//String targetFile = String.format("%s.%d.target", outfile, 0);
+			//validate(outfile, targetFile);
+			
+			
 			
 		}
 
-		
-		
 		writer.close();
-
-
 		
 		System.out.println("DONE");
 		

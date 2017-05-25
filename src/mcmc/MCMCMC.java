@@ -24,7 +24,7 @@ public class MCMCMC {
 	final static int tuneIter = 10000;
 	final static int maxTuneTrialTune = 10; //max number of tune trials inside Tune
 	final static int maxTuneTrialBurnIn = 10; //max number of tune trials inside BurnIn
-	final static int tuneInterval = 100000;
+	final static int tuneInterval = 50000;
 	final static int maxDelta = 10;
 	final static int minDelta = 0;
 
@@ -34,9 +34,10 @@ public class MCMCMC {
 	final int runLength;
 	final int sampleRate;
 	final Move[] moves; 
-	final PrintWriter writer;
-	final PrintWriter convWriter;
-	PrintWriter cranefootFamWriter;
+	final PrintWriter pairWriter;//pedigree sample expressed in pairwise + numAnc
+	final PrintWriter lkhdWriter;
+	final PrintWriter famWriter;// label + fam
+	final PrintWriter countWriter; // label + count
 	final Random rGen;
 	final int nChain;
 	public int nSwapSuccess;
@@ -46,20 +47,23 @@ public class MCMCMC {
 	boolean tuned;
 	int nSwaps;
 	
-	private double deltaT;
+	private double deltaT;	
 	
+	//FOR SAMPLING
 	private int missingParentCounter = 0;
 	public Map<String, PedInfo> ped2info = new HashMap<String, PedInfo>();
+	private final List<Node> anc = new ArrayList<Node>();
 
+	
+	//prior
+	public double[] logLkhdOfNe;
+	private int minN;
+	private int maxN;
+	private int stepSize;
 
-	
-	
-	
-	public double bestLkhd = Double.NEGATIVE_INFINITY;
-	
 
 	//TODO parallelize 
-	public MCMCMC(List<Chain> chains, double deltaT, Move[] moves, int burnIn, int runLength, int sampleRate, int swapInterval, int nSwaps, Random rGen, String outPath) throws IOException{
+	public MCMCMC(List<Chain> chains, double deltaT, Move[] moves, int burnIn, int runLength, int sampleRate, int swapInterval, int nSwaps, Random rGen, String outPath, int minN, int maxN, int stepSize) throws IOException{
 
 		this.outPath = outPath;
 		this.chains = chains;
@@ -68,9 +72,10 @@ public class MCMCMC {
 		this.runLength = runLength;
 		this.sampleRate = sampleRate;
 		this.moves = moves;		
-		this.writer = DataParser.openWriter(outPath+".pair");
-		this.convWriter = DataParser.openWriter(outPath+".lkhd");
-		//this.cranefootFamWriter = DataParser.openWriter(outPath+".fam");
+		this.pairWriter = DataParser.openWriter(outPath+".pair");
+		this.lkhdWriter = DataParser.openWriter(outPath+".lkhd");
+		this.famWriter = DataParser.openWriter(outPath+".fam");
+		this.countWriter = DataParser.openWriter(outPath+".count");
 		this.rGen = rGen;
 		this.nChain = chains.size();
 		this.nSwapAttempt = 0;
@@ -79,6 +84,13 @@ public class MCMCMC {
 		this.swapInterval = swapInterval;
 		this.tuned = false;
 		this.nSwaps = nSwaps;
+		this.minN = minN;
+		this.maxN = maxN;
+		this.stepSize = stepSize;
+		
+		
+		//effective population lkhd
+		logLkhdOfNe = new double[(maxN-minN)/stepSize];
 		
 
 
@@ -157,7 +169,7 @@ public class MCMCMC {
 				for(int j = 0; j < nChain; j++){
 					
 					Move move = chooseMove();				
-					move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat(),0);
+					move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
 						
 					
 					
@@ -243,7 +255,7 @@ public class MCMCMC {
 				//System.out.println();
 				
 
-				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat(), i);
+				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
 				
 				
 		
@@ -315,69 +327,62 @@ public class MCMCMC {
 		
 		System.out.println("Sampling...");
 		
-		boolean written = false;
 		//now start sampling
 		for(int i = 0; i < runLength; i++){
 			
-			//record best likelihood
-			double currLkhd = chains.get(this.coldChain).getPedigree().getLogLikelihood();
-			if(currLkhd > this.bestLkhd){
-				this.bestLkhd = currLkhd;
-				
-				cranefootFamWriter = DataParser.openWriter(outPath+".fam");
-				missingParentCounter = 0;
-				writeFamFile(chains.get(coldChain).getPedigree());
-				
-			}
-			
-			
-			if(Math.abs(currLkhd+47393.39) < 1e-1 && written==false){
 
-				cranefootFamWriter = DataParser.openWriter(outPath+".2.fam");
-				missingParentCounter = 0;
-				writeFamFile(chains.get(coldChain).getPedigree());	
-				written = true;
-			}
-			
-			
-			
-			
-			
-	
-			
-			
 			//sample from cold chain
 			if(i % sampleRate == 0){
+				
 				sample(chains.get(this.coldChain).getPedigree());
 				convergence(chains.get(this.coldChain).getPedigree());
+			
 			}
 			
 			
 			//for every chain, update
 			for(int j = 0; j < nChain; j++){				
-				Move move = chooseMove();
-	
+		
 				
-				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat(),0);
+				Move move = chooseMove();
+				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
+				
 			}
 			
-			if(i%swapInterval==0){
+			
+			//swap chains if necessary
+			if(i%swapInterval==0)
 				swapStates();
-			}
+			
 			
 	
 		}
 		
 		
+		//write counts
+		writeCounts();
+		
 		//close outfile
-		writer.close();
-		
-		
+		pairWriter.close();
+		famWriter.close();
+		lkhdWriter.close();
+		countWriter.close();
 
 		
 		
 	}
 	
+	
+	private void writeCounts(){
+		
+		for(String key : ped2info.keySet()){
+			
+			PedInfo info = ped2info.get(key);
+			countWriter.write(String.format("%s\t%f\t%d\n", key, info.lkhd, info.count));
+			
+		}
+		
+	}
 	
 
 	
@@ -420,7 +425,6 @@ public class MCMCMC {
 			double acceptRatio = chains.get(j).getHeat()*chains.get(k).getLikelihood() + chains.get(k).getHeat()*chains.get(j).getLikelihood() - chains.get(j).getHeat()*chains.get(j).getLikelihood() - chains.get(k).getHeat()*chains.get(k).getLikelihood();
 
 			
-			
 			double acceptProb = 0d;
 			if(acceptRatio > 0){
 				acceptProb = 1;
@@ -433,6 +437,7 @@ public class MCMCMC {
 			//swap states
 			if(rGen.nextDouble() < acceptProb){
 				
+
 				
 				Pedigree jped = chains.get(j).getPedigree();
 				chains.get(j).setPedigree(chains.get(k).getPedigree());
@@ -453,75 +458,81 @@ public class MCMCMC {
 	}
 	
 
-	//write relationship to file
 	
+	
+	//write relationship to file
 	private void sample(Pedigree currPedigree){
 		
-		//pairwise relatioship
-		//header for this sample
-		writer.write(String.format(">\t%f\n", currPedigree.getLogLikelihood()));
+		//pairwise relationship
 
 		//number of ancestors for each sampled node
 		String numAncString = "";
-		
 		String toWrite = "";
 		
+		//ind 1
 		for(int i=0; i<currPedigree.numIndiv; i++){
 			
 			//num ancestors
-			List<Node> anc = new ArrayList<Node>();
+			anc.clear();
 			currPedigree.getNode(i).getAncestors(anc);
-			int nAnc = anc.size();
+			numAncString += anc.size();
 			
-			numAncString += nAnc;
-			
+			//ind 2
 			for(int j=i+1; j<currPedigree.numIndiv; j++){
 				
-				Path rel = currPedigree.getRelationships()[i][j];
-				 
-				
-				writer.write(String.format("%d\t%d\t%d\t%d\t%d\n", i, j, rel.getUp(), rel.getDown(), rel.getNumVisit()));
-				
-				//TODO for hastings test
-				//toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
+				Path rel = currPedigree.getRelationships()[i][j];			 
+				toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
 				
 			}
 			
 			
 		}
 		
-		
-		
+		//TODO testing
+		//write
+		pairWriter.write(String.format("%s\n", toWrite));
 		toWrite += numAncString;
 		
-		//TODO testing
-		//writer.write(toWrite+"\n");
 		
-		
-		//multiplier and likelihood
+		//if new pedigree, record fam, multiplier, and likelihood
+		PedInfo info;
 		if(!ped2info.containsKey(toWrite)){			
 			
-			PedInfo info = new PedInfo();
+			//lkhd & multiplier & initialize count
+			info = new PedInfo(minN, maxN, stepSize);
 			info.lkhd = currPedigree.getLogLikelihood();
 			info.multiplier = computeMultiplier(currPedigree);
+			info.count = 1;
 			
-			ped2info.put(toWrite, info);		
+			//compute effective pop lkhds
+			for(int i=0; i<info.logLkhdOfNe.length; i++){
+				info.logLkhdOfNe[i] = currPedigree.computePrior(i*stepSize + minN);
+			}
+					
+			
+			//fam
+			missingParentCounter = 0;
+			writeFamFile(chains.get(coldChain).getPedigree(), toWrite);
+		
+			//record pedigree
+			ped2info.put(toWrite, info);
+		
+			
 		}
 
 		
 		
-		//count
-		if(!ped2info.containsKey(toWrite)){
-			PedInfo info = new PedInfo();
-			info.count = 1;
-			ped2info.put(toWrite, info);
-			
-		}
+		//if pedigree already there, increment count
 		else{
-			PedInfo info = ped2info.get(toWrite);
+			info = ped2info.get(toWrite);
 			info.count = info.count + 1;
 			ped2info.put(toWrite, info);
 		}
+		
+		
+		//update Ne likelihood
+		for(int i=0; i<logLkhdOfNe.length; i++)
+			logLkhdOfNe[i] = utility.LogSum.addLogSummand(logLkhdOfNe[i], info.logLkhdOfNe[i] - currPedigree.getPrior());
 		
 		
 	
@@ -530,27 +541,29 @@ public class MCMCMC {
 	
 	
 
-	private void writeFamFile(Pedigree currPedigree){
+	private void writeFamFile(Pedigree currPedigree, String pedLabel){
 		
-
+		//header 
+		famWriter.write(String.format(">\t%s\t%f\n", pedLabel, currPedigree.getLogLikelihood()));
+		
 		//write family relationship
-		cranefootFamWriter.write(String.format("NAME\tFATHER\tMOTHER\tSEX\tSAMPLED\n"));
+		famWriter.write(String.format("NAME\tFATHER\tMOTHER\tSEX\tSAMPLED\n"));
 		for(int i=0; i<currPedigree.getNActiveNodes(); i++){
 			recordCranefootFam(currPedigree.getNode(i), currPedigree);
 		}
 		
-		cranefootFamWriter.close();
 		
 	}
 	
 	
 	private void convergence(Pedigree currPedigree){
 		
-		convWriter.write(String.format("%f\n", currPedigree.getLogLikelihood()));
+		lkhdWriter.write(String.format("%f\n", currPedigree.getLogLikelihood()));
 		
 	}
 	
 
+	
 	private void recordCranefootFam(Node ind, Pedigree currPedigree){
 		
 		String name = ind.fid + "_" + ind.iid;
@@ -565,8 +578,6 @@ public class MCMCMC {
 			
 		//get parent ids
 		for(Node parent : ind.getParents()){
-			
-			//recordFam(parent);
 		
 			if(parent.getSex()==0)
 				ma = parent.fid + "_" + parent.iid;
@@ -601,7 +612,7 @@ public class MCMCMC {
 		
 		
 		//write to file
-		cranefootFamWriter.write(String.format("%s\t%s\t%s\t%s\t%s\n", name, pa, ma, sex, sampleStatus));
+		famWriter.write(String.format("%s\t%s\t%s\t%s\t%s\n", name, pa, ma, sex, sampleStatus));
 		
 		
 	}

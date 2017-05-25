@@ -67,13 +67,13 @@ public abstract class Move {
 	}
 
 	//tries a move, tests it, and returns the old pedigree if it fails, and the new pedigree if it passes
-	public final void mcmcMove(Pedigree currPedigree, double heat, int iter){
+	public final void mcmcMove(Pedigree currPedigree, double heat){
 
-		
 		
 		double prevLkhd = currPedigree.getLogLikelihood();
 		
 		double acceptanceRatio = tryMove(currPedigree, heat);
+		
 		
 		//banned moves
 		if(acceptanceRatio==REJECT){
@@ -130,6 +130,7 @@ public abstract class Move {
 			
 			if(Math.abs(prevLkhd - currPedigree.getLogLikelihood()) > 1){
 				System.out.println("REVERSED NOT WORKING PROPERLY");
+				System.out.println(this.name);
 			}
 			
 		}
@@ -143,6 +144,9 @@ public abstract class Move {
 			
 			nAccept++;
 			clean(currPedigree);
+			
+			//System.out.println(this.name);
+			
 		}
 		
 		

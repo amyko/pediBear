@@ -32,8 +32,7 @@ public class LDStreamPed {
 	//output: info file
 	public static void writeLdOutfile(String fileName, String outPath, int back) throws IOException{
 		
-		//TODO fix this!!
-		//int numIndiv = 100;
+
 		//num indiv
 		int numIndiv = DataParser.countLines(fileName+".tfam"); 
 

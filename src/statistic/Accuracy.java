@@ -1,10 +1,10 @@
 package statistic;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import utility.DataParser;
 import dataStructures.Path;
@@ -19,204 +19,107 @@ public class Accuracy {
 	final static int DOWN = 3;
 	final static int NUMVISIT = 4;
 	
-	
-	//best paths based on pairwise test
-	public static Path[][] pairwiseBestPed(String outPath, int totalIndiv, int numIndiv) throws NumberFormatException, IOException{
-		
-		//to return
-		Path[][] bestPath = new Path[numIndiv][numIndiv];
-		double[][] bestLkhd = new double[numIndiv][numIndiv];
-		
-		for(int i=0; i<numIndiv; i++){
-			for(int j=0; j<numIndiv; j++){
-				bestLkhd[i][j] = Double.NEGATIVE_INFINITY;
-			}
-		}
+
+	//returns (1): true if MAP is true; (2) #MAP_samples / #total
+	public static String[] inMAP(String countPath, String truePed) throws IOException{
+			
+		//get MAP
+		double bestLkhd = Double.NEGATIVE_INFINITY;
+		String bestCount = "";
+		String bestPed = "";
 		
 		
-		//read output
-		BufferedReader reader = DataParser.openReader(outPath);
+		BufferedReader reader = DataParser.openReader(countPath);
+		
 		String line;
-		Path rel = null;
-		int i=0;
 		
-		while((line = reader.readLine())!=null){
+		while((line=reader.readLine())!=null){
 			
-			String[] fields = line.split("\t");
-			if(fields[0].equals(">")){
-				rel = new Path(Integer.parseInt(fields[1]) , Integer.parseInt(fields[2]) , Integer.parseInt(fields[3]));
-				i=0;
-				continue;
+			String[] fields = line.split("\\s");
+			
+			double currLkhd = Double.parseDouble(fields[1]);
+			
+			if(currLkhd > bestLkhd){
+				bestLkhd = currLkhd;
+				bestPed = fields[0];
+				bestCount = fields[2];
 			}
-			
-			if(i>=numIndiv) continue;
-			
-			for(int j=0; j<numIndiv; j++){
-				double currLkhd = Double.parseDouble(fields[j]);
-				if(currLkhd > bestLkhd[i][j]){
-					bestLkhd[i][j] = currLkhd;
-					bestPath[i][j] = rel;
-				}
-			}
-			
-			i++;
 			
 			
 		}
+		reader.close();
 		
+		String[] toReturn = new String[2];
+		toReturn[1] = bestCount;
+		
+		//check if MAP is true 
+		if(bestPed.equals(truePed))
+			toReturn[0] = "1";
+		else
+			toReturn[0] = "0";
+		
+		return toReturn;
+	}
+	
+	
+	//returns (1): true if true pedigree is in the credible interval; (2) #pedigrees in credible interval
+	public static String[] inCI(String countPath, String truePed, double CI, double denom) throws NumberFormatException, IOException{
+	
+		//build map: count -> ped
+		Map<Integer, String> count2ped = new HashMap<Integer, String>();
+		
+		BufferedReader reader = DataParser.openReader(countPath);
+		String line;
+		
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\\s");
+			
+			int key = -Integer.parseInt(fields[2]);
+			String val = fields[0];
+			count2ped.put(key, val);
+			
+		}
 		reader.close();
 		
 		
+		//sort map
+		Map<Integer, String> sortedMap = new TreeMap<Integer, String>(count2ped); 
 		
-		return bestPath;
+		//credible interval
+		int totalCount = 0;
+		int pedCount = 0;
+		int inCI = 0;
 		
+		for(int key : sortedMap.keySet()){
+			
+			//get count
+			int count = Math.abs(key);
+			totalCount += count;
+			pedCount++;
+			
+			//check if this pedigree is the true one
+			if(inCI==0 && truePed.equals(sortedMap.get(key))){
+				inCI=1;
+			}
+			
+			if(totalCount / denom > CI) break;
+			
+		}
+		
+
+		//record results
+		String[] toReturn = new String[2];
+		toReturn[0] = String.format("%d", inCI);
+		toReturn[1] = String.format("%d", pedCount);
+		
+		
+		return toReturn;	
 		
 		
 	}
 	
 	
-	
-	//ordered = finds the number of samples with the exact path, unordered = exact path + complement
-	public static int numSamplesWithGivenRel(String outPath, int i, int j, Path path, boolean ordered) throws IOException{
-		
-		BufferedReader reader = DataParser.openReader(outPath);
-		
-		int n = 0;
-		String line;
-		while((line = reader.readLine())!=null){
-			
-			String[] fields = line.split("\t");
-			if(fields[0].equals(">")) continue;
-			
-			if(Integer.parseInt(fields[IND1])!=i || Integer.parseInt(fields[IND2])!=j) continue;
-			
-
-			if(ordered){
-				if(Integer.parseInt(fields[NUMVISIT])==path.getNumVisit()){
-					if(Integer.parseInt(fields[UP])==path.getUp() && Integer.parseInt(fields[DOWN])==path.getDown()){
-						n++;				
-					}
-				}
-			}
-			
-			else{
-				if(Integer.parseInt(fields[NUMVISIT])==path.getNumVisit()){
-					if(Integer.parseInt(fields[UP])==path.getUp() && Integer.parseInt(fields[DOWN])==path.getDown()){
-						n++;				
-					}
-					
-					else if(Integer.parseInt(fields[UP])==path.getDown() && Integer.parseInt(fields[DOWN])==path.getUp()){
-						n++;	
-					}
-				}	
-			}
-			
-
-			
-		}
-		
-		reader.close();
-		
-		return n;
-		
-	}
-	
-	
-	//ordered = finds the number of samples with the exact path, unordered = exact path + complement
-	public static int numSamplesWithGivenRel(String outPath, Path path) throws IOException{
-		
-		BufferedReader reader = DataParser.openReader(outPath);
-		
-		int n = 0;
-		String line;
-		int c = 0;
-		while((line = reader.readLine())!=null){
-			
-			String[] fields = line.split("\t");
-			if(fields[0].equals(">")){
-				if(c==3) n++;
-				c = 0;
-				continue;
-			}
-			
-			
-			if(Integer.parseInt(fields[NUMVISIT])==path.getNumVisit()){
-				if(Integer.parseInt(fields[UP])==path.getUp() && Integer.parseInt(fields[DOWN])==path.getDown()){
-					c++;				
-				}
-				
-				else if(Integer.parseInt(fields[UP])==path.getDown() && Integer.parseInt(fields[DOWN])==path.getUp()){
-					c++;	
-				}
-			}
-			
-			
-
-			
-		}
-		
-		reader.close();
-		
-		return n;
-		
-	}
-	
-	
-	//returns path with the highest number of hits
-	public static Path mostLikelyPath(String outPath, int i, int j) throws NumberFormatException, IOException{
-		
-		Map<Path, Integer> count = new HashMap<Path, Integer>();
-		
-		BufferedReader reader = DataParser.openReader(outPath);
-		
-
-		String line;
-		while((line = reader.readLine())!=null){
-			
-			String[] fields = line.split("\t");
-			if(fields[0].equals(">")) continue;
-			
-			if(Integer.parseInt(fields[0])!=i || Integer.parseInt(fields[1])!=j) continue;
-			
-			
-			Path key = new Path(Integer.parseInt(fields[UP]) , Integer.parseInt(fields[DOWN]) , Integer.parseInt(fields[NUMVISIT]));
-			
-			//increment count
-			if(count.containsKey(key)){
-				count.put(key, count.get(key) + 1);
-			}
-			else{
-				count.put(key, 1);
-			}
-			
-			
-		}
-		
-		reader.close();
-		
-		
-		//determine most likely path
-		Path bestPath = null;
-		int bestCount = 0;
-		int currCount = 0;
-		
-		for(Path key : count.keySet()){
-			
-			currCount = count.get(key);
-			if(currCount > bestCount){
-				bestCount = currCount;
-				bestPath = key;
-			}
-			
-		}
-		
-		//print
-		System.out.println(String.format("(%d, %d) : (%d, %d, %d) %d\n", i, j, bestPath.getUp(), bestPath.getDown(), bestPath.getNumVisit(), bestCount));
-		
-		return bestPath;
-		
-		
-	}
 	
 	
 	

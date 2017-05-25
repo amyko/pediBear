@@ -81,7 +81,7 @@ public class HStoPO extends Move{
 			
 		} 
 
-		
+
 		
 		//copy pedigree
 		currPedigree.copyCurrPedigree();

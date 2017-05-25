@@ -86,7 +86,6 @@ public class Contract extends Move{
 		
 
 		
-		
 		//oldToNew
 		double oldToNew = Math.log(moveProbs.get("contract"));
 

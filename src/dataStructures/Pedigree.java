@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -15,6 +17,9 @@ import java.util.Random;
 
 
 
+
+
+import java.util.Set;
 
 import utility.ArrayUtility;
 import utility.DataParser;
@@ -51,10 +56,11 @@ public class Pedigree {
 	private final double logLambda;
 	private final double[] logFact;
 	public final int[] nSingletons;
+	private final double beta; //multiplier for poisson 
 	
 	
 	//NEW PRIOR
-	private final int effectivePop = 10000;
+	private final int effectivePop;
 	private int[] nNodes;
 	private int[] nUnsampledDads;
 	private int[] nUnsampledMoms;
@@ -104,13 +110,13 @@ public class Pedigree {
 	
 	
 	//TODO handle known relationships; effective pop size
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age) throws IOException{
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age, double beta, int effectivePop) throws IOException{
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = maxDepth;
 		this.maxSampleDepth = maxSampleDepth;
 		this.lambda = lambda;
-		this.logLambda = lambda;
+		this.logLambda = Math.log(lambda);
 		this.core = core;
 		this.rGen = rGen;
 		this.curr = 0;
@@ -123,7 +129,9 @@ public class Pedigree {
 		nUnsampledMoms = new int[maxDepth+1];
 		nSampledMoms = new int[maxDepth+1];
 		nSampledDads = new int[maxDepth+1];
-		log = new double[effectivePop/2+1]; //TODO set this better
+		log = new double[5000]; //TODO set this better
+		this.beta = beta;
+		this.effectivePop = effectivePop;
 		
 		for(int i=0; i<=maxDepth; i++) totalUnits+=(i+1);
 		
@@ -223,12 +231,194 @@ public class Pedigree {
 	}
 	
 	
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv) throws IOException{
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, double beta, int effectivePop) throws IOException{
 	
-		this(fileName, core, maxDepth, maxSampleDepth, rGen, maxNumNodes, lambda, numIndiv, null);
+		this(fileName, core, maxDepth, maxSampleDepth, rGen, maxNumNodes, lambda, numIndiv, null, beta, effectivePop);
 		
 	}
 
+	
+	
+	//this is for simulation only
+	public Pedigree(String inPath, String truePath) throws IOException{
+		
+		this.lambda = 0;
+		this.logLambda = 0;
+		this.nSingletons = null;
+		logFact = null;
+		log = new double[500]; //TODO set this better
+		beta = 0;
+		effectivePop = 1000;
+
+	 
+		
+		this.numIndiv = 20;
+		this.maxDepth = 5;
+		this.maxSampleDepth = this.maxDepth;
+		this.core = null;
+		this.rGen = null;
+		this.curr = 0;
+		this.copy = 1;
+		nodes.add(new ArrayList<Node>(300));
+		
+
+		//fill up nodess
+		BufferedReader reader = DataParser.openReader(inPath);
+		reader.readLine();//header
+		String line;
+		int idx = 0;
+		Map<String, Node> name2node = new HashMap<String, Node>();
+		Map<Integer, Node> idx2node = new HashMap<Integer, Node>();
+		
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			
+			String childIdx = fields[0];
+			String fid = fields[0].split("_")[0];
+			String iid = fields[0].split("_")[1];
+			int sex = fields[4].equals("1") ? 0 : 1;
+			boolean sampled = fields[4].equals("000000") ? true : false;
+			
+			
+			Node child = new Node(fid, iid, sex, sampled, idx);
+			nodes.get(0).add(child);
+			name2node.put(childIdx, child);
+			idx2node.put(idx, child);
+			
+			//increment
+			idx++;
+
+		}
+		reader.close();
+		
+		//relationship
+		this.relationships = new Path[2][idx][idx];
+		nActiveNodes[0] = idx;
+
+		for(int i=0; i<relationships[0][0].length; i++){
+			for(int j=i+1; j<relationships[0][0].length; j++){
+				this.relationships[0][i][j] = new Path(0,0,0);
+			}
+		}
+
+
+		
+		//make pedigree
+		reader = DataParser.openReader(inPath);
+		reader.readLine();//header
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\t");
+			
+			Node child = name2node.get(fields[0]);
+			Node dad = name2node.get(fields[1]);
+			Node mom = name2node.get(fields[2]);
+			
+			
+			if(dad!=null){
+				child.addParent(dad);
+				dad.addChild(child);
+			}
+			if(mom!=null){
+				child.addParent(mom);
+				mom.addChild(child);
+			}
+			
+
+		}
+		reader.close();
+			
+		
+		//un-inbred: disconnect inbred connections
+		for(Node x : nodes.get(0)){
+			
+			if(x.getParents().size()!=2) continue;
+			
+			
+			Node p1 = x.getParents().get(0);
+			Node p2 = x.getParents().get(1);
+			
+			List<Node> gp1 = new ArrayList<Node>();
+			gp1.addAll(p1.getParents());
+			List<Node> gp2 = new ArrayList<Node>();
+			gp2.addAll(p2.getParents());
+			
+			for(Node g1 : gp1){
+				
+				for(Node g2 : gp2){
+					
+					//disconnect inbred
+					if(g1.getIndex()==g2.getIndex()){
+						
+						disconnect(g1, p1);
+						disconnect(g1, p2);
+						
+					}
+					
+				}
+				
+			}
+			
+			
+		}
+		
+	
+		
+		//record paths
+		for(Node x : nodes.get(0)){
+			
+			if(!x.sampled) continue;
+			
+			updateAdjMat(x);
+			
+		}
+		
+		
+		//write to path
+		PrintWriter writer = DataParser.openWriter(truePath);
+
+		
+		//print relationships
+		for(int i=0; i<relationships[0].length; i++){
+
+			Node node1 = idx2node.get(i);
+			if(node1.sampled==false) continue;
+			
+			
+			for(int j=i+1; j<relationships[0].length; j++){
+				
+				Node node2 = idx2node.get(j);
+				if(node2.sampled==false) continue;
+				
+				Path rel = relationships[0][i][j];
+				if(rel.getNumVisit()==-1){
+					//System.out.println("Bad");
+					looped = true;
+				}
+				
+				if(rel.getNumVisit()!=0){
+					System.out.println(String.format("%d %d %d", rel.getUp(),rel.getDown(),rel.getNumVisit()));
+				}
+				
+				//write name1 name2 relationship
+				String name1 = String.format("%s_%s", node1.fid, node1.iid);
+				String name2 = String.format("%s_%s", node2.fid, node2.iid);
+				writer.write(String.format("%s\t%s\t%d\t%d\t%d\n", name1, name2, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				
+			}
+			
+		}
+		
+		System.out.println();
+		writer.close();
+		
+
+		
+	}
+	
+	
+	
 	
 	////// SETTERS ////////
 	public void setLogLikelihood(double lkhd){
@@ -861,6 +1051,42 @@ public class Pedigree {
 	}
 	
 
+	public void switchSex(Node parent){
+	
+		clearVisit();
+		
+		this.logLikelihood[curr] -= prior[curr];
+	
+		//shift cluster
+		switchSexHelper(parent);
+		
+		updatePrior();
+		this.logLikelihood[curr] += prior[curr];
+		
+	}
+	
+	
+	
+	private void switchSexHelper(Node parent){ //works
+		
+		if(parent.getNumVisit() > 0) return;
+		
+		//switch sex and mark visit
+		parent.setSex((parent.getSex()+1) % 2);
+		parent.setNumVisit(parent.getNumVisit()+1);
+		
+		//recurse on neighbor parents
+		for(Node i : parent.getChildren()){
+			
+			if(i.getNumVisit() > 0) continue;
+			i.setNumVisit(i.getNumVisit()+1);
+
+			for(Node j : i.getParents()){
+				switchSexHelper(j);
+			}
+							
+		}
+	}
 	
 	
 	public void POtoFS(Node child, Node parent, int shift){
@@ -1659,7 +1885,7 @@ public class Pedigree {
 	////////////////////////   PRIOR   ////////////////////////
 	//prior: random mating model
 	public void updatePrior(){	
-
+		
 		//clear everything
 		clearVisit();
 		for(int i=0; i<nNodes.length; i++) nNodes[i] = 0;
@@ -1718,7 +1944,15 @@ public class Pedigree {
 			
 		}
 		
+		prior[curr] = computePrior(effectivePop) + sampleDepthPrior(nNodes);
+	
 		
+	}
+	
+	
+	
+	public double computePrior(int popSize){	
+	
 		//compute prior
 		double fa = 0d;
 		double ma = 0d;
@@ -1727,11 +1961,14 @@ public class Pedigree {
 		for(int i=0; i<maxDepth; i++){
 		
 			//shared terms: 1/N^n
-			double oneOverNn = -nNodes[i]*log[effectivePop/2];
+			double oneOverNn = -nNodes[i]*log[popSize/2];
 			
 			//father probability
-			int start = effectivePop/2 - nSampledDads[i+1];
+			int start = popSize/2 - nSampledDads[i+1];
 			int end = start - nUnsampledDads[i+1] + 1;
+			
+			//TODO testing
+			if(end<0) end = 0;
 			
 			for(int j=start; j>=end; j--)
 				fa += log[j];	
@@ -1740,8 +1977,11 @@ public class Pedigree {
 			
 			
 			//mother probability
-			start = effectivePop/2 - nSampledMoms[i+1];
+			start = popSize/2 - nSampledMoms[i+1];
 			end = start - nUnsampledMoms[i+1] + 1;
+			
+			//TODO testing
+			if(end<0) end = 0;
 			
 			for(int j=start; j>=end; j--)
 				ma += log[j];
@@ -1750,8 +1990,9 @@ public class Pedigree {
 	
 		}
 		
-		prior[curr] = fa + ma + sampleDepthPrior(nNodes);
 		
+		return fa + ma + sampleDepthPrior(nNodes);
+	
 		
 	}
 	
@@ -1954,14 +2195,13 @@ public class Pedigree {
 		
 	}
 	
-	/*
+	
 	private double getSingletonProb(){
 		
 		return this.nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]];
-
 		
 	}
-	*/
+	
 	
 	
 	
@@ -2176,45 +2416,6 @@ public class Pedigree {
 	
 	public void updateNumSingletons(){
 		
-		/*
-		//get number of singletons
-		int k = 0;
-		for(int i=0; i<numIndiv; i++){
-			
-			boolean singleton = true;
-			
-			//connection to i
-			for(int j=0; j<numIndiv; j++){
-				
-				if(j==i) continue;
-				int smaller;
-				int bigger;
-				if(j<i){
-					smaller = j;
-					bigger = i;
-				}
-				else{
-					smaller = i;
-					bigger = j;
-				}
-				
-				if(this.relationships[curr][smaller][bigger].getNumVisit()!=0){
-					singleton = false;
-					break;
-				}
-				
-			}
-			
-			if(singleton==true) k++;
-			
-
-			
-		}
-		
-		this.nSingletons[curr] = k;
-		*/
-		
-		//get number of clusters
 		
 		this.clearVisit();
 		

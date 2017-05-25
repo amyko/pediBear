@@ -290,6 +290,102 @@ public class SimulatorStreamPed {
 			writer.close();
 			
 		}
+		
+		
+		//returns ped file line of the offspring
+		public String makeChildrenReturnPedline(String momPath, String dadPath, int momID, int dadID, Random rgen, int numChildren) throws IOException{
+			
+			//open files
+			BufferedReader momReader = DataParser.openReader(momPath);
+			BufferedReader dadReader = DataParser.openReader(dadPath);
+
+			//adjusted mom and dad columns
+			int dadCol = 2*(dadID+2);
+			int momCol = 2*(momID+2);
+			
+			
+			//initialize
+			int[] curr1hap = new int[numChildren];
+			int[] curr2hap = new int[numChildren];
+
+			//for all snps
+			String momLine;
+			String dadLine;
+			int prevChrom = -1;
+			int prevPos = 0;
+			String toReturn = "";
+
+
+			while((momLine = momReader.readLine())!=null && (dadLine = dadReader.readLine())!=null){
+				
+				//read data
+				String[] momFields = momLine.split("\\s");
+				String[] dadFields = dadLine.split("\\s");
+				int currChrom = Integer.parseInt(momFields[CHROM]);
+				int currPos = Integer.parseInt(momFields[POS]);
+
+				
+				if(currPos==prevPos) continue;
+
+				//if first snp, randomly choose start haplotype	
+				if(currChrom != prevChrom){
+					
+					//randomly choose start haplotype
+					for (int i=0; i< numChildren; i++){
+						curr1hap[i] = rgen.nextBoolean() ? 1 : 0;
+						curr2hap[i] = rgen.nextBoolean() ? 1 : 0;
+					}
+					
+					
+
+				}
+				
+				
+				
+
+				//if not, determine recombination
+				else{
+	
+					
+					double dist = (currPos - prevPos) * recombRate;
+					
+					for (int i=0; i<numChildren; i++){
+						PoissonDistribution p = new PoissonDistribution(dist);
+						if(p.sample() % 2 == 1){	//odd number of recombinations happened, switch
+							curr1hap[i] = 1- curr1hap[i];
+							//n++;
+						}
+						if(p.sample() % 2 == 1){	//odd number of recombinations happened, switch
+							curr2hap[i] = 1- curr2hap[i];
+						}	
+					}
+					
+						
+					
+				}
+				
+				
+					
+
+				for (int i=0; i< numChildren; i++){	
+					toReturn += String.format("%s %s ", momFields[momCol + curr1hap[i]], dadFields[dadCol + curr2hap[i]]);
+				}
+				
+				//update pos & chrom
+				prevChrom = currChrom;
+				prevPos = currPos;
+
+			}
+		
+			
+			//close files
+			momReader.close();
+			dadReader.close();
+
+			return toReturn;
+			
+			
+		}
 
 }
 

@@ -1,6 +1,7 @@
 package mcmcMoves;
 
 
+import mcmc.MCMCMC;
 import dataStructures.Pedigree;
 import dataStructures.Node;
 
@@ -8,6 +9,8 @@ import dataStructures.Node;
 
 public class SwitchSex extends Move {
 
+	Node parent;
+	
 	
 	public SwitchSex(String name, double moveProb) {
 		super(name, moveProb);
@@ -18,19 +21,20 @@ public class SwitchSex extends Move {
 	protected double tryMove(Pedigree currPedigree, double heat) {
 		
 		//get a random parent
-		Node parent = currPedigree.getRandomNode();
+		parent = currPedigree.getRandomNode();
 		
 		//reject if sex cannot be switched
 		currPedigree.clearVisit();
 		if(sexLocked(parent)) return REJECT;
 			
 		//switch sexes
-		currPedigree.clearVisit();
-		switchSex(parent);
+		double prevLkhd = currPedigree.getLogLikelihood();
+		currPedigree.switchSex(parent);
 		
 		
 		//always accept
-		return 1;
+		return MCMCMC.acceptanceRatio(currPedigree.getLogLikelihood(), prevLkhd, 0,0, heat);
+		
 		
 	}
 	
@@ -38,7 +42,7 @@ public class SwitchSex extends Move {
 	@Override
 	protected void reverseMove(Pedigree currPedigree) {
 		
-		return;
+		currPedigree.switchSex(parent);
 
 	}
 	
@@ -87,27 +91,7 @@ public class SwitchSex extends Move {
 	}
 	
 	
-	//returns true if the parent's sex cannot be changed
-	private void switchSex(Node parent){ //works
-		
-		if(parent.getNumVisit() > 0) return;
-		
-		//switch sex and mark visit
-		parent.setSex((parent.getSex()+1) % 2);
-		parent.setNumVisit(parent.getNumVisit()+1);
-		
-		//recurse on neighbor parents
-		for(Node i : parent.getChildren()){
-			
-			if(i.getNumVisit() > 0) continue;
-			i.setNumVisit(i.getNumVisit()+1);
 
-			for(Node j : i.getParents()){
-				switchSex(j);
-			}
-							
-		}
-	}
 	
 	
 }
