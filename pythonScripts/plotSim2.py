@@ -216,7 +216,7 @@ if __name__ == "__main__":
     #plot
     fig = plt.figure(facecolor='white')
     ax = fig.add_subplot(111)
-    ax4 = fig.add_subplot(313)
+    ax3 = fig.add_subplot(313)
     ax1 = fig.add_subplot(311, sharex=ax3)
     ax2 = fig.add_subplot(312, sharex=ax3)
 

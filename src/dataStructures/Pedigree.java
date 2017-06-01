@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -47,6 +46,7 @@ public class Pedigree {
 	private final double logLambda;
 	private final double[] logFact;
 	public final int[] nSingletons;
+	private final double beta;
 	
 	//for primus
 	public boolean looped = false;
@@ -70,6 +70,7 @@ public class Pedigree {
 		this.logLambda = 0;
 		logFact = null;
 		nSingletons = null;
+		beta = 1;
 		
 		//relationship
 		this.relationships = new Path[2][numIndiv][numIndiv];
@@ -139,6 +140,7 @@ public class Pedigree {
 		this.logLambda = 0;
 		this.nSingletons = null;
 		logFact = null;
+		beta = 0;
 
 		//relationship
 		this.relationships = new Path[2][184][184];
@@ -264,13 +266,13 @@ public class Pedigree {
 	
 	
 	//TODO handle known relationships
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age) throws IOException{
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age, double beta) throws IOException{
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = maxDepth;
 		this.maxSampleDepth = maxSampleDepth;
 		this.lambda = lambda;
-		this.logLambda = lambda;
+		this.logLambda = Math.log(lambda);
 		this.core = core;
 		this.rGen = rGen;
 		this.curr = 0;
@@ -278,6 +280,7 @@ public class Pedigree {
 		this.logFact = new double[numIndiv+1];
 		this.nSingletons = new int[2];
 		nSingletons[curr] = numIndiv;
+		this.beta = beta;
 		
 		//log factorials
 		logFact[0] = 0;
@@ -365,9 +368,9 @@ public class Pedigree {
 	}
 	
 	
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv) throws IOException{
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, double beta) throws IOException{
 	
-		this(fileName, core, maxDepth, maxSampleDepth, rGen, maxNumNodes, lambda, numIndiv, null);
+		this(fileName, core, maxDepth, maxSampleDepth, rGen, maxNumNodes, lambda, numIndiv, null, beta);
 		
 	}
 
@@ -2569,7 +2572,7 @@ public class Pedigree {
 	
 	public double getSingletonProb(){
 		
-		return this.nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]];
+		return beta*(this.nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]]);
 
 		
 		//return 0;

@@ -65,6 +65,7 @@ public class Run{
 	public static int numRun = 2;
 	public static int runLength = 1;
 	public static int numThreads = 1;
+	public static double beta = 30;
 	
 	//misc
 	public static int maxNumNodes = 200;
@@ -117,19 +118,20 @@ public class Run{
 			relationships.add(new Relationship(3d, new double[] {3d/4d, 1d/4d, 0d}, new Path[]{new Path(2,1,1), new Path(3,0,1)})); //half uncle
 			relationships.add(new Relationship(4d, new double[] {7d/8d, 1d/8d, 0d}, new Path[]{new Path(2,2,1), new Path(3,1,1), new Path(4,0,1)})); //half cousins
 			relationships.add(new Relationship(5d, new double[] {.5, .5, 0d}, new Path[]{new Path(2,1,2)})); //uncle
-			relationships.add(new Relationship(6d, new double[] {3d/4d, 1d/4d, 0d}, new Path[]{new Path(2,2,2), new Path(3,1,2)})); //first cousins
+			relationships.add(new Relationship(6d, new double[] {3d/4d, 1d/4d, 0d}, new Path[]{new Path(2,2,2)})); //first cousins
 		}
 		
 		//depth = 3 relationships
 		if(maxDepth >= 3){
+			relationships.add(new Relationship(6d, new double[] {3d/4d, 1d/4d, 0d}, new Path[]{new Path(3,1,2)})); 
 			relationships.add(new Relationship(5d, new double[] {15d/16d, 1d/16d, 0d}, new Path[]{new Path(3,2,1), new Path(4,1,1)})); 
-			relationships.add(new Relationship(6d, new double[] {31d/32d, 1d/32d, 0d}, new Path[]{new Path(3,3,1), new Path(4,2,1)}));
-			relationships.add(new Relationship(7d, new double[] {7d/8d, 1d/8d, 0d}, new Path[]{new Path(3,2,2), new Path(4,1,2)})); 
+			relationships.add(new Relationship(6d, new double[] {31d/32d, 1d/32d, 0d}, new Path[]{new Path(3,3,1), new Path(4,2,1)})); 
 			relationships.add(new Relationship(8d, new double[] {15d/16d, 1d/16d, 0d}, new Path[]{new Path(3,3,2), new Path(4,2,2)})); 
 		}
 		
 		//depth = 4 relationships 
 		if(maxDepth >= 4){
+			relationships.add(new Relationship(7d, new double[] {7d/8d, 1d/8d, 0d}, new Path[]{new Path(4,1,2)}));
 			relationships.add(new Relationship(7d, new double[] {63d/64d, 1d/64d, 0d}, new Path[]{new Path(4,3,1)}));
 			relationships.add(new Relationship(8d, new double[] {127d/128d, 1d/128d, 0d}, new Path[]{new Path(4,4,1)})); 
 			relationships.add(new Relationship(9d, new double[] {31d/32d, 1d/32d, 0d}, new Path[]{new Path(4,3,2)}));
@@ -263,7 +265,7 @@ public class Run{
 			
 			
 			PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
-			Pedigree ped = new Pedigree(fileName, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age);
+			Pedigree ped = new Pedigree(fileName, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta);
 			SimulatedAnnealing sa = new SimulatedAnnealing(ped, heat, coolingSchedule, moves, runLength, rGen, String.format("%s.%d", fileName, i), conv);
 			
 
@@ -300,9 +302,7 @@ public class Run{
 		//read files
 		setName2age();
 		
-		//computeLikelihoods();
-		
-
+		computeLikelihoods();
 		
 
 		//run
