@@ -11,16 +11,22 @@ import likelihood.LDStreamPedMissing;
 import likelihood.PairwiseLikelihoodCoreStreamPed;
 import dataStructures.Relationship;
 import dataStructures.Path;
+import simulator.SimulatePedigreeUnderPrior;
 import utility.DataParser;
 
 //makes a test pedigree and then computes its likelihood under the pairwise core and using lander-green
 public class TestLikelihood {
 		
 		public static double recombRate = 1.3e-8; 
-		public static double seqError = 0.01;
+		public static double seqError = 0.005;//for computing likelihood
+		public static double realSeqError = 0;
 		public static String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/";
 		public static int back = 30000;
 		public static Random rgen = new Random(526564L);
+		static int N = 200;
+		static int n = 20;
+		static int d = 3;
+		static int sampleDepth = 2;
 
 
 
@@ -33,7 +39,7 @@ public class TestLikelihood {
 			
 			
 			//open outfile
-			PrintWriter writer = DataParser.openWriter(fileName+".marginal");				
+			PrintWriter writer = DataParser.openWriter(String.format("%s.%d.marginal", fileName, t));				
 			
 			//write marginals to file
 			for (double item : marginals){
@@ -49,7 +55,7 @@ public class TestLikelihood {
 			int numRel = relationships.size();
 			
 			//likelihood
-			PrintWriter writer = DataParser.openWriter(fileName+".pairwise");
+			PrintWriter writer = DataParser.openWriter(String.format("%s.%d.pairwise", fileName, t));
 				
 			double[][][] lkhd = core.forwardAlgorithm(fileName+".tped", infoPath, ids, relationships);
 
@@ -148,12 +154,18 @@ public class TestLikelihood {
 			
 	
 			
-			for(int t=0; t<1; t++){
+			for(int t=0; t<100; t++){
 				
 				System.out.println(t);
-		
-				String fileName = simDir + testName;
+				
+				//file names
+				String fileName = String.format("%s%s",simDir,testName);
 				String infoPath = simDir+"200founders.200N.pruned.info";
+				
+				//simulate
+				System.out.println("Simulating");
+				SimulatePedigreeUnderPrior.sampleForReal(N, n, d, sampleDepth, rgen, simDir, realSeqError, t);
+				
 
 				//compute marginal probs
 				System.out.println("Computing marginals");
@@ -162,9 +174,9 @@ public class TestLikelihood {
 				
 				//compute pairwise
 				System.out.println("Computing pairwise likelihoods");
-				long startTime = System.nanoTime();		
+				//long startTime = System.nanoTime();		
 				computePairwise(core, fileName, infoPath, indCols, relationships, t);	
-				System.out.println("Total time was " + (System.nanoTime() - startTime) / 1e9 / 60d/ 60d + " hours");
+				//System.out.println("Total time was " + (System.nanoTime() - startTime) / 1e9 / 60d/ 60d + " hours");
 				
 				
 			

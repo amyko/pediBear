@@ -56,7 +56,6 @@ public class MCMCMC {
 
 	
 	//prior
-	public double[] logLkhdOfNe;
 	private int minN;
 	private int maxN;
 	private int stepSize;
@@ -87,10 +86,6 @@ public class MCMCMC {
 		this.minN = minN;
 		this.maxN = maxN;
 		this.stepSize = stepSize;
-		
-		
-		//effective population lkhd
-		logLkhdOfNe = new double[(maxN-minN)/stepSize];
 		
 
 
@@ -500,13 +495,12 @@ public class MCMCMC {
 			
 			//lkhd & multiplier & initialize count
 			info = new PedInfo(minN, maxN, stepSize);
-			info.lkhd = currPedigree.getLogLikelihood();
 			info.multiplier = computeMultiplier(currPedigree);
 			info.count = 1;
 			
-			//compute effective pop lkhds
-			for(int i=0; i<info.logLkhdOfNe.length; i++){
-				info.logLkhdOfNe[i] = currPedigree.computePrior(i*stepSize + minN);
+			//compute lkhd for each effective pop size
+			for(int i=0; i<info.lkhd.length; i++){
+				info.lkhd[i] = currPedigree.computePrior(i*stepSize + minN);
 			}
 					
 			
@@ -530,10 +524,11 @@ public class MCMCMC {
 		}
 		
 		
+		/*
 		//update Ne likelihood
 		for(int i=0; i<logLkhdOfNe.length; i++)
-			logLkhdOfNe[i] = utility.LogSum.addLogSummand(logLkhdOfNe[i], info.logLkhdOfNe[i] - currPedigree.getPrior());
-		
+			logLkhdOfNe[i] = utility.LogSum.addLogSummand(logLkhdOfNe[i], info.lkhd[i] - currPedigree.getPrior());
+		*/
 		
 	
 

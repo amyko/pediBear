@@ -12,6 +12,8 @@ import dataStructures.Pedigree;
 import utility.DataParser;
 
 public class SimulatePedigreeUnderPrior {
+	
+	
 
 	//sample individuals from first d generations
 	public static Set<String> sample(int N, int n, int d, Random rGen){
@@ -50,7 +52,7 @@ public class SimulatePedigreeUnderPrior {
 			
 			toReturn.add(id);
 			
-			System.out.println(id);
+			//System.out.println(id);
 			
 		}
 		
@@ -170,7 +172,7 @@ public class SimulatePedigreeUnderPrior {
 	
 	
 	//sample, make true, tped, and tfam files
-	public static void sampleForReal(int N, int n, int d, int sampleDepth, Random rGen, String filePath, double seqError) throws IOException{
+	public static void sampleForReal(int N, int n, int d, int sampleDepth, Random rGen, String filePath, double seqError, int t) throws IOException{
 		
 		boolean badSample = true;
 		Set<String> samples = null;
@@ -182,7 +184,7 @@ public class SimulatePedigreeUnderPrior {
 			samples = sampleFam(N,n,d,sampleDepth,rGen,filePath);
 		
 			//un-inbred
-			ped = uninbred(String.format("%s%dN.sample.fam", filePath, N), String.format("%ssample.true", filePath));
+			ped = uninbred(String.format("%s%dN.sample.fam", filePath, N), String.format("%ssample.%d.true", filePath, t));
 			
 			badSample = ped.looped;
 			
@@ -192,7 +194,7 @@ public class SimulatePedigreeUnderPrior {
 		int[] ids = new int[n]; //0 through ...
 		
 		//make tfam files
-		PrintWriter writer = DataParser.openWriter(String.format("%ssample.tfam", filePath, N));
+		PrintWriter writer = DataParser.openWriter(String.format("%ssample.%d.tfam", filePath, t));
 		BufferedReader reader = DataParser.openReader(String.format("%s%dN.pop.tfam", filePath, N));
 		String line;
 		int lineNum = 0;
@@ -214,8 +216,7 @@ public class SimulatePedigreeUnderPrior {
 		reader.close();
 		writer.close();
 		
-		for(int x : ids) System.out.println(x);
-		
+
 		
 		reader = DataParser.openReader(String.format("%s%dN.pop.tped", filePath, N));
 		writer = DataParser.openWriter(String.format("%ssample.tped", filePath));
@@ -229,8 +230,9 @@ public class SimulatePedigreeUnderPrior {
 			
 			for(int i=0; i<ids.length; i++){
 				
-				String a1 = fields[2*i+4];
-				String a2 = fields[2*i+5];
+				String a1 = fields[2*ids[i]+4];
+				String a2 = fields[2*ids[i]+5];
+				
 				
 				//add error
 				if(rGen.nextDouble() < seqError){
@@ -240,6 +242,7 @@ public class SimulatePedigreeUnderPrior {
 				if(rGen.nextDouble() < seqError){
 					a2 = a2.equals("A") ? "T" : "A";
 				}
+				
 				
 				
 				writer.write(String.format("%s %s ", a1, a2));
@@ -398,7 +401,7 @@ public class SimulatePedigreeUnderPrior {
 		int sampleDepth = 2;
 		double recomb = 1.3e-8;
 		Random rGen = new Random(1239);
-		double seqError = .01;
+		double seqError = .0;
 		String resultDir = "/Users/kokocakes/Google Drive/Research/pediBear/data/mcmc/";
 		String dataDir = "/Users/kokocakes/Google Drive/Research/pediBear/data/mcmc/";
 		
@@ -414,7 +417,7 @@ public class SimulatePedigreeUnderPrior {
 		*/
 		
 
-		sampleForReal(N, n, d, sampleDepth, rGen, resultDir, seqError);
+		sampleForReal(N, n, d, sampleDepth, rGen, resultDir, seqError, 0);
 		
 		
 	

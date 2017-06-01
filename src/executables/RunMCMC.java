@@ -1,7 +1,6 @@
 package executables;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -9,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.TreeMap;
 
 import Unused.CutOneLinkTwo;
 import Unused.CutTwoLinkOne;
@@ -75,16 +73,16 @@ public class RunMCMC{
 	//public static int runLength = 1;
 	public static int numThreads = 1;
 	public static double credibleInterval = .95;
-	public static double beta = 30;
+	public static double beta = 0;
 	
 	
 	//MCMC parameters
-	public static int nChain = 4;
+	public static int nChain = 7;
 	public static int nBranch = 1;
 	public static int burnIn = 500000;
 	public static int runLength = 500000;
 	public static int sampleRate = 50;
-	public static double deltaT = .9;
+	public static double deltaT = .5;
 	public static int swapInterval = 1;
 	public static int nSwaps = 1;
 	
@@ -96,7 +94,7 @@ public class RunMCMC{
 	//prior
 	public static int minN = 100;
 	public static int maxN = 800;
-	public static int stepSize = 50;
+	public static int stepSize = 10;
 
 	
 	
@@ -252,7 +250,7 @@ public class RunMCMC{
 	}
 	
 
-	public static void runThreads(String myFile, String outfile) throws IOException{
+	public static MCMCMC runThreads(String myFile, String outfile) throws IOException{
 		
 		Random rGen = new Random(1025742);
 		
@@ -312,7 +310,7 @@ public class RunMCMC{
 		if(nChain>1){
 		
 			int currIdx = 0;
-			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta);
+			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN);
 			Chain superHeatedChain = new Chain(nChain-1, ped);
 			superHeatedChain.setHeat(deltaT);
 			chains.add(superHeatedChain);
@@ -323,7 +321,7 @@ public class RunMCMC{
 			
 				for(int chain=nChain-2; chain >= 0; chain--){
 					
-					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta);
+					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN);
 					Chain myChain = new Chain(chain, ped);
 					
 					//temp
@@ -373,7 +371,7 @@ public class RunMCMC{
 		}
 		
 		else{
-			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta);
+			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN);
 			Chain myChain = new Chain(0, ped);
 			
 			//temp
@@ -384,14 +382,6 @@ public class RunMCMC{
 		
 		MCMCMC mcmcmc = new MCMCMC(chains, deltaT, moves, burnIn, runLength, sampleRate, swapInterval, nSwaps, rGen, outfile, minN, maxN, stepSize);
 		mcmcmc.run();
-		
-		
-		//print prior
-		int numSamples = runLength /sampleRate;
-		for(int i=0; i<mcmcmc.logLkhdOfNe.length; i++){
-			System.out.println(String.format("%d %f", i*stepSize + minN, mcmcmc.logLkhdOfNe[i] - numSamples));
-		}
-		
 		
 		
 		/*
@@ -409,7 +399,7 @@ public class RunMCMC{
 		System.out.println(mcmcmc.bestLkhd);
 		*/
 		
-		
+		return mcmcmc;
 
 		
 	}
@@ -596,15 +586,13 @@ public class RunMCMC{
 	}
 	
 	
-	//write cranefoot fam file for MAP estimate
-	public static void writeMapFam(String outfile) throws NumberFormatException, IOException{
-		
+	public static String getMapPed(String inPath) throws NumberFormatException, IOException{
 		//get MAP ped
 		double bestLkhd = Double.NEGATIVE_INFINITY;
 		String bestPed = "";
 		
 		
-		BufferedReader reader = DataParser.openReader(outfile+".count");
+		BufferedReader reader = DataParser.openReader(inPath);
 		
 		String line;
 		
@@ -623,11 +611,22 @@ public class RunMCMC{
 		}
 		reader.close();
 		
+		return bestPed;
+		
+	}
+	
+	
+	//write cranefoot fam file for MAP estimate
+	public static void writeMapFam(String outfile) throws NumberFormatException, IOException{
+		
+		String bestPed = getMapPed(outfile+".count");
+		
 		
 		//write fam
-		reader = DataParser.openReader(outfile+".fam");
+		BufferedReader reader = DataParser.openReader(outfile+".fam");
 		PrintWriter writer = DataParser.openWriter(outfile+".mapFam");
 		
+		String line;
 		while((line=reader.readLine())!=null){
 			
 			String[] fields = line.split("\\s");
@@ -656,13 +655,105 @@ public class RunMCMC{
 	
 	
 	
-	//get MAP estimate 
-	public static void writePairAcc(){
+	//get MAP estimate and compare pairwise
+	public static void writePairAcc(PrintWriter writer, String fileName, int n, Map<Path,double[]> path2omega, int t) throws NumberFormatException, IOException{
+		
+		//get MAP ped
+		String bestPed = getMapPed(fileName+".count");
+		
+		//name to index
+		Map<String, Integer> name2idx = new HashMap<String, Integer>();
+		BufferedReader reader = DataParser.openReader(String.format("%s.%d.tfam", fileName, t));
+		
+		String line;
+		int idx = 0;
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\\s");
+			
+			name2idx.put(fields[1], idx);
+			
+			idx++;	
+		}
+		
+		reader.close();
+		
+		
+		//get true relationship matrix
+		Path[][] trueRel = new Path[n][n];
+		reader = DataParser.openReader(String.format("%s.%d.true", fileName, t));
+		
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\\s");
+			
+			int i = name2idx.get(fields[0]);
+			int j = name2idx.get(fields[1]);
+			Path rel = new Path(Integer.parseInt(fields[2]), Integer.parseInt(fields[3]), Integer.parseInt(fields[4]));
+			
+			trueRel[i][j] = rel;
+			trueRel[j][i] = rel;
+			
+		}
+		
+		reader.close();
+		
+		
+		//evaluate pairwise accuracy
+		//header
+		writer.write(String.format(">\t%d\n", t));
+		
+		idx = 0;
+		for(int i=0; i<n; i++){
+			for(int j=i+1; j<n; j++){
+				
+				//true rel
+				Path truth = trueRel[i][j];
+				
+				int up = Integer.parseInt(bestPed.charAt(idx)+"");
+				int down = Integer.parseInt(bestPed.charAt(idx+1)+"");
+				int nVisit = Integer.parseInt(bestPed.charAt(idx+2)+"");
+				
+				double[] inferredOmega = path2omega.get(new Path(up,down,nVisit));
+				double[] trueOmega = path2omega.get(truth);
+				
+				int acc = 0;
+				if(inferredOmega[0]==trueOmega[0] && inferredOmega[1]==trueOmega[1] && inferredOmega[2]==trueOmega[2]){
+					acc = 1;
+				}
+				
+				writer.write(String.format("%d\t%d\t%d\n", i,j,acc));
+				
+				idx+=3;
+				
+				//System.out.print(String.format("truth: %d %d %d\t", truth.getUp(), truth.getDown(), truth.getNumVisit()));
+				//System.out.println(String.format("inferred: %d %d %d", up, down, nVisit));
+				
+				
+				
+			}
+		}
 		
 		
 		
 	}
 	
+	
+	
+	public static void writePrior(PrintWriter writer, MCMCMC mcmcmc, int t){
+		
+		//header
+		writer.write(String.format(">\t%d\n", t));
+		
+		//print prior
+		int numSamples = runLength /sampleRate;
+		for(int i=0; i<mcmcmc.logLkhdOfNe.length; i++){
+			writer.write(String.format("%d %f\n", i*stepSize + minN, mcmcmc.logLkhdOfNe[i] - numSamples));
+		}
+		
+		writer.flush();
+		
+	}
 	
 	
 	public static void main(String[] args) throws IOException{
@@ -671,28 +762,32 @@ public class RunMCMC{
 		//file paths
 		String outPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/mcmc/";
 		PrintWriter writer = DataParser.openWriter(outPath+"test.acc");
+		PrintWriter priorWriter = DataParser.openWriter(outPath+"test.prior");
 		String sim = "sample";
 		
 		//get truePed
-		String truePed = getTruePed(String.format("%s%s.true", outPath, sim));
+		//String truePed = getTruePed(String.format("%s%s.true", outPath, sim));
+		Map<Path,double[]> path2omega = Accuracy.getPathToOmega(outPath + "pathToOmega.txt");
 		
 		//run
 		for(int i=0; i<1; i++){
 			
 			System.out.println(i);
 			
-			//String myFile = String.format("%s%s.%d", fileName, sim, i);
-			String myFile = String.format("%s%s", fileName, sim);
-			String outfile = outPath + "test";
+			String outFile = String.format("%s%s", fileName, sim);
+			String myFile = String.format("%s.%d", outFile, i);
+		
+			MCMCMC mcmcmc = runThreads(myFile, outFile);
 			
-			runThreads(myFile, outfile);
+			writePairAcc(writer, outFile, numIndiv, path2omega, i);
+			writePrior(priorWriter, mcmcmc, i);
 			
-			//writeAcc(writer, truePed, outfile+".count", i);
-			//writeMapFam(outfile);
+			//writeAcc(writer, truePed, outFile+".count", i);
+			//writeMapFam(outFile);
 			
 			//testing relative occupancy without likelihood
-			//String targetFile = String.format("%s.%d.target", outfile, 0);
-			//validate(outfile, targetFile);
+			//String targetFile = String.format("%s.%d.target", outFile, 0);
+			//validate(outFile, targetFile);
 			
 			
 			
@@ -701,10 +796,6 @@ public class RunMCMC{
 		writer.close();
 		
 		System.out.println("DONE");
-		
-		
-		
-		
 		
 		
 		

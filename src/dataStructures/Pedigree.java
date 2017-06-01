@@ -60,7 +60,9 @@ public class Pedigree {
 	
 	
 	//NEW PRIOR
-	private final int effectivePop;
+	private int effectivePop;
+	private int minN;
+	private int maxN;
 	private int[] nNodes;
 	private int[] nUnsampledDads;
 	private int[] nUnsampledMoms;
@@ -110,7 +112,7 @@ public class Pedigree {
 	
 	
 	//TODO handle known relationships; effective pop size
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age, double beta, int effectivePop) throws IOException{
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age, double beta, int minN, int maxN) throws IOException{
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = maxDepth;
@@ -131,7 +133,9 @@ public class Pedigree {
 		nSampledDads = new int[maxDepth+1];
 		log = new double[5000]; //TODO set this better
 		this.beta = beta;
-		this.effectivePop = effectivePop;
+		this.minN = minN;
+		this.maxN = maxN;
+		this.effectivePop = (minN+maxN) / 2;
 		
 		for(int i=0; i<=maxDepth; i++) totalUnits+=(i+1);
 		
@@ -231,9 +235,9 @@ public class Pedigree {
 	}
 	
 	
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, double beta, int effectivePop) throws IOException{
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, double beta, int minN, int maxN) throws IOException{
 	
-		this(fileName, core, maxDepth, maxSampleDepth, rGen, maxNumNodes, lambda, numIndiv, null, beta, effectivePop);
+		this(fileName, core, maxDepth, maxSampleDepth, rGen, maxNumNodes, lambda, numIndiv, null, beta, minN, maxN);
 		
 	}
 
@@ -398,7 +402,7 @@ public class Pedigree {
 				}
 				
 				if(rel.getNumVisit()!=0){
-					System.out.println(String.format("%d %d %d", rel.getUp(),rel.getDown(),rel.getNumVisit()));
+					//System.out.println(String.format("%d %d %d", rel.getUp(),rel.getDown(),rel.getNumVisit()));
 				}
 				
 				//write name1 name2 relationship
@@ -409,8 +413,7 @@ public class Pedigree {
 			}
 			
 		}
-		
-		System.out.println();
+
 		writer.close();
 		
 
@@ -1886,6 +1889,9 @@ public class Pedigree {
 	//prior: random mating model
 	public void updatePrior(){	
 		
+		//uniform sample for effective pop
+		effectivePop = rGen.nextInt(maxN - minN) + minN;
+		
 		//clear everything
 		clearVisit();
 		for(int i=0; i<nNodes.length; i++) nNodes[i] = 0;
@@ -1944,7 +1950,9 @@ public class Pedigree {
 			
 		}
 		
-		prior[curr] = computePrior(effectivePop) + sampleDepthPrior(nNodes);
+		//TODO testing
+		updateNumSingletons();
+		prior[curr] = computePrior(effectivePop) + sampleDepthPrior(nNodes) + getSingletonProb();
 	
 		
 	}
@@ -1968,7 +1976,7 @@ public class Pedigree {
 			int end = start - nUnsampledDads[i+1] + 1;
 			
 			//TODO testing
-			if(end<0) end = 0;
+			if(end<0) return Double.NEGATIVE_INFINITY;
 			
 			for(int j=start; j>=end; j--)
 				fa += log[j];	
@@ -1981,7 +1989,7 @@ public class Pedigree {
 			end = start - nUnsampledMoms[i+1] + 1;
 			
 			//TODO testing
-			if(end<0) end = 0;
+			if(end<0) return Double.NEGATIVE_INFINITY;
 			
 			for(int j=start; j>=end; j--)
 				ma += log[j];
@@ -2198,7 +2206,7 @@ public class Pedigree {
 	
 	private double getSingletonProb(){
 		
-		return this.nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]];
+		return beta * (nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]]);
 		
 	}
 	
