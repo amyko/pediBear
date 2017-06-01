@@ -17,7 +17,7 @@ public class SimulatedAnnealing {
 	final int runLength;
 	final Move[] moves; 
 	final PrintWriter cranefootFamWriter;
-	final PrintWriter pairWriter;
+	//final PrintWriter pairWriter;
 	PrintWriter convWriter;
 	final Random rGen;
 	private int missingParentCounter = 0;
@@ -38,7 +38,7 @@ public class SimulatedAnnealing {
 		this.runLength = runLength;
 		this.moves = moves;		
 		this.cranefootFamWriter = DataParser.openWriter(outPath+".fam");
-		this.pairWriter = DataParser.openWriter(outPath+".pair");
+		//this.pairWriter = DataParser.openWriter(outPath+".pair");
 		this.convWriter = DataParser.openWriter(outPath+".lkhd");
 		
 		this.rGen = rGen;
@@ -173,7 +173,7 @@ public class SimulatedAnnealing {
 		//close outfile
 		cranefootFamWriter.close();
 		convWriter.close();
-		pairWriter.close();
+		//pairWriter.close();
 		
 	}
 	
@@ -208,6 +208,7 @@ public class SimulatedAnnealing {
 		//pairwise relationship
 		//header for this sample
 		
+		/*
 		//TODO for testing
 		pairWriter.write(String.format(">\t%.5f\n", currPedigree.getLogLikelihood()));
 		
@@ -220,7 +221,7 @@ public class SimulatedAnnealing {
 				
 			}
 		}
-		
+		*/
 		
 		
 		//write family relationship

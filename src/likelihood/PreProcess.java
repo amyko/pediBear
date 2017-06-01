@@ -224,10 +224,10 @@ public class PreProcess {
 			else if(key.equals("conv")){
 				
 				if(fields.length < 2){
-					System.out.println("conv not given. Using default value of 1");
+					System.out.println("conv not given. Using default value of .01");
 				}
 				else if(!checkNumeric(fields[0], 0, Double.POSITIVE_INFINITY)){
-					System.out.println("Invalid conv given. Using default value 1");
+					System.out.println("Invalid conv given. Using default value .01");
 				}
 				else{
 					Run.conv = Double.parseDouble(fields[0]);
