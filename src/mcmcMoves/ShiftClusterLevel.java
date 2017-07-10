@@ -48,6 +48,9 @@ public class ShiftClusterLevel extends Move {
 			return REJECT;
 		
 
+		//copy pedigree
+		currPedigree.copyCurrPedigree();
+		
 		
 		//shift cluster
 		double prevLkhd = currPedigree.getLogLikelihood();
@@ -68,8 +71,7 @@ public class ShiftClusterLevel extends Move {
 	@Override
 	protected void reverseMove(Pedigree currPedigree) {		
 		
-		currPedigree.shiftCluster(cluster, -offset);
-		
+		currPedigree.reverse();
 	}
 	
 	

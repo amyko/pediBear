@@ -44,7 +44,7 @@ if __name__=="__main__":
     fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/genotypes/test12.all.pruned.10k.dep.pairwise"
 
     lkhd_000 = lkhd(fileName, '0','0','0')
-    lkhd_551 = lkhd(fileName, '4','4','2')
+    lkhd_551 = lkhd(fileName, '2','2','2')
     diff = lkhd_000 - lkhd_551
     print min(diff)
 

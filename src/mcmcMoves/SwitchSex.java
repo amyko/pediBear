@@ -27,6 +27,10 @@ public class SwitchSex extends Move {
 		currPedigree.clearVisit();
 		if(sexLocked(parent)) return REJECT;
 			
+		//copy pedigree
+		currPedigree.copyCurrPedigree();
+		
+		
 		//switch sexes
 		double prevLkhd = currPedigree.getLogLikelihood();
 		currPedigree.switchSex(parent);
@@ -42,7 +46,7 @@ public class SwitchSex extends Move {
 	@Override
 	protected void reverseMove(Pedigree currPedigree) {
 		
-		currPedigree.switchSex(parent);
+		currPedigree.reverse();
 
 	}
 	

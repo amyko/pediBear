@@ -70,6 +70,7 @@ public class Pedigree {
 	private int[] nSampledDads;
 	private final double[] log;
 	private int totalUnits;
+	private int stepSize;
 	
 	
 	//for primus
@@ -112,7 +113,7 @@ public class Pedigree {
 	
 	
 	//TODO handle known relationships; effective pop size
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age, double beta, int minN, int maxN) throws IOException{
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age, double beta, int minN, int maxN, int stepSize) throws IOException{
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = maxDepth;
@@ -135,7 +136,8 @@ public class Pedigree {
 		this.beta = beta;
 		this.minN = minN;
 		this.maxN = maxN;
-		this.effectivePop = (minN+maxN) / 2;
+		this.effectivePop = maxN;
+		this.stepSize = stepSize;
 		
 		for(int i=0; i<=maxDepth; i++) totalUnits+=(i+1);
 		
@@ -227,17 +229,18 @@ public class Pedigree {
 		
 		
 		//prior
-		//logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updateNumSingletons();
+		updatePrior(false);
 		logLikelihood[curr] += prior[curr];
 		
+	
 		
 	}
 	
 	
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, double beta, int minN, int maxN) throws IOException{
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, double beta, int minN, int maxN, int stepSize) throws IOException{
 	
-		this(fileName, core, maxDepth, maxSampleDepth, rGen, maxNumNodes, lambda, numIndiv, null, beta, minN, maxN);
+		this(fileName, core, maxDepth, maxSampleDepth, rGen, maxNumNodes, lambda, numIndiv, null, beta, minN, maxN, stepSize);
 		
 	}
 
@@ -434,10 +437,17 @@ public class Pedigree {
 		this.nActiveNodes[curr] = n;
 	}
 	
+	public void setEffectivePop(int Ne){
+		this.effectivePop = Ne;
+	}
+	
+	public void setPrior(double prior){
+		this.prior[curr] = prior;
+	}
+	
 	
 	////// GETTERS ////////// 
 	public double getLogLikelihood(){
-		//return logLikelihood;
 		return logLikelihood[curr];
 	}
 	
@@ -452,6 +462,10 @@ public class Pedigree {
 	
 	public int getNActiveNodes(){
 		return nActiveNodes[curr];
+	}
+	
+	public int getEffectivePop(){
+		return effectivePop;
 	}
 	
 
@@ -731,7 +745,7 @@ public class Pedigree {
 		
 		ijPrime[0] = clean(child);
 		ijPrime[1] = clean(parent);
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 	
@@ -789,7 +803,7 @@ public class Pedigree {
 		//this.logLikelihood[curr] += getSingletonProb();
 		ijPrime[0] = clean(parent);
 	    ijPrime[1] = clean(splitParent);
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		       
 		
@@ -866,7 +880,7 @@ public class Pedigree {
 		
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1026,7 +1040,7 @@ public class Pedigree {
 
 		//add new terms
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 	
 		
@@ -1048,7 +1062,7 @@ public class Pedigree {
 			i.setDepth(i.getDepth() + offset);
 		}
 		
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 	
 	}
@@ -1063,7 +1077,7 @@ public class Pedigree {
 		//shift cluster
 		switchSexHelper(parent);
 		
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1140,7 +1154,7 @@ public class Pedigree {
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
 		
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1217,7 +1231,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1256,7 +1270,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1301,7 +1315,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1361,7 +1375,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1428,7 +1442,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1488,7 +1502,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1556,7 +1570,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1618,7 +1632,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1677,7 +1691,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1758,7 +1772,7 @@ public class Pedigree {
 
 		//add new terms
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 	
 	
@@ -1821,7 +1835,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1875,7 +1889,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior();
+		updatePrior(true);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1883,14 +1897,25 @@ public class Pedigree {
 	
 	
 	
+	public void noChange(){
+			
+		this.logLikelihood[curr] -= prior[curr];
+		updatePrior(true);
+		this.logLikelihood[curr] += prior[curr];
+		
+		
+	}
+	
 	
 	
 	////////////////////////   PRIOR   ////////////////////////
 	//prior: random mating model
-	public void updatePrior(){	
+	public void updatePrior(boolean sampleNe){	
 		
+		//TODO step size
 		//uniform sample for effective pop
-		effectivePop = rGen.nextInt(maxN - minN) + minN;
+		if(sampleNe)
+			effectivePop = rGen.nextInt((maxN - minN)/stepSize)*stepSize + minN;
 		
 		//clear everything
 		clearVisit();
@@ -1951,8 +1976,7 @@ public class Pedigree {
 		}
 		
 		//TODO testing
-		updateNumSingletons();
-		prior[curr] = computePrior(effectivePop) + sampleDepthPrior(nNodes) + getSingletonProb();
+		prior[curr] = computePrior(effectivePop);
 	
 		
 	}
@@ -1974,9 +1998,9 @@ public class Pedigree {
 			//father probability
 			int start = popSize/2 - nSampledDads[i+1];
 			int end = start - nUnsampledDads[i+1] + 1;
-			
-			//TODO testing
-			if(end<0) return Double.NEGATIVE_INFINITY;
+
+			if(end<0) 
+				return Double.NEGATIVE_INFINITY;
 			
 			for(int j=start; j>=end; j--)
 				fa += log[j];	
@@ -1988,8 +2012,8 @@ public class Pedigree {
 			start = popSize/2 - nSampledMoms[i+1];
 			end = start - nUnsampledMoms[i+1] + 1;
 			
-			//TODO testing
-			if(end<0) return Double.NEGATIVE_INFINITY;
+			if(end<0) 
+				return Double.NEGATIVE_INFINITY;
 			
 			for(int j=start; j>=end; j--)
 				ma += log[j];
@@ -1999,27 +2023,27 @@ public class Pedigree {
 		}
 		
 		
-		return fa + ma + sampleDepthPrior(nNodes);
-	
+		//return fa + ma + sampleDepthPrior();
+		return fa + ma;
+		
 		
 	}
 	
 	
-	private double sampleDepthPrior(int[] nNodes){
+	private double sampleDepthPrior(){
 		
 		double toReturn = 0d;
 		
 		// P(max) = 1/totalUnits, P(max-1) = 2/totalUnits, ..., P(0)=(maxDepth+1)/totalUnits
-		for(int i=0; i<nNodes.length; i++){
+		for(int i=0; i<nSampledMoms.length; i++){
 
-			toReturn += log[nNodes[i]] * (log[maxDepth+1-i] - log[totalUnits]);
-			
-			//toReturn += (log[nNodes[i]] - (i+1)*log[2]);
+			toReturn += (nSampledMoms[i] + nSampledDads[i]) * (log[maxDepth+1-i]);
 			
 		}
-
-		return toReturn;
 		
+		toReturn = toReturn - numIndiv*log[totalUnits];
+		
+		return toReturn;
 	}
 	
 	
@@ -2301,8 +2325,8 @@ public class Pedigree {
 			
 		}
 		
-		//return toReturn + getSingletonProb();
-		updatePrior();
+
+		updatePrior(false);
 		return toReturn + prior[curr];
 		
 	}

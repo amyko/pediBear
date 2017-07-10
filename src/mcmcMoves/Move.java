@@ -150,7 +150,6 @@ public abstract class Move {
 		}
 		
 		
-		
 
 	}
 

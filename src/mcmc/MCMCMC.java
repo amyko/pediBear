@@ -243,13 +243,13 @@ public class MCMCMC {
 				}
 				*/
 				
-				
-				
+			
 				
 				//chains.get(j).getPedigree().printAdjMat();
 				//System.out.println();
+	
+			
 				
-
 				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
 				
 				
@@ -353,9 +353,9 @@ public class MCMCMC {
 	
 		}
 		
-		
+		//TODO
 		//write counts
-		writeCounts();
+		//writeCounts();
 		
 		//close outfile
 		pairWriter.close();
@@ -373,7 +373,14 @@ public class MCMCMC {
 		for(String key : ped2info.keySet()){
 			
 			PedInfo info = ped2info.get(key);
-			countWriter.write(String.format("%s\t%f\t%d\n", key, info.lkhd, info.count));
+
+			for(int i=0; i<info.counts.length;i++){
+				int theta = i + minN;
+				
+				if(info.counts[i]!=0)
+					countWriter.write(String.format("%s\t%d\t%f\t%d\n", key, theta, info.lkhd[i], info.counts[i]));	
+			}
+			
 			
 		}
 		
@@ -485,52 +492,40 @@ public class MCMCMC {
 		
 		//TODO testing
 		//write
-		pairWriter.write(String.format("%s\n", toWrite));
+		//pairWriter.write(String.format("%s\n", toWrite));
 		toWrite += numAncString;
 		
 		
 		//if new pedigree, record fam, multiplier, and likelihood
-		PedInfo info;
+		PedInfo info; 
+		int popIndex = currPedigree.getEffectivePop() - minN;
 		if(!ped2info.containsKey(toWrite)){			
 			
 			//lkhd & multiplier & initialize count
-			info = new PedInfo(minN, maxN, stepSize);
+			info = new PedInfo(minN, maxN);
 			info.multiplier = computeMultiplier(currPedigree);
-			info.count = 1;
-			
-			//compute lkhd for each effective pop size
-			for(int i=0; i<info.lkhd.length; i++){
-				info.lkhd[i] = currPedigree.computePrior(i*stepSize + minN);
+
+			//update lkhd for every possible theta
+			for(int i=minN; i<=maxN; i++){
+				info.lkhd[i-minN] = currPedigree.getLogLikelihood() - currPedigree.getPrior() + currPedigree.computePrior(i);
 			}
-					
+			
 			
 			//fam
 			missingParentCounter = 0;
-			writeFamFile(chains.get(coldChain).getPedigree(), toWrite);
+			//writeFamFile(chains.get(coldChain).getPedigree(), toWrite);
 		
 			//record pedigree
 			ped2info.put(toWrite, info);
 		
-			
 		}
 
-		
-		
-		//if pedigree already there, increment count
-		else{
-			info = ped2info.get(toWrite);
-			info.count = info.count + 1;
-			ped2info.put(toWrite, info);
-		}
-		
-		
-		/*
-		//update Ne likelihood
-		for(int i=0; i<logLkhdOfNe.length; i++)
-			logLkhdOfNe[i] = utility.LogSum.addLogSummand(logLkhdOfNe[i], info.lkhd[i] - currPedigree.getPrior());
-		*/
-		
 	
+		//lkhd and count
+		info = ped2info.get(toWrite);
+		info.counts[popIndex]++;
+		
+
 
 	}
 	

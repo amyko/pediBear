@@ -33,6 +33,7 @@ import mcmcMoves.HStoPO;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
 import mcmcMoves.NephewtoUncle;
+import mcmcMoves.NoChange;
 import mcmcMoves.OPtoPO;
 import mcmcMoves.POtoFS;
 import mcmcMoves.POtoHS;
@@ -77,10 +78,10 @@ public class RunMCMC{
 	
 	
 	//MCMC parameters
-	public static int nChain = 7;
+	public static int nChain = 3;
 	public static int nBranch = 1;
 	public static int burnIn = 500000;
-	public static int runLength = 500000;
+	public static int runLength = 1000000;
 	public static int sampleRate = 50;
 	public static double deltaT = .5;
 	public static int swapInterval = 1;
@@ -93,8 +94,8 @@ public class RunMCMC{
 	
 	//prior
 	public static int minN = 100;
-	public static int maxN = 800;
-	public static int stepSize = 10;
+	public static int maxN = 400;
+	public static int stepSize = 20;
 
 	
 	
@@ -261,10 +262,12 @@ public class RunMCMC{
 				new HStoGP("hs2gp", .05), new GPtoHS("gp2hs", .05),	
 				new UncletoNephew("uncle2nephew", .05), new NephewtoUncle("nephew2uncle", .05),
 				new SwapDescAnc("swapDescAnc", .05),
-				new OPtoPO("OPtoPO", .05), new POtoOP("POtoOP", .05),
+				new OPtoPO("OPtoPO", .02), new POtoOP("POtoOP", .02),
 				new FStoPO("FStoPO", .05), new POtoFS("POtoFS", .05), //confounds with HS2FU
 				new HStoPO("HStoPO", .05), new POtoHS("POtoHS", .05),
 				new Contract("contract", .05), new Stretch("stretch", .05), //confounds with HS2PO, HS2FU?
+				
+				new NoChange("noChange", .06),
 				
 				new CutLink("cutLink", .0), new SplitLink("splitLink", .0), //these don't work if donor node is deleted in link
 				new HStoFU("HStoFU",.0), new FUtoHS("FUtoHS", .0), //confounds with POtoFU
@@ -310,7 +313,7 @@ public class RunMCMC{
 		if(nChain>1){
 		
 			int currIdx = 0;
-			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN);
+			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize);
 			Chain superHeatedChain = new Chain(nChain-1, ped);
 			superHeatedChain.setHeat(deltaT);
 			chains.add(superHeatedChain);
@@ -321,7 +324,7 @@ public class RunMCMC{
 			
 				for(int chain=nChain-2; chain >= 0; chain--){
 					
-					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN);
+					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize);
 					Chain myChain = new Chain(chain, ped);
 					
 					//temp
@@ -371,7 +374,7 @@ public class RunMCMC{
 		}
 		
 		else{
-			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN);
+			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize);
 			Chain myChain = new Chain(0, ped);
 			
 			//temp
@@ -461,6 +464,7 @@ public class RunMCMC{
 		
 	}
 	
+	/*
 	//return two most likely
 	public static String[] getTwoPeds(MCMCMC mcmcmc){
 		
@@ -493,6 +497,7 @@ public class RunMCMC{
 	
 		
 	}
+	
 	
 	
 	public static void checkRelativeOccupancy(String outfile, MCMCMC mcmcmc, String ped1, String ped2) throws IOException{
@@ -547,6 +552,7 @@ public class RunMCMC{
 		
 		
 	}
+	*/
 	
 	
 	public static void writeAcc(PrintWriter writer, String truePed, String countPath, int t) throws NumberFormatException, IOException{
@@ -739,7 +745,7 @@ public class RunMCMC{
 	}
 	
 	
-	
+	/*
 	public static void writePrior(PrintWriter writer, MCMCMC mcmcmc, int t){
 		
 		//header
@@ -754,7 +760,83 @@ public class RunMCMC{
 		writer.flush();
 		
 	}
+	*/
 	
+	public static void writePosteriorForParameter(PrintWriter writer, MCMCMC mcmcmc, int t){
+		
+
+		//header
+		writer.write(String.format(">\t%d\n", t));
+		
+		//print 
+		for(int i=minN; i<=maxN; i++){
+			
+			int index = i - minN;
+			double totalPosterior = 0d;
+			
+			//for every tree sampled, get likelihood P(G, i)
+			for(String key : mcmcmc.ped2info.keySet()){
+				
+				//double posterior = mcmcmc.ped2info.get(key).lkhd[index];
+				double posterior = mcmcmc.ped2info.get(key).counts[index];
+				
+				if(posterior!=Double.NaN && !Double.isInfinite(posterior)){
+					totalPosterior += posterior;
+				}
+					
+				
+			}
+			
+			//if this theta was never sampled, skip
+			if(totalPosterior==0)
+				totalPosterior = Double.NEGATIVE_INFINITY;
+			
+			writer.write(String.format("%d %f\n", i, totalPosterior));
+			
+			
+		}
+		
+		writer.flush();
+		
+	}
+	
+	
+	public static void writePosteriorForPedigree(PrintWriter writer, MCMCMC mcmcmc, int t){
+		
+		//header
+		writer.write(String.format(">\t%d\n", t));
+		
+
+		//for every tree sampled, get likelihood P(G, i)
+		for(String key : mcmcmc.ped2info.keySet()){
+			
+			double totalPosterior = 0;
+			
+			for(int i=0; i<mcmcmc.ped2info.get(key).lkhd.length; i++){
+				
+				double posterior = mcmcmc.ped2info.get(key).lkhd[i];
+				if(posterior!=Double.NaN){
+					totalPosterior += posterior;
+				}
+				
+			}
+			
+			//if this theta was never sampled, skip
+			if(totalPosterior==0)
+				totalPosterior = Double.NEGATIVE_INFINITY;
+			
+			writer.write(String.format("%s %f\n", key, totalPosterior));
+			
+		}
+		
+
+			
+			
+		
+	
+		writer.flush();
+		
+	}
 	
 	public static void main(String[] args) throws IOException{
 	
@@ -762,7 +844,8 @@ public class RunMCMC{
 		//file paths
 		String outPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/mcmc/";
 		PrintWriter writer = DataParser.openWriter(outPath+"test.acc");
-		PrintWriter priorWriter = DataParser.openWriter(outPath+"test.prior");
+		PrintWriter priorWriter = DataParser.openWriter(outPath+"posterior.prior");
+		PrintWriter pedWriter = DataParser.openWriter(outPath+"posterior.pedigree");
 		String sim = "sample";
 		
 		//get truePed
@@ -770,7 +853,7 @@ public class RunMCMC{
 		Map<Path,double[]> path2omega = Accuracy.getPathToOmega(outPath + "pathToOmega.txt");
 		
 		//run
-		for(int i=0; i<1; i++){
+		for(int i=0; i<100; i++){
 			
 			System.out.println(i);
 			
@@ -779,8 +862,9 @@ public class RunMCMC{
 		
 			MCMCMC mcmcmc = runThreads(myFile, outFile);
 			
-			writePairAcc(writer, outFile, numIndiv, path2omega, i);
-			writePrior(priorWriter, mcmcmc, i);
+			//writePairAcc(writer, outFile, numIndiv, path2omega, i);
+			writePosteriorForParameter(priorWriter, mcmcmc, i);
+			//writePosteriorForPedigree(pedWriter, mcmcmc, i);
 			
 			//writeAcc(writer, truePed, outFile+".count", i);
 			//writeMapFam(outFile);
@@ -794,6 +878,7 @@ public class RunMCMC{
 		}
 
 		writer.close();
+		priorWriter.close();
 		
 		System.out.println("DONE");
 		
