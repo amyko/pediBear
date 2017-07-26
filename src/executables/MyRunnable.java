@@ -25,7 +25,7 @@ public class MyRunnable implements Runnable{
 	
 	public void run(){
 		
-		System.out.println(String.format("Running SA: thread %d", threadNum));
+		System.out.println(String.format("Running simulated annealing: thread %d", threadNum));
 		
 		//run MCMC
 		//double startTime = System.nanoTime();

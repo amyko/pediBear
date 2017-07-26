@@ -66,6 +66,7 @@ public class Run{
 	public static int runLength = 1;
 	public static int numThreads = 1;
 	public static double beta = 30;
+	public static int computeLikelihood = 1;
 	
 	//misc
 	public static int maxNumNodes = 200;
@@ -296,14 +297,17 @@ public class Run{
 	
 		System.out.println("Preprocessing...");
 		PreProcess.processOptionfile(args);
-		PreProcess.checkInputFiles(fileName, refPopFileName);
 		
-
-		
+	
 		//read files
 		setName2age();
 		
-		computeLikelihoods();
+		if(Run.computeLikelihood==1){
+			PreProcess.checkInputFiles(fileName, refPopFileName);
+			computeLikelihoods();
+		}
+		else
+			PreProcess.checkLikelihoodFiles(fileName);
 		
 
 		//run

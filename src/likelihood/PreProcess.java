@@ -8,6 +8,8 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 
+import dataStructures.Path;
+import dataStructures.Relationship;
 import executables.Run;
 import utility.DataParser;
 
@@ -56,12 +58,7 @@ public class PreProcess {
 					System.out.println("No files given. Exiting program.");
 					System.exit(1);
 				}
-				
-				
-				else if(!checkFile(fields[0]+".tped") || !checkFile(fields[0]+".tfam")){
-					System.out.println(String.format("%s does not exist or cannot be opened! Existing program.", fields[0]));
-					System.exit(1);
-				}
+	
 				
 				else{		
 					if(key.equals("filename")) Run.fileName = fields[0];
@@ -80,8 +77,11 @@ public class PreProcess {
 					System.out.println("No files given. Exiting program.");
 					System.exit(1);
 				}
+				else if(fields[0].equals("N/A") ){
+					Run.ageFileName = "";
+				}
 				else if(!checkFile(fields[0])){
-					System.out.println(String.format("%s does not exist or cannot be opened! Existing program.", fields[0]));
+					System.out.println(String.format("%s does not exist or cannot be opened! Exiting program.", fields[0]));
 					System.exit(1);
 				}
 				
@@ -307,6 +307,31 @@ public class PreProcess {
 				
 			}
 			
+			
+			else if(key.equals("computelikelihood")){
+				
+				if(fields.length<2){
+					System.out.println("Flag for computeLikelihood not specified. Using default value of 1 (i.e. true).");
+				}
+				try{
+					int temp = Integer.parseInt(fields[0]);
+					
+					if(temp!=0 && temp!=1){
+						System.out.println("Invalid computeLikelihood value given. Should be either 0 or 1. Exiting program.");
+						System.exit(1);
+					}
+					else
+						Run.computeLikelihood = temp;
+					
+				}
+				catch(NumberFormatException nfe){
+					System.out.println("Invalid computeLikelihood value given. Should be either 0 or 1. Exiting program.");
+					System.exit(1);
+				}
+	
+			}
+			
+			
 			//option not recognized
 			else{
 				System.out.println(String.format("Unrecognized option: %s. Exiting program.", key));
@@ -328,6 +353,26 @@ public class PreProcess {
 			System.out.println("RefPop not given. Setting refPopFileName = fileName");
 			Run.refPopFileName = Run.fileName;
 		}
+		//check tped is given
+		if(Run.computeLikelihood==1 && !checkFile(Run.fileName+".tped")){
+			System.out.println(String.format("%s does not exist or cannot be opened! Exiting program.", Run.fileName+".tped"));
+			System.exit(1);
+		}
+		//check tfam 
+		if(Run.computeLikelihood==1 && !checkFile(Run.fileName+".tfam")){
+			System.out.println(String.format("%s does not exist or cannot be opened! Exiting program.", Run.fileName+".tfam"));
+			System.exit(1);
+		}
+		//check marginal
+		if(Run.computeLikelihood==0 && !checkFile(Run.fileName+".marginal")){
+			System.out.println(String.format("%s does not exist or cannot be opened! Exiting program.", Run.fileName+".marginal"));
+			System.exit(1);
+		}
+		//check marginal
+		if(Run.computeLikelihood==0 && !checkFile(Run.fileName+".pairwise")){
+			System.out.println(String.format("%s does not exist or cannot be opened! Exiting program.", Run.fileName+".pairwise"));
+			System.exit(1);
+		}
 		//check depth
 		if(Run.sampleDepth > Run.maxDepth){
 			System.out.println("Number of generations spanned by samples exceeds max generation. Setting sampleGen = maxGen.");
@@ -336,6 +381,17 @@ public class PreProcess {
 		//check poisson mean
 		if(Run.poissonMean == 0){
 			Run.poissonMean = Run.numIndiv;
+		}
+		//check if likelihood file is given
+		if(Run.computeLikelihood==0){
+			if(!checkFile(Run.fileName+".marginal")){
+				System.out.println(String.format("ComputeLikelihood was set to 0, but %s does not exist or cannot be opened! Exiting program.", Run.fileName+".marginal"));
+				System.exit(1);
+			}
+			if(!checkFile(Run.fileName+".pairwise")){
+				System.out.println(String.format("ComputeLikelihood was set to 0, but %s does not exist or cannot be opened! Exiting program.", Run.fileName+".marginal"));
+				System.exit(1);
+			}
 		}
 		
 		
@@ -520,7 +576,159 @@ public class PreProcess {
 	
 
 	
+	public static void checkLikelihoodFiles(String fileName) throws IOException{
+		
+		checkMarginal(fileName);
+		checkPairwise(fileName);
+		
+		
+	}
+	
+	public static void checkMarginal(String fileName) throws IOException{
+		
+		BufferedReader infile = DataParser.openReader(fileName+".marginal");
+		String line;
+		int n = 0;
+		while((line = infile.readLine())!=null){
+			
+			String[] fields = line.split("\\s");
+			
+			if(!checkNumeric(fields[0], Double.NEGATIVE_INFINITY, 0)){
+				System.out.println("Invalid value in the marginal likelihood file. Log likelihood values must be between -Infinity and 0. Exiting program.");
+				System.exit(1);
+			}
+			
+			n++;
+			
+		}
+		
+		if(n!=Run.numIndiv){
+			System.out.println("Number of samples does not match the number of marginal likelihoods given. Exiting program.");
+			System.exit(1);
+		}
+			
+		
+	}
 	
 	
+	public static void checkPairwise(String fileName) throws IOException{
+		
+		
+		Map<Path, Integer> path2int = new HashMap<Path, Integer>();
+		
+		path2int.put(new Path(0,0,0), 0); //unrelated
+		
+		
+		// depth = 1 relationship
+		path2int.put(new Path(1,0,1), 0); 
+		path2int.put(new Path(1,1,2), 0); 
+		path2int.put(new Path(1,1,1), 0); 
+		
+		//depth 2
+		if(Run.maxDepth >= 2){
+			path2int.put(new Path(2,0,1), 0);
+			path2int.put(new Path(2,1,1), 0);
+			path2int.put(new Path(2,2,1), 0);
+			path2int.put(new Path(2,1,2), 0);
+			path2int.put(new Path(2,2,2), 0);
+			
+		}
+
+		//depth = 3 relationships
+		if(Run.maxDepth >= 3){
+			path2int.put(new Path(3,0,1), 0);
+			path2int.put(new Path(3,1,1), 0);
+			path2int.put(new Path(3,1,2), 0);
+			path2int.put(new Path(3,2,1), 0);
+			path2int.put(new Path(3,3,1), 0);
+			path2int.put(new Path(3,3,2), 0);
+			path2int.put(new Path(3,2,2), 0);
+		}
+		
+		//depth = 4 relationships 
+		if(Run.maxDepth >= 4){
+			path2int.put(new Path(4,0,1), 0);
+			path2int.put(new Path(4,1,1), 0);
+			path2int.put(new Path(4,2,1), 0);
+			path2int.put(new Path(4,2,2), 0);
+			path2int.put(new Path(4,1,2), 0);
+			path2int.put(new Path(4,3,1), 0);
+			path2int.put(new Path(4,4,1), 0);
+			path2int.put(new Path(4,3,2), 0);
+			path2int.put(new Path(4,4,2), 0);
+		}
+		
+		
+		BufferedReader infile = DataParser.openReader(fileName+".pairwise");
+		String line;
+		int[][] visited = new int[Run.numIndiv][Run.numIndiv];
+		int n = 0;
+
+		while((line = infile.readLine())!=null){
+			
+			String[] fields = line.split("\\s");
+			
+			//check and reset
+			if(fields[0].equals(">")){
+				
+				//check previous
+				if(n!=0){
+					for(int i=0; i<Run.numIndiv; i++){
+						for(int j=i+1; j<Run.numIndiv; j++){
+							if(visited[i][j]==0 && visited[j][i]==0){
+								System.out.println(String.format("Pairwise likelihood for indiv %d and %d are not specified in the pairwise likelihood file. Exiting program", i,j));
+								System.exit(1);
+							}
+						}
+						
+					}
+				}
+				
+				//mark visited path
+				Path key = new Path(Integer.parseInt(fields[1]), Integer.parseInt(fields[2]), Integer.parseInt(fields[3]));
+				path2int.put(key, 1);
+				
+				//reset
+				visited = new int[Run.numIndiv][Run.numIndiv];
+				n = 0;
+				
+				continue;
+			}
+			
+			
+			//read
+			int i = Integer.parseInt(fields[0]);
+			int j = Integer.parseInt(fields[1]);
+			if(i>=Run.numIndiv || j>=Run.numIndiv){
+				System.out.println("Invalid individual ID encountered in pairwise likelihood file. All indices should be between 0 and n-1 (inclusive). Exiting program.");
+				System.exit(1);
+			}
+			
+			double lkhd = Double.parseDouble(fields[2]);
+			
+			if(lkhd >0){
+				System.out.println("Invalid log likelihood value encountered in pairwise likelihood file. All values must be between -Infinity and 0. Exiting program.");
+				System.exit(1);
+			}
+			
+			
+			
+		}
+		
+		
+		//check if all paths were accounted for
+		for(Path key : path2int.keySet()){
+			if(path2int.get(key)==0){
+				System.out.println("Pairwise likelihoods for some relationship types are missing for the specified maximum generations. Check that all possible relationships types are given in the pairwise likelihood file. Exiting program.");
+				System.exit(1);
+			}
+		}
+		
+		
+		
+		
+		
+		
+	}
 
 }
