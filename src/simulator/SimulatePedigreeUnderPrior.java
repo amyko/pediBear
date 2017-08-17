@@ -66,6 +66,56 @@ public class SimulatePedigreeUnderPrior {
 	
 	
 	
+	//sample connected individuals from first d generations
+	public static Set<String> sampleConnected(int N, int n, int d, Random rGen){
+		
+		Set<String> toReturn = new HashSet<String>();
+		int numSampled = 0;
+		double totalUnits = 0.0;
+		for(int i=1; i<d+2; i++) totalUnits += i;
+		
+		while(numSampled < n){
+			
+			//choose depth
+			double p = rGen.nextDouble();
+			double cdf = 0;
+			int depth = -1;
+						
+			for(int i=1; i<d+2; i++){
+				
+				cdf += i/totalUnits;
+				
+				if(p < cdf){
+					depth = d - i + 1;
+					break;
+				}
+				
+			}
+			
+			
+			//choose individual
+			int indiv = rGen.nextInt(N);
+			String id = String.format("%d_%d", depth, indiv);
+			
+			if(toReturn.contains(id)) continue;
+			
+			numSampled++;
+			
+			toReturn.add(id);
+			
+			//System.out.println(id);
+			
+		}
+		
+		
+		return toReturn;
+		
+		
+		
+		
+	}
+	
+	
 	//construct pedigree under random mating
 	public static void polygamous(int N, int d, Random rGen, String outPath) throws IOException{
 		

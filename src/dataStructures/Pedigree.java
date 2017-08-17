@@ -24,6 +24,7 @@ import java.util.Set;
 import utility.ArrayUtility;
 import utility.DataParser;
 import likelihood.PairwiseLikelihoodCoreStreamPed;
+import likelihood.Prior;
 
 //This is the data structure that stores information about all of the individuals in the sample
 //Essentially the nodes themselves encode the pedigree graph, and this class contains
@@ -56,7 +57,7 @@ public class Pedigree {
 	private final double logLambda;
 	private final double[] logFact;
 	public final int[] nSingletons;
-	private final double beta; //multiplier for poisson 
+	private final double poissonScale; //multiplier for poisson 
 	
 	
 	//NEW PRIOR
@@ -71,6 +72,10 @@ public class Pedigree {
 	private final double[] log;
 	private int totalUnits;
 	private int stepSize;
+	
+	
+	//gasbarra prior
+	private Prior priorCalculator;
 	
 	
 	//for primus
@@ -113,7 +118,7 @@ public class Pedigree {
 	
 	
 	//TODO handle known relationships; effective pop size
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age, double beta, int minN, int maxN, int stepSize) throws IOException{
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age, double poissonScale, int minN, int maxN, int stepSize, Prior priorCalculator) throws IOException{
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = maxDepth;
@@ -133,11 +138,17 @@ public class Pedigree {
 		nSampledMoms = new int[maxDepth+1];
 		nSampledDads = new int[maxDepth+1];
 		log = new double[5000]; //TODO set this better
-		this.beta = beta;
+		this.poissonScale = poissonScale;
 		this.minN = minN;
 		this.maxN = maxN;
 		this.effectivePop = maxN;
 		this.stepSize = stepSize;
+	
+		this.priorCalculator = priorCalculator;
+		
+		
+		
+		
 		
 		for(int i=0; i<=maxDepth; i++) totalUnits+=(i+1);
 		
@@ -238,12 +249,6 @@ public class Pedigree {
 	}
 	
 	
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, double beta, int minN, int maxN, int stepSize) throws IOException{
-	
-		this(fileName, core, maxDepth, maxSampleDepth, rGen, maxNumNodes, lambda, numIndiv, null, beta, minN, maxN, stepSize);
-		
-	}
-
 	
 	
 	//this is for simulation only
@@ -254,7 +259,7 @@ public class Pedigree {
 		this.nSingletons = null;
 		logFact = null;
 		log = new double[500]; //TODO set this better
-		beta = 0;
+		poissonScale = 0;
 		effectivePop = 1000;
 
 	 
@@ -2030,21 +2035,7 @@ public class Pedigree {
 	}
 	
 	
-	private double sampleDepthPrior(){
-		
-		double toReturn = 0d;
-		
-		// P(max) = 1/totalUnits, P(max-1) = 2/totalUnits, ..., P(0)=(maxDepth+1)/totalUnits
-		for(int i=0; i<nSampledMoms.length; i++){
 
-			toReturn += (nSampledMoms[i] + nSampledDads[i]) * (log[maxDepth+1-i]);
-			
-		}
-		
-		toReturn = toReturn - numIndiv*log[totalUnits];
-		
-		return toReturn;
-	}
 	
 	
 	private void countGhostNode(int currDepth, int sex){
@@ -2061,6 +2052,10 @@ public class Pedigree {
 		countGhostNode(currDepth+1, 1);
 		
 	}
+	
+	
+	
+
 	
 	
 	///////// UPDATE ADJACENCY MATRIX ////////
@@ -2230,7 +2225,7 @@ public class Pedigree {
 	
 	private double getSingletonProb(){
 		
-		return beta * (nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]]);
+		return poissonScale * (nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]]);
 		
 	}
 	

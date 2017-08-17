@@ -1,11 +1,4 @@
-/Unused/
-/dataStructures/
-/executables/
-/likelihood/
-/mcmc/
-/mcmcMoves/
-/pedi
 /simulator/
-/statistic/
-/test/
-/utility/
+/dataStructures/
+/likelihood/
+/executables/

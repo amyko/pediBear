@@ -21,6 +21,7 @@ import dataStructures.Relationship;
 import likelihood.LDStreamPedMissing;
 import likelihood.PairwiseLikelihoodCoreStreamPed;
 import likelihood.PreProcess;
+import likelihood.Prior;
 import mcmc.MCMCMC;
 import mcmcMoves.Contract;
 import mcmcMoves.Cut;
@@ -282,7 +283,7 @@ public class RunMCMC{
 		System.out.println(prob);
 		
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
-
+		Prior priorCalculator = new Prior(rGen, maxDepth, minN, maxN, stepSize);
 
 		
 
@@ -313,7 +314,7 @@ public class RunMCMC{
 		if(nChain>1){
 		
 			int currIdx = 0;
-			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize);
+			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize, priorCalculator);
 			Chain superHeatedChain = new Chain(nChain-1, ped);
 			superHeatedChain.setHeat(deltaT);
 			chains.add(superHeatedChain);
@@ -324,7 +325,7 @@ public class RunMCMC{
 			
 				for(int chain=nChain-2; chain >= 0; chain--){
 					
-					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize);
+					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize, priorCalculator);
 					Chain myChain = new Chain(chain, ped);
 					
 					//temp
@@ -374,7 +375,7 @@ public class RunMCMC{
 		}
 		
 		else{
-			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize);
+			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize, priorCalculator);
 			Chain myChain = new Chain(0, ped);
 			
 			//temp

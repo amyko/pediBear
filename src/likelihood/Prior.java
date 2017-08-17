@@ -1,215 +1,276 @@
 package likelihood;
-import utility.LogSum;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+
+import dataStructures.Node;
+import utility.ArrayUtility;
+
+//gasbarra prior
 public class Prior {
 	
 	
-	//returns stirling's numbers of the second kind
-	public static double[][] logStirlingSecond(int N, int n, int g){
-		
-		int size = (int) Math.min(N, n*Math.pow(2, g-1)) + 1;
-		
-		double[][] toReturn = new double[size][size];
-		
-		//initialize
-		for(int j=1; j<size; j++)
-			toReturn[0][j] = Double.NEGATIVE_INFINITY;
-		
-		//recursion
-		for(int i=1; i<size; i++){
-			
-			for(int j=0; j<size; j++){
-				//first entry is always 0
-				if(j==0)
-					toReturn[i][j] = Double.NEGATIVE_INFINITY;
+	//gasbarra prior
+	private double alpha = 0;
+	private double beta = 0;
+	private int[] F;
+	private int[] M;
+	private int[] Fs;
+	private int[] Ms;
+	private Map<Integer, Integer> Cf;
+	private Map<Integer, HashMap<Integer, Integer>> Cfm;
+	private int[] nFSampled;
+	private int[] nMSampled;
+	private int[] kSoFar;
+	Set<Integer> oldF = new HashSet<Integer>();
+	Set<Integer> oldM = new HashSet<Integer>();
+	
+	private Random rGen;
+	private int minN;
+	private int maxN;
+	private int stepSize;
+	private int maxDepth;
+	
+	
+	public Prior(Random rGen, int maxDepth, int minN, int maxN, int stepSize) {
 				
-				else if(j<i)
-					toReturn[i][j] = LogSum.addLogSummand(Math.log(j) + toReturn[i-1][j], toReturn[i-1][j-1]);
-							
-				else if(j==i)
-					toReturn[i][j] = 0;
+		//prior 
+		F = new int[maxDepth+1];
+		M = new int[maxDepth+1];
+		Fs = new int[maxDepth+1];
+		Ms = new int[maxDepth+1];
+		Cf = new HashMap<Integer,Integer>();
+		Cfm = new HashMap<Integer, HashMap<Integer, Integer>>();
+		nFSampled = new int[maxDepth+1];
+		nMSampled = new int[maxDepth+1];
+		kSoFar = new int[maxDepth+1];
+		
+		this.rGen = rGen;
+		this.minN = minN;
+		this.maxN = maxN;
+		this.stepSize = stepSize;
+		this.maxDepth = maxDepth;
+		
+		
+	}
+	
+	
+	
+	
+	public double computePrior(List<Node> nodes) {
+		
+		//hyper parameters
+		int N = rGen.nextInt((maxN - minN)/stepSize)*stepSize + minN;
+		int Nf = N/2;
+		int Nm = Nf;
+		beta = rGen.nextDouble(); //TODO limit
+		alpha = rGen.nextDouble();
+		
+		//clear
+		ArrayUtility.clear(F);
+		ArrayUtility.clear(M);
+		ArrayUtility.clear(Fs);
+		ArrayUtility.clear(Ms);
+		Cf.clear();
+		Cfm.clear();
+		ArrayUtility.clear(nFSampled);
+		ArrayUtility.clear(nMSampled);
+		countSampledNodes(nodes, nFSampled, nMSampled);
+		ArrayUtility.clear(kSoFar);
+		
+		
+		Set<Integer> oldF = new HashSet<Integer>();
+		Set<Integer> oldM = new HashSet<Integer>();
+		
+		double totalProb = 0;
+		
+		//for every node
+		for(Node child : nodes) {
+			
+			
+			double childProb = getProbForChild(child, N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
+			
+			totalProb += childProb;
+			
+		}
+		
+		
+		
+		return totalProb;
+		
+	}
+	
+	
+	
+	private double getProbForChild(Node child, int N, int Nf, int Nm,  int[] F, int[] M, int[] Fs, int[] Ms, int[] kSoFar, int[] nFSampled, int[] nMSampled, Map<Integer, Integer> Cf, Map<Integer, HashMap<Integer, Integer>> Cfm, Set<Integer> oldF, Set<Integer> oldM, double alpha, double beta) {
+		
+		if(child.getDepth()==maxDepth) return 0;
+		
+		double toReturn = 0;
+	
+		Node father = child.getParentWithSex(1);
+		Node mother = child.getParentWithSex(0);
+		int parentDepth = child.getDepth()+1;
+		int k = kSoFar[child.getDepth()];
+		int f = father==null? -1 : father.getIndex();
+		int m = mother==null? -1 : mother.getIndex();
+		
+		
+		//father assignment
+		if(oldF.contains(f))  //choose old father
+			toReturn += Math.log(alpha + Cf.get(f)) - Math.log(Nf*alpha + k);
+		
+		else {//new father
+
+			//unsampled (including ghost father)
+			if(f==-1 || !father.sampled)
+				toReturn += 	Math.log(alpha) + Math.log(Nf - F[parentDepth] - nFSampled[parentDepth] + Fs[parentDepth]) - Math.log(Nf*alpha + k);
+			
+			//sampled
+			else{
+				toReturn += Math.log(alpha) - Math.log(Nf*alpha + k);
+				Fs[parentDepth]++;
+			}
+			
+			//update father count
+			F[parentDepth]++;
+
+
+		}
+		
+
+	
+		
+		if(oldM.contains(m)) {//old mother
+			
+			//new father
+			if(!oldF.contains(f))
+				toReturn += -Math.log(Nm);
+			else
+				toReturn += Math.log(beta + Cfm.get(f).get(m)) - Math.log(Nm*beta + Cf.get(f));
+			
+		}
+		
+		else {//new mother
+		
+			if(oldF.contains(f)) { //old father
+				
+				//unsampled
+				if(m==-1 || !mother.sampled)
+					toReturn += Math.log(beta) + Math.log(Nm - M[parentDepth]- nMSampled[parentDepth] + Ms[parentDepth]) - Math.log(Nm*beta + Cf.get(f));
+				
+				
+				//sampled 
+				else {
+					toReturn += Math.log(beta) - Math.log(Nm*beta + Cf.get(f));
+					Ms[parentDepth]++;
+				}
+				
+			}
+			
+			else {//new father
+				
+				//unsampled
+				if(m==-1 || !mother.sampled)
+					toReturn += Math.log(Nm - M[parentDepth]- nMSampled[parentDepth] + Ms[parentDepth]) - Math.log(Nm);
+				
+				//sampled 
+				else {
+					toReturn += -Math.log(Nm);
+					Ms[parentDepth]++;
+				}
+				
+			}
+			
+			//update mother count
+			M[parentDepth]++;
+
+			
+		}
+	
+		
+		
+		//update counts
+		kSoFar[child.getDepth()]++;
+		if(f!=-1) {
+			if(!Cf.containsKey(f)) Cf.put(f, 1);
+			else Cf.put(f, Cf.get(f)+1);
+			oldF.add(f);
+		}
+		
+		if(m!=-1)
+			oldM.add(m);
+		
+		if(f!=-1 && m!=-1) {
+			
+			if(!Cfm.containsKey(f))
+				Cfm.put(f, new HashMap<Integer, Integer>());	
+			if(!Cfm.get(f).containsKey(m))
+				Cfm.get(f).put(m, 1);
+			else
+				Cfm.get(f).put(m, Cfm.get(f).get(m)+1);
+		}
+		
+		
+		//recurse on ghost parents
+		if(f==-1)
+			toReturn += getProbForChild(new Node("ghost", "ghost", 0, false, 0, child.getDepth()+1, -1), N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
+		if(m==-1)
+			toReturn += getProbForChild(new Node("ghost", "ghost", 0, false, 0, child.getDepth()+1, -1), N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
+		
+		
+		return toReturn;
+		
+		
+	}
+	
+	
+	private static void countSampledNodes(List<Node> nodes, int[] nFSampled, int[] nMSampled) {
+		
+
+		for(Node x : nodes) {
+			
+			//count sampled nodes
+			if(x.sampled) {
+				
+				if(x.getSex()==0)
+					nMSampled[x.getDepth()]++;
+				
 				else
-					toReturn[i][j] = Double.NEGATIVE_INFINITY;
-					
+					nFSampled[x.getDepth()]++;
 				
 			}
-		}
+				
 
-		
-		return toReturn;
-		
+			
+			
+		}	
+
 	}
 	
 	
-	//returns falling log(n), log(n(n-1)), ..., log(n!)
-	public static double[] logFallingFactorial(int n){
+	/*
+	//TODO sample depth
+	private double sampleDepthPrior(int[] nSampledMoms, int[] nSampledDads){
 		
-		double[] toReturn = new double[n];
+		double toReturn = 0d;
 		
-		toReturn[0] = 0;
-		toReturn[1] = Math.log(n);
-		
-		for(int i=2; i<n; i++){
-			
-			toReturn[i] = toReturn[i-1] + Math.log(n-i+1); 
-		}
-		
-		return toReturn;
-		
-		
-	}
-	
-	
-	//returns 0!, 1!, ..., n!
-	public static double[] logFactorial(int n){
-		
-		double[] toReturn = new double[n+1];
-		
-		toReturn[0] = 0;
-		
-		for(int i=1; i<toReturn.length; i++){
-			
-			toReturn[i] = toReturn[i-1] + Math.log(i);
-			
-		}
-		
-		return toReturn;
-		
-	}
-	
-	//returns matrix of ancestor probabilities; rows = generation, cols = number of ancestor
-	public static double[][] ancestorLogProbs(int N, int n, int g){
-		
-		
-		//constants
-		double logN = Math.log(N/2);
-		int upperBound = (int) Math.min(N, n*Math.pow(2,g));
-		
-		//initialize
-		double[][] toReturn = new double[g+1][upperBound+1];
-		for(int i=0; i<toReturn.length; i++){
-			for(int j=0; j<toReturn[0].length; j++){
-				toReturn[i][j] = Double.NEGATIVE_INFINITY;
-			}
-		}
-		toReturn[0][n] = 0;
-		
-		//fill in each generation dynamically
-		for(int i=1; i<=g; i++){
-			
-			//System.out.println(i);
-			
-			//max number of ancestors for this generation
-			int jUpperBound = (int) Math.min(N, n*Math.pow(2,i));
-			
-			//pre-compute stirling's number, falling factorials
-			double[][] logStirling = logStirlingSecond(N, n, g);
-			double[] logFallingFact = logFallingFactorial(N/2);
+		// P(max) = 1/totalUnits, P(max-1) = 2/totalUnits, ..., P(0)=(maxDepth+1)/totalUnits
+		for(int i=0; i<nSampledMoms.length; i++){
 
-						
-			for(int j=2; j<=jUpperBound; j++){
-				
-				//boundaries for number of ancestors below this generation
-				int kLower = (int) Math.ceil(j/2);
-				int kUpper = (int) Math.min(N, n*Math.pow(2, g-1));
-				
-			
-				//for every possible number of ancestors in g-1
-				for(int k=kLower; k<=kUpper; k++){
-					
-					//skip term if the previous generation cannot have this number of ancestors
-					if(toReturn[i-1][k]==Double.NEGATIVE_INFINITY) continue;
-					
-					double innerSum = Double.NEGATIVE_INFINITY;
-					int maleUpper = Math.min(k, j-1);
-					for(int m=1; m<=maleUpper; m++){
-				
-						int f = j-m;
-						if(f>k) continue; //skip if number of boxes is greater than number of balls
-						
-						double nextTerm = logStirling[k][m] + logStirling[k][f] + logFallingFact[m] + logFallingFact[f];
-						innerSum = LogSum.addLogSummand(innerSum, nextTerm);
-						
-					}
-					
-					double outerSum = -2*k*logN + toReturn[i-1][k] + innerSum;
-					
-					toReturn[i][j] = LogSum.addLogSummand(toReturn[i][j], outerSum);
-					
-				}
-				
-			}			
+			toReturn += (nSampledMoms[i] + nSampledDads[i]) * (Math.log(maxDepth+1-i));
 			
 		}
-
+		
+		toReturn = toReturn - numIndiv*Math.log(totalUnits);
 		
 		return toReturn;
 	}
-	
-	
-	public static double logPg(int N, int n, int g){
-		
-		if(g==0) return 0;
-		
-		//precompute ancestor probs
-		double[][] ancLogProbN = ancestorLogProbs(N, n-1, g);
-		double[][] ancLogProb1 = ancestorLogProbs(N, 1, g);
-		double[] logFact = logFactorial(N);
-		
-		double prevLogP = 0;
-		double currLogP = 0;
-		double mySum;
-		for(int i=1; i<=g; i++){
-			
-			//boundaries
-			int b1Upper = (int) Math.min(N, (n-1)*Math.pow(2, i));
-			int b2Upper = (int) Math.min(N, Math.pow(2,i));
-			
-			mySum = Double.NEGATIVE_INFINITY;
-			
-			for(int b1=2; b1<=b1Upper; b1++){
-				
-				double innerSum = Double.NEGATIVE_INFINITY;
-				
-				for(int b2=2; b2<=b2Upper; b2++){
-
-					double logComb = logFact[N-b1] + logFact[N-b2] - logFact[N-b1-b2] - logFact[N];
-					double nextTerm = ancLogProb1[i][b2] + logComb;
-					innerSum = LogSum.addLogSummand(innerSum, nextTerm);
-
-				}
-				
-				double outerSum = ancLogProbN[i][b1] + innerSum;
-				
-				mySum = LogSum.addLogSummand(mySum, outerSum);
-
-				
-			}
-			
-			
-			
-			currLogP = prevLogP + mySum;
-			prevLogP = currLogP;
-			
-			
-		}
-		
-		return currLogP;
-		
-	}
-	
-	
-	public static void main(String[] args){
-
-		int N = 10000;
-		int n = 20;
-		int g = 4;
-	
-		
-		System.out.println(Math.exp(logPg(N,n,g)));
-		
-		
-	}
+	*/
 	
 
 }
