@@ -18,15 +18,15 @@ import utility.DataParser;
 public class TestLikelihood {
 		
 		public static double recombRate = 1.3e-8; 
-		public static double seqError = 0.005;//for computing likelihood
+		public static double seqError = 0.001;//for computing likelihood
 		public static double realSeqError = 0;
-		public static String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/";
+		public static String dir = "/Users/amy/eclipse-workspace/mcmc/";
 		public static int back = 30000;
-		public static Random rgen = new Random(526564L);
+		public static Random rgen = new Random(5265644L);
 		static int N = 200;
-		static int n = 20;
+		static int n = 3;
 		static int d = 3;
-		static int sampleDepth = 2;
+		static int sampleDepth = 1;
 
 
 
@@ -130,11 +130,11 @@ public class TestLikelihood {
 	
 			
 			//dir
-			String simDir = dir + "mcmc/";
+			String simDir = dir + "simulations/";
 
 			
 			//individuals
-			int numIndiv = 20;
+			int numIndiv = 3;
 			int[] indCols = new int[numIndiv];
 			for(int i=0; i<numIndiv; i++) indCols[i] = i;			
 			
@@ -145,22 +145,20 @@ public class TestLikelihood {
 			//pairwise core
 			PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(seqError, back, numIndiv);
 			
-
-			
 			
 			//compute info
 			//System.out.println("Computing info");
-			//LDStreamPedMissing.writeLdOutfile(simDir+"200founders.200N.pruned", simDir+"200founders.200N.pruned.info", back, true);	
+			//LDStreamPedMissing.writeLdOutfile(simDir+"200founders.200N.10k", simDir+"200founders.10k.info", back, true);	
 			
 	
 			
-			for(int t=0; t<100; t++){
+			for(int t=0; t<1; t++){
 				
 				System.out.println(t);
 				
 				//file names
 				String fileName = String.format("%s%s",simDir,testName);
-				String infoPath = simDir+"200founders.200N.pruned.info";
+				String infoPath = simDir+"200founders.10k.info";
 				
 				//simulate
 				System.out.println("Simulating");

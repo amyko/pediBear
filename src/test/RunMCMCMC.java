@@ -52,15 +52,15 @@ public class RunMCMCMC {
 		//pedigree parameters
 		int depth = 4;
 		int maxDepthForSamples = depth;
-		int numIndiv = 6;
-		int totalIndiv = 6;
+		int numIndiv = 20;
+		int totalIndiv = 20;
 		double seqError = 0.01;
 		double r = 1.3e-8;
 		int back = 30000;
 		int maxNumNodes = 200;
 		int genTime = 16;
 		PairwiseLikelihoodCoreStream2 core = new PairwiseLikelihoodCoreStream2(seqError, r, back, numIndiv);
-		String dir = System.getProperty("user.home") + "/Google Drive/Research/pediBear/data/simulations/";
+		String dir = "/Users/amy/eclipse-workspace/mcmc/simulations/";
 		String pathToOmega = dir + "pathToOmega.txt";
 
 		//String marginalPath = dir + ".marginal";
@@ -100,10 +100,9 @@ public class RunMCMCMC {
 		//true path
 		Path[][] trueRel = Accuracy.getTruePath(truePath, totalIndiv);
 		
-		//for(int run=0; run<4; run++){
+
 			
-			
-		for(int t=0; t<100; t++){
+		for(int t=0; t<1; t++){
 
 			System.out.println(t);         
 			
@@ -223,7 +222,6 @@ public class RunMCMCMC {
 		
 		//Convergence.distanceFromTruth(outPath+"."+run, outPath+".dist."+run, truePath, numIndiv, totalIndiv, pathToKinship);
 		
-		//}
 		
 		
 		meanWriter.close();

@@ -1914,6 +1914,7 @@ public class Pedigree {
 	
 	
 	////////////////////////   PRIOR   ////////////////////////
+	/*
 	//prior: random mating model
 	public void updatePrior(boolean sampleNe){	
 		
@@ -2032,6 +2033,12 @@ public class Pedigree {
 		return fa + ma;
 		
 		
+	}
+	*/
+	
+	//gasbarra prior
+	public void updatePrior(boolean sampleNe){
+		prior[curr] = priorCalculator.computePrior(nodes.get(curr), nActiveNodes[curr]);
 	}
 	
 	

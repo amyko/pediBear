@@ -35,6 +35,13 @@ public class Prior {
 	private int stepSize;
 	private int maxDepth;
 	
+	//ghost nodes
+	Node ghostNode = new Node("ghost", "ghost", 0, false, 0, 0, -1);
+	
+	//sample prior
+	double log2 = Math.log(2);
+
+
 	
 	public Prior(Random rGen, int maxDepth, int minN, int maxN, int stepSize) {
 				
@@ -61,14 +68,17 @@ public class Prior {
 	
 	
 	
-	public double computePrior(List<Node> nodes) {
+	public double computePrior(List<Node> nodes, int nActiveNodes) {
 		
 		//hyper parameters
 		int N = rGen.nextInt((maxN - minN)/stepSize)*stepSize + minN;
+		//int N = 200;
 		int Nf = N/2;
 		int Nm = Nf;
 		beta = rGen.nextDouble(); //TODO limit
 		alpha = rGen.nextDouble();
+		//beta = .01;
+		//alpha = .1;
 		
 		//clear
 		ArrayUtility.clear(F);
@@ -81,16 +91,16 @@ public class Prior {
 		ArrayUtility.clear(nMSampled);
 		countSampledNodes(nodes, nFSampled, nMSampled);
 		ArrayUtility.clear(kSoFar);
+		oldF.clear();
+		oldM.clear();
 		
-		
-		Set<Integer> oldF = new HashSet<Integer>();
-		Set<Integer> oldM = new HashSet<Integer>();
 		
 		double totalProb = 0;
 		
 		//for every node
-		for(Node child : nodes) {
+		for(int i=0; i<nActiveNodes; i++) {
 			
+			Node child = nodes.get(i);
 			
 			double childProb = getProbForChild(child, N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
 			
@@ -99,8 +109,10 @@ public class Prior {
 		}
 		
 		
-		
+		//TODO sample depth?
 		return totalProb;
+		
+		
 		
 	}
 	
@@ -108,7 +120,7 @@ public class Prior {
 	
 	private double getProbForChild(Node child, int N, int Nf, int Nm,  int[] F, int[] M, int[] Fs, int[] Ms, int[] kSoFar, int[] nFSampled, int[] nMSampled, Map<Integer, Integer> Cf, Map<Integer, HashMap<Integer, Integer>> Cfm, Set<Integer> oldF, Set<Integer> oldM, double alpha, double beta) {
 		
-		if(child.getDepth()==maxDepth) return 0;
+		if(child.getDepth()>=maxDepth) return 0;
 		
 		double toReturn = 0;
 	
@@ -150,8 +162,16 @@ public class Prior {
 			//new father
 			if(!oldF.contains(f))
 				toReturn += -Math.log(Nm);
-			else
-				toReturn += Math.log(beta + Cfm.get(f).get(m)) - Math.log(Nm*beta + Cf.get(f));
+			else {
+				
+				//if (f,m) were never a couple
+				if(!Cfm.containsKey(f) || !Cfm.get(f).containsKey(m)) {
+					toReturn += Math.log(beta) - Math.log(Nm*beta + Cf.get(f));
+				}
+				
+				else
+					toReturn += Math.log(beta + Cfm.get(f).get(m)) - Math.log(Nm*beta + Cf.get(f));
+			}
 			
 		}
 		
@@ -192,7 +212,7 @@ public class Prior {
 			
 		}
 	
-		
+
 		
 		//update counts
 		kSoFar[child.getDepth()]++;
@@ -217,11 +237,14 @@ public class Prior {
 		
 		
 		//recurse on ghost parents
-		if(f==-1)
-			toReturn += getProbForChild(new Node("ghost", "ghost", 0, false, 0, child.getDepth()+1, -1), N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
-		if(m==-1)
-			toReturn += getProbForChild(new Node("ghost", "ghost", 0, false, 0, child.getDepth()+1, -1), N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
-		
+		if(f==-1) {
+			ghostNode.setDepth(child.getDepth()+1);
+			toReturn += getProbForChild(ghostNode, N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
+		}
+		if(m==-1) {
+			ghostNode.setDepth(child.getDepth()+1);
+			toReturn += getProbForChild(ghostNode, N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
+		}
 		
 		return toReturn;
 		
@@ -253,24 +276,22 @@ public class Prior {
 	}
 	
 	
-	/*
-	//TODO sample depth
+	
+	//sampled depth = geometric (1/2)
 	private double sampleDepthPrior(int[] nSampledMoms, int[] nSampledDads){
 		
 		double toReturn = 0d;
 		
-		// P(max) = 1/totalUnits, P(max-1) = 2/totalUnits, ..., P(0)=(maxDepth+1)/totalUnits
+		// P(0) = 1/2, P(1) = 1/4, ...
 		for(int i=0; i<nSampledMoms.length; i++){
 
-			toReturn += (nSampledMoms[i] + nSampledDads[i]) * (Math.log(maxDepth+1-i));
+			toReturn += -(nSampledMoms[i] + nSampledDads[i]) * (i+1) * log2;
 			
 		}
 		
-		toReturn = toReturn - numIndiv*Math.log(totalUnits);
-		
 		return toReturn;
 	}
-	*/
+	
 	
 
 }

@@ -54,15 +54,10 @@ public class MCMCMC {
 	public Map<String, PedInfo> ped2info = new HashMap<String, PedInfo>();
 	private final List<Node> anc = new ArrayList<Node>();
 
-	
-	//prior
-	private int minN;
-	private int maxN;
-	private int stepSize;
 
 
 	//TODO parallelize 
-	public MCMCMC(List<Chain> chains, double deltaT, Move[] moves, int burnIn, int runLength, int sampleRate, int swapInterval, int nSwaps, Random rGen, String outPath, int minN, int maxN, int stepSize) throws IOException{
+	public MCMCMC(List<Chain> chains, double deltaT, Move[] moves, int burnIn, int runLength, int sampleRate, int swapInterval, int nSwaps, Random rGen, String outPath) throws IOException{
 
 		this.outPath = outPath;
 		this.chains = chains;
@@ -83,12 +78,7 @@ public class MCMCMC {
 		this.swapInterval = swapInterval;
 		this.tuned = false;
 		this.nSwaps = nSwaps;
-		this.minN = minN;
-		this.maxN = maxN;
-		this.stepSize = stepSize;
 		
-
-
 		
 	}
 	
@@ -355,7 +345,7 @@ public class MCMCMC {
 		
 		//TODO
 		//write counts
-		//writeCounts();
+		writeCounts();
 		
 		//close outfile
 		pairWriter.close();
@@ -371,17 +361,9 @@ public class MCMCMC {
 	private void writeCounts(){
 		
 		for(String key : ped2info.keySet()){
-			
-			PedInfo info = ped2info.get(key);
 
-			for(int i=0; i<info.counts.length;i++){
-				int theta = i + minN;
-				
-				if(info.counts[i]!=0)
-					countWriter.write(String.format("%s\t%d\t%f\t%d\n", key, theta, info.lkhd[i], info.counts[i]));	
-			}
-			
-			
+			countWriter.write(String.format("%s\t%d\n", key, ped2info.get(key).count));	
+	
 		}
 		
 	}
@@ -465,8 +447,7 @@ public class MCMCMC {
 	//write relationship to file
 	private void sample(Pedigree currPedigree){
 		
-		//pairwise relationship
-
+		
 		//number of ancestors for each sampled node
 		String numAncString = "";
 		String toWrite = "";
@@ -498,22 +479,16 @@ public class MCMCMC {
 		
 		//if new pedigree, record fam, multiplier, and likelihood
 		PedInfo info; 
-		int popIndex = currPedigree.getEffectivePop() - minN;
 		if(!ped2info.containsKey(toWrite)){			
 			
 			//lkhd & multiplier & initialize count
-			info = new PedInfo(minN, maxN);
+			info = new PedInfo();
 			info.multiplier = computeMultiplier(currPedigree);
-
-			//update lkhd for every possible theta
-			for(int i=minN; i<=maxN; i++){
-				info.lkhd[i-minN] = currPedigree.getLogLikelihood() - currPedigree.getPrior() + currPedigree.computePrior(i);
-			}
-			
+			info.count = 1;
 			
 			//fam
 			missingParentCounter = 0;
-			//writeFamFile(chains.get(coldChain).getPedigree(), toWrite);
+			writeFamFile(chains.get(coldChain).getPedigree(), toWrite);
 		
 			//record pedigree
 			ped2info.put(toWrite, info);
@@ -523,7 +498,7 @@ public class MCMCMC {
 	
 		//lkhd and count
 		info = ped2info.get(toWrite);
-		info.counts[popIndex]++;
+		info.count++;
 		
 
 

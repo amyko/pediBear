@@ -55,12 +55,12 @@ import utility.DataParser;
 public class RunMCMC{
 	
 	//MCMC parameter
-	public static String fileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/mcmc/";
-	public static String refPopFileName = "/Users/kokocakes/Google Drive/Research/pediBear/data/simulations/mcmcTest/mcmcTest";
+	public static String fileName = "/Users/amy/eclipse-workspace/mcmc/simulations/";
+	public static String refPopFileName = "/Users/amy/eclipse-workspace/mcmc/simulations/";
 	public static String ageFileName = "";
 	public static double maf = 0.01;
 	public static double errorRate = 0.01;
-	public static int maxDepth = 3; //only simulated up to depth=3
+	public static int maxDepth = 2; //only simulated up to depth=3
 	public static int sampleDepth = maxDepth;
 	public static double back = 0.04;
 	public static double startTemp = 100;
@@ -68,7 +68,7 @@ public class RunMCMC{
 	public static int iterPerTemp = 40000;
 	public static int maxIter = 10000000;
 	public static double conv = 1;
-	public static int numIndiv = 20;
+	public static int numIndiv = 3;
 	public static double poissonMean = numIndiv;
 	public static boolean conditional = true;
 	public static int numRun = 1;
@@ -79,7 +79,7 @@ public class RunMCMC{
 	
 	
 	//MCMC parameters
-	public static int nChain = 3;
+	public static int nChain = 1;
 	public static int nBranch = 1;
 	public static int burnIn = 500000;
 	public static int runLength = 1000000;
@@ -95,8 +95,8 @@ public class RunMCMC{
 	
 	//prior
 	public static int minN = 100;
-	public static int maxN = 400;
-	public static int stepSize = 20;
+	public static int maxN = 500;
+	public static int stepSize = 100;
 
 	
 	
@@ -384,7 +384,7 @@ public class RunMCMC{
 		}
 		
 		
-		MCMCMC mcmcmc = new MCMCMC(chains, deltaT, moves, burnIn, runLength, sampleRate, swapInterval, nSwaps, rGen, outfile, minN, maxN, stepSize);
+		MCMCMC mcmcmc = new MCMCMC(chains, deltaT, moves, burnIn, runLength, sampleRate, swapInterval, nSwaps, rGen, outfile);
 		mcmcmc.run();
 		
 		
@@ -839,22 +839,24 @@ public class RunMCMC{
 		
 	}
 	
+	
+	
 	public static void main(String[] args) throws IOException{
 	
 		
 		//file paths
-		String outPath = "/Users/kokocakes/Google Drive/Research/pediBear/data/mcmc/";
+		String outPath = "/Users/amy/eclipse-workspace/mcmc/simulations/";
 		PrintWriter writer = DataParser.openWriter(outPath+"test.acc");
-		PrintWriter priorWriter = DataParser.openWriter(outPath+"posterior.prior");
-		PrintWriter pedWriter = DataParser.openWriter(outPath+"posterior.pedigree");
+		//PrintWriter priorWriter = DataParser.openWriter(outPath+"posterior.prior");
+		//PrintWriter pedWriter = DataParser.openWriter(outPath+"posterior.pedigree");
 		String sim = "sample";
 		
 		//get truePed
 		//String truePed = getTruePed(String.format("%s%s.true", outPath, sim));
-		Map<Path,double[]> path2omega = Accuracy.getPathToOmega(outPath + "pathToOmega.txt");
+		//Map<Path,double[]> path2omega = Accuracy.getPathToOmega(outPath + "pathToOmega.txt");
 		
 		//run
-		for(int i=0; i<100; i++){
+		for(int i=0; i<1; i++){
 			
 			System.out.println(i);
 			
@@ -862,10 +864,7 @@ public class RunMCMC{
 			String myFile = String.format("%s.%d", outFile, i);
 		
 			MCMCMC mcmcmc = runThreads(myFile, outFile);
-			
-			//writePairAcc(writer, outFile, numIndiv, path2omega, i);
-			writePosteriorForParameter(priorWriter, mcmcmc, i);
-			//writePosteriorForPedigree(pedWriter, mcmcmc, i);
+		
 			
 			//writeAcc(writer, truePed, outFile+".count", i);
 			//writeMapFam(outFile);
@@ -879,7 +878,7 @@ public class RunMCMC{
 		}
 
 		writer.close();
-		priorWriter.close();
+		//priorWriter.close();
 		
 		System.out.println("DONE");
 		

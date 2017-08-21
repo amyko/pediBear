@@ -269,7 +269,7 @@ public class SimulatePedigreeUnderPrior {
 
 		
 		reader = DataParser.openReader(String.format("%s%dN.pop.tped", filePath, N));
-		writer = DataParser.openWriter(String.format("%ssample.tped", filePath));
+		writer = DataParser.openWriter(String.format("%ssample.tped", filePath, t));
 		
 		while((line=reader.readLine())!=null){
 			
