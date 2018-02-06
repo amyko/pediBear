@@ -47,28 +47,30 @@ import mcmcMoves.Stretch;
 import mcmcMoves.SwapDescAnc;
 import mcmcMoves.SwapDown;
 import mcmcMoves.SwapUp;
+import mcmcMoves.SwitchChildAncWithOppositeSex;
 import mcmcMoves.SwitchSex;
 import mcmcMoves.UncletoNephew;
 import statistic.Accuracy;
+import statistic.CompareWithColony;
 import utility.DataParser;
 
 public class RunMCMC{
 	
 	//MCMC parameter
-	public static String fileName = "/Users/amy/eclipse-workspace/mcmc/simulations/";
+	public static String fileName = "/Users/amy/eclipse-workspace/mcmc/simulations/sim_n20_3gen/";
 	public static String refPopFileName = "/Users/amy/eclipse-workspace/mcmc/simulations/";
 	public static String ageFileName = "";
 	public static double maf = 0.01;
 	public static double errorRate = 0.01;
 	public static int maxDepth = 2; //only simulated up to depth=3
-	public static int sampleDepth = maxDepth;
+	public static int sampleDepth = 0;
 	public static double back = 0.04;
 	public static double startTemp = 100;
 	public static double tempFact = 1.01;
 	public static int iterPerTemp = 40000;
 	public static int maxIter = 10000000;
-	public static double conv = 1;
-	public static int numIndiv = 3;
+	public static double conv = .1;
+	public static int numIndiv = 20;
 	public static double poissonMean = numIndiv;
 	public static boolean conditional = true;
 	public static int numRun = 1;
@@ -79,7 +81,7 @@ public class RunMCMC{
 	
 	
 	//MCMC parameters
-	public static int nChain = 1;
+	public static int nChain = 3;
 	public static int nBranch = 1;
 	public static int burnIn = 500000;
 	public static int runLength = 1000000;
@@ -93,9 +95,10 @@ public class RunMCMC{
 	public static Map<String, Double> name2age = null;
 	public static Random rGen = new Random(102574);
 	
-	//prior
-	public static int minN = 100;
-	public static int maxN = 500;
+	//prior: the minum should be at least allow everyone to be unrelated
+	//public static int minN = numIndiv * (int) Math.pow(2, maxDepth);
+	public static int minN = 200;
+	public static int maxN = 1000;
 	public static int stepSize = 100;
 
 	
@@ -128,7 +131,7 @@ public class RunMCMC{
 		
 	}
 	
-	
+
 	
 	public static void initRelationships(){
 		
@@ -256,6 +259,7 @@ public class RunMCMC{
 		
 		Random rGen = new Random(1025742);
 		
+		/*
 		//arguments
 		Move[] moves = new Move[]{new Link("link", .05), new Cut("cut", .05), new Split("split", .05),  
 				new ShiftClusterLevel("shiftClusterLevel", .05),  new SwitchSex("switchSex", .05),  
@@ -265,15 +269,24 @@ public class RunMCMC{
 				new SwapDescAnc("swapDescAnc", .05),
 				new OPtoPO("OPtoPO", .02), new POtoOP("POtoOP", .02),
 				new FStoPO("FStoPO", .05), new POtoFS("POtoFS", .05), //confounds with HS2FU
-				new HStoPO("HStoPO", .05), new POtoHS("POtoHS", .05),
+				new HStoPO("HStoPO", .03), new POtoHS("POtoHS", .03),
 				new Contract("contract", .05), new Stretch("stretch", .05), //confounds with HS2PO, HS2FU?
 				
+				new SwitchChildAncWithOppositeSex("switchChildParentWithOppositeSex", .04),
 				new NoChange("noChange", .06),
 				
 				new CutLink("cutLink", .0), new SplitLink("splitLink", .0), //these don't work if donor node is deleted in link
 				new HStoFU("HStoFU",.0), new FUtoHS("FUtoHS", .0), //confounds with POtoFU
 				new SwapUp("swapUp", .0), new SwapDown("swapDown", .0),
 				new CutOneLinkTwo("cutOneLinkTwo", .0), new CutTwoLinkOne("cutTwoLinkOne", .0)};
+		
+		
+		*/
+		
+		Move[] moves = new Move[]{new Link("link", .3), new Cut("cut", .2), 
+				new Split("split", .1),  new SwitchSex("switchSex", .1),  
+				new FStoSelf("fs2self", .1), new SelftoFS("self2fs", .1),
+				new NoChange("noChange", .1)};
 		
 		
 		double prob = 0d;
@@ -559,20 +572,25 @@ public class RunMCMC{
 	public static void writeAcc(PrintWriter writer, String truePed, String countPath, int t) throws NumberFormatException, IOException{
 			
 
+		double denom = runLength / sampleRate;
+		
+		
 		//in MAP?
 		String[] mapResult = Accuracy.inMAP(countPath, truePed);
-		double denom = runLength / sampleRate;
-		double percentMap = Integer.parseInt(mapResult[1]) / denom;
-
+		//double percentMap = Integer.parseInt(mapResult[1]) / denom;
+		
 		
 		//in credible interval?
-		String[] ciResult = Accuracy.inCI(countPath, truePed, credibleInterval, denom);
+		String[] ciResult = Accuracy.inCIPair(countPath, truePed, credibleInterval, denom);
 		
-		writer.write(String.format("%d\t%s\t%.3f\t%s\t%s\n", t, mapResult[0], percentMap, ciResult[0], ciResult[1]));
+		//in credible interval except false positives?
+		
+		writer.write(String.format("%d\t%s\t%s\t%s\n", t, ciResult[0], ciResult[1], ciResult[2]));
+		
+		//writer.write(String.format("%d\t%s\t%.3f\t%s\t%s\n", t, mapResult[0], percentMap, ciResult[0], ciResult[1]));
 		
 		
-		
-		
+	
 		//flush
 		writer.flush();
 
@@ -585,7 +603,7 @@ public class RunMCMC{
 		
 		BufferedReader reader = DataParser.openReader(truePath);
 		
-		String toReturn = reader.readLine();
+		String toReturn = reader.readLine().split("\\s")[0];
 		reader.close();
 		
 		return toReturn;
@@ -841,32 +859,190 @@ public class RunMCMC{
 	
 	
 	
+	public static void writePairCounts(String outPath, MCMCMC mcmcmc, String[] ids) throws IOException {
+		
+		
+		//open file
+		PrintWriter writer = DataParser.openWriter(outPath);
+		
+		for(int i = 0; i< mcmcmc.pair_results.length; i++) {
+			
+			for(int j = i+1; j < mcmcmc.pair_results.length; j++) {
+				
+				writer.write(String.format("%s %s ", ids[i], ids[j]));
+				
+				
+				for(int k = 0; k < 5; k++) {
+					
+					writer.write(mcmcmc.pair_results[i][j][k] + " ");
+					
+				}
+				
+				writer.write("\n");
+				
+			}
+			
+		}
+		
+		
+		writer.close();
+		
+		
+	}
+	
+	
+	
+	public static void assign(String outPath, String inPath, double thresh) throws NumberFormatException, IOException {
+		
+		
+		PrintWriter writer = DataParser.openWriter(outPath);
+		BufferedReader reader = DataParser.openReader(inPath);
+		
+		String line;
+		while((line = reader.readLine()) != null) {
+			
+			String[] fields = line.split("\\s");
+			
+			//find max vote idx
+			int maxIdx = -1;
+			int max = -1;
+			int unrelCount = 0;
+			for(int i=0; i<5; i++) { 
+				int curr = Integer.parseInt(fields[i + 2]);
+				if(curr > max) {
+					maxIdx = i;
+					max = curr;
+				}
+				if(i == 2)
+					unrelCount = curr;
+			}
+
+			
+			//if count / UR_count < c, assign as UR
+			if(maxIdx !=2 && unrelCount > 0 && (double) max / unrelCount < thresh) {
+				maxIdx = 2;
+			}
+			
+			
+			String assign = "";
+			if(maxIdx == 0)
+				assign = "FS";
+			else if(maxIdx == 1)
+				assign  = "HS";
+			else if(maxIdx == 2)
+				assign  = "UR";
+			else if(maxIdx == 3)
+				assign  = "FC";
+			else
+				assign  = "HC";
+
+			//write results
+			writer.write(String.format("%s %s %s\n", fields[0], fields[1], assign));
+			
+			
+			
+		}
+		
+		
+		writer.close();
+		
+		
+	}
+	
+	
+	public static void writePop(String outPath, MCMCMC mcmcmc) throws IOException {
+		
+		//open file
+		PrintWriter writer = DataParser.openWriter(outPath);
+		
+		for(int i = 0; i< mcmcmc.pop_results.length; i++) {
+			
+			writer.write(String.format("%d %d\n", 100*(i+1), mcmcmc.pop_results[i]));
+			
+		}
+		
+		
+		writer.close();
+		
+		
+	}
+	
+	
+	
 	public static void main(String[] args) throws IOException{
 	
+	
+
+		/////// for frog data ////////
 		
+		//run mcmc
+		System.out.println("Running MCMC");
+		String outFile = String.format("/Users/amy/eclipse-workspace/mcmc/frogs/frogs.juv");
+		String myFile = outFile;
+
+		
+		MCMCMC mcmcmc = runThreads(myFile, outFile);
+		
+		//write pairwise results to file
+		System.out.println("Analyzing pairwise results");
+		String [] ids = new String[numIndiv];
+		BufferedReader reader = DataParser.openReader(myFile + ".tfam");
+		for(int i=0; i<ids.length; i++) {
+			ids[i] = reader.readLine().split("\\s")[1];
+		}
+		
+		writePairCounts(outFile + ".pairCounts", mcmcmc, ids);
+		writePop(outFile + ".Ne", mcmcmc);
+			
+		
+		// assign relationship
+		assign(outFile + ".pairAssignment", outFile + ".pairCounts", 1);
+
+		
+		
+		/*
+		//////// FOR SIMULATIONS /////////
 		//file paths
 		String outPath = "/Users/amy/eclipse-workspace/mcmc/simulations/";
 		PrintWriter writer = DataParser.openWriter(outPath+"test.acc");
+		writer.write("TEST\tinCI\tinCI2\tnCIped\n");
 		//PrintWriter priorWriter = DataParser.openWriter(outPath+"posterior.prior");
 		//PrintWriter pedWriter = DataParser.openWriter(outPath+"posterior.pedigree");
 		String sim = "sample";
 		
 		//get truePed
-		//String truePed = getTruePed(String.format("%s%s.true", outPath, sim));
 		//Map<Path,double[]> path2omega = Accuracy.getPathToOmega(outPath + "pathToOmega.txt");
 		
+		double[][] totalAcc = new double[5][5];
+		int T = 50;
+		double thresh = 4; // threshold for calling a relative
+		
 		//run
-		for(int i=0; i<1; i++){
+		for(int t=0; t<T; t++){
 			
-			System.out.println(i);
+			System.out.println(t);
 			
 			String outFile = String.format("%s%s", fileName, sim);
-			String myFile = String.format("%s.%d", outFile, i);
-		
+			String myFile = String.format("%s.%d", outFile, t);
+			String truePed = getTruePed(String.format("%ssim_n20/%s.%d.true", outPath, sim, t));
+			
 			MCMCMC mcmcmc = runThreads(myFile, outFile);
 		
 			
-			//writeAcc(writer, truePed, outFile+".count", i);
+			double[][] acc = CompareWithColony.accuracyMatrix(outPath + "sample.0.true", fileName + "sample.count", numIndiv, thresh);
+			
+			for(int i=0; i<acc.length; i++) {
+				for(int j=0; j<acc[0].length; j++) {
+					
+					totalAcc[i][j] += acc[i][j];
+					
+				}
+				
+			}
+			
+			
+			
+			writeAcc(writer, truePed, outFile+".count", t);
 			//writeMapFam(outFile);
 			
 			//testing relative occupancy without likelihood
@@ -880,8 +1056,22 @@ public class RunMCMC{
 		writer.close();
 		//priorWriter.close();
 		
-		System.out.println("DONE");
+		for(int i=0; i<totalAcc.length; i++) {
+			
+			for(int j=0; j<totalAcc[0].length; j++) {
+				
+
+				
+				System.out.print(String.format("%.2f ", totalAcc[i][j]/T));
+				
+			}
+			System.out.println();
+			
+		}
 		
+		
+		System.out.println("DONE");
+		*/
 		
 		
 	}

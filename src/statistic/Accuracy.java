@@ -24,8 +24,7 @@ public class Accuracy {
 	public static String[] inMAP(String countPath, String truePed) throws IOException{
 			
 		//get MAP
-		double bestLkhd = Double.NEGATIVE_INFINITY;
-		String bestCount = "";
+		int bestCount = 0;
 		String bestPed = "";
 		
 		
@@ -37,28 +36,23 @@ public class Accuracy {
 			
 			String[] fields = line.split("\\s");
 			
-			double currLkhd = Double.parseDouble(fields[1]);
+			int currCount = Integer.parseInt(fields[1]);
 			
-			if(currLkhd > bestLkhd){
-				bestLkhd = currLkhd;
+			if(currCount > bestCount){
 				bestPed = fields[0];
-				bestCount = fields[2];
+				bestCount = currCount;
 			}
 			
 			
 		}
 		reader.close();
+	
 		
-		String[] toReturn = new String[2];
-		toReturn[1] = bestCount;
+		//TODO PRINT
+		//print best map
+		System.out.println(bestPed);
 		
-		//check if MAP is true 
-		if(bestPed.equals(truePed))
-			toReturn[0] = "1";
-		else
-			toReturn[0] = "0";
-		
-		return toReturn;
+		return null;
 	}
 	
 	
@@ -75,7 +69,7 @@ public class Accuracy {
 			
 			String[] fields = line.split("\\s");
 			
-			int key = -Integer.parseInt(fields[2]);
+			int key = -Integer.parseInt(fields[1]);
 			String val = fields[0];
 			count2ped.put(key, val);
 			
@@ -90,6 +84,7 @@ public class Accuracy {
 		int totalCount = 0;
 		int pedCount = 0;
 		int inCI = 0;
+		int inCIExceptFalsePositives = 0;
 		
 		for(int key : sortedMap.keySet()){
 			
@@ -99,8 +94,34 @@ public class Accuracy {
 			pedCount++;
 			
 			//check if this pedigree is the true one
-			if(inCI==0 && truePed.equals(sortedMap.get(key))){
+			String testPed = sortedMap.get(key);
+			if(inCI==0 && truePed.equals(testPed)){
 				inCI=1;
+			}
+			
+			//check if this pedigree is the true one ignoring the false positives
+			if(inCIExceptFalsePositives==0) {
+			
+				int same = 1;
+				
+				for(int i=0; i<testPed.length()/3; i++) {
+					
+					String testPair = "" + testPed.charAt(3*i) + testPed.charAt(3*i+1) + testPed.charAt(3*i + 2);
+					String truePair = "" + truePed.charAt(3*i) + truePed.charAt(3*i+1) + truePed.charAt(3*i + 2);
+					
+					
+					if(! testPair.equals(truePair) && ! truePair.equals("000")) {
+						
+						same *= 0;
+						break;
+						
+					}
+					
+				}
+				
+				if(same==1)
+					inCIExceptFalsePositives = 1;
+			
 			}
 			
 			if(totalCount / denom > CI) break;
@@ -109,9 +130,11 @@ public class Accuracy {
 		
 
 		//record results
-		String[] toReturn = new String[2];
+		String[] toReturn = new String[3];
 		toReturn[0] = String.format("%d", inCI);
-		toReturn[1] = String.format("%d", pedCount);
+		toReturn[1] = String.format("%d", inCIExceptFalsePositives);
+		toReturn[2] = String.format("%d", pedCount);
+
 		
 		
 		return toReturn;	
@@ -119,7 +142,82 @@ public class Accuracy {
 		
 	}
 	
+	//returns (1): true if true pedigree is in the credible interval; (2) #pedigrees in credible interval
+	public static String[] inCIPair(String countPath, String truePed, double CI, double denom) throws NumberFormatException, IOException{
 	
+		//build map: count -> ped
+		Map<Integer, String> count2ped = new HashMap<Integer, String>();
+		
+		BufferedReader reader = DataParser.openReader(countPath);
+		String line;
+		
+		while((line=reader.readLine())!=null){
+			
+			String[] fields = line.split("\\s");
+			
+			int key = -Integer.parseInt(fields[1]);
+			String val = fields[0];
+			count2ped.put(key, val);
+			
+		}
+		reader.close();
+		
+		
+		//sort map
+		Map<Integer, String> sortedMap = new TreeMap<Integer, String>(count2ped); 
+		
+		//credible interval
+		int totalCount = 0;
+		int pedCount = 0;
+		int inCI = 0;
+		int numPairs = truePed.length() / 3;
+		int[] pairCorrect = new int[numPairs];
+
+		
+		for(int key : sortedMap.keySet()){
+			
+			//get count
+			int count = Math.abs(key);
+			totalCount += count;
+			pedCount++;
+			
+			//check if this pedigree is the true one
+			String testPed = sortedMap.get(key);
+			if(inCI==0 && truePed.equals(testPed)){
+				inCI=1;
+			}
+			
+			//check if each pair is correct
+			for(int i=0; i<testPed.length()/3; i++) {
+				
+				if(pairCorrect[i]==0) {
+					
+					if(testPed.charAt(3*i)==truePed.charAt(3*i) && testPed.charAt(3*i+1)==truePed.charAt(3*i+1) && testPed.charAt(3*i+2)==truePed.charAt(3*i+2))
+						pairCorrect[i] = 1;
+				}
+				
+			}
+			
+			if(totalCount / denom > CI) break;
+			
+		}
+		
+		String pairAccuracy = "";
+		for(int i : pairCorrect) pairAccuracy += String.format("%d", i);
+		
+		
+		//record results
+		String[] toReturn = new String[3];
+		toReturn[0] = String.format("%d", inCI);
+		toReturn[1] = pairAccuracy;
+		toReturn[2] = String.format("%d", pedCount);
+
+		
+		
+		return toReturn;	
+		
+		
+	}
 	
 	
 	

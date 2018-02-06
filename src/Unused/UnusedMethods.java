@@ -15,6 +15,101 @@ import dataStructures.Relationship;
 import dataStructures.SimplePair;
 
 public class UnusedMethods {
+	
+	public static double computePedigreeProbSimplified(int N, int Nf, int Nm, int n, double alpha, double beta, int F, int M, int Fs, int Ms, int Sf, int Sm, ArrayList<Integer> Cf, ArrayList<ArrayList<Integer>> CmConfig) {
+		
+		
+		//father probability
+		//denom
+		double fatherDenom = 1;
+		for(int k=0; k<n; k++)
+			fatherDenom *= 1.0/(Nf*alpha + k);
+		
+		//new sampled fathers
+		double newSampledFatherProb = 1;
+		for(int k=0; k<Fs; k++) 
+			newSampledFatherProb *= alpha;
+		
+		//new unsampled fathers
+		double newUnsampledFatherProb = 1;
+		for(int k=Fs; k<F; k++)
+			newUnsampledFatherProb *= alpha * (Nf - k - Sf + Fs);
+		
+		//old fathers
+		double oldFatherProb = 1;
+		for(int f=0; f<Cf.size(); f++) {
+			
+			for(int c=1; c < Cf.get(f); c++) {
+				
+				oldFatherProb *= (alpha + c);
+				
+			}
+			
+		}
+		
+		double fatherProb = fatherDenom * newSampledFatherProb * newUnsampledFatherProb * oldFatherProb;
+		
+		
+		
+		//mother probability
+		//denom
+		double motherDenom = 1;
+		for(int f=0; f<Cf.size(); f++) {
+			
+			for(int c=0; c<Cf.get(f); c++) {
+			
+				motherDenom *= 1.0/(Nm*beta + c);	
+			
+			}
+			
+		}
+		
+		
+		//new sampled mothers
+		double newSampledMotherProb = 1;
+		for(int k=0; k<Ms ; k++) 
+			newSampledMotherProb *= beta;
+		
+		//new unsampled mothers
+		double newUnsampledMotherProb = 1;
+		for(int k=Ms; k<M; k++)
+			newUnsampledMotherProb *= beta*(Nm - k - Sm + Ms);
+		
+		//old mothers
+		double oldMotherProb = 1;
+		for(ArrayList<Integer> childrenConfig : CmConfig) {
+			
+			boolean firstChild = false;
+			
+			for(int cluster=0; cluster<childrenConfig.size(); cluster++) {
+							
+				for(int c=0; c<childrenConfig.get(cluster); c++) {
+					
+					if(firstChild==false) {
+						firstChild = true;
+						continue;
+					}
+					
+					oldMotherProb *= (beta + c);
+					
+				}
+				
+			}
+		
+	
+		}
+		
+		double motherProb = motherDenom * newSampledMotherProb * newUnsampledMotherProb * oldMotherProb;
+
+		double totalProb = fatherProb * motherProb;
+		
+		return totalProb;
+		
+		
+		
+	}
+	
+	
 	 	//pairwise likelihood for dependent sites
 	public double[][][] forwardAlgorithm(String genoPath, String infoPath, int[] indCols, List<Relationship> rel) throws IOException{
 		

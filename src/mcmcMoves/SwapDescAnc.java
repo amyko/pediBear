@@ -7,7 +7,7 @@ import mcmc.MCMCMC;
 import dataStructures.Node;
 import dataStructures.Pedigree;
 
-// 1) swap two sampled nodes
+// 1) swap at least one sampled node and another
 
 public class SwapDescAnc extends Move {
 

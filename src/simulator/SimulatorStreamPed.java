@@ -324,9 +324,8 @@ public class SimulatorStreamPed {
 				int currChrom = Integer.parseInt(momFields[CHROM]);
 				int currPos = Integer.parseInt(momFields[POS]);
 
+			
 				
-				if(currPos==prevPos) continue;
-
 				//if first snp, randomly choose start haplotype	
 				if(currChrom != prevChrom){
 					

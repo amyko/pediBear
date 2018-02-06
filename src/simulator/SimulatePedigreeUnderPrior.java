@@ -1,20 +1,27 @@
 package simulator;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
 import dataStructures.Path;
 import dataStructures.Pedigree;
+import dataStructures.SimplePair;
 import utility.DataParser;
 
 public class SimulatePedigreeUnderPrior {
 	
 	
-
 	//sample individuals from first d generations
 	public static Set<String> sample(int N, int n, int d, Random rGen){
 		
@@ -56,7 +63,7 @@ public class SimulatePedigreeUnderPrior {
 			
 		}
 		
-		
+
 		return toReturn;
 		
 		
@@ -65,6 +72,60 @@ public class SimulatePedigreeUnderPrior {
 	}
 	
 	
+	
+	
+	//sample individuals in the fam file uniformly at random
+	public static List<String> sampleUniform(String famPath, Random rGen, int n) throws IOException{
+		
+		List<String> toReturn = new ArrayList<String>();
+		List<String> candidates = new ArrayList<String>();
+		
+		BufferedReader infile = DataParser.openReader(famPath);
+		infile.readLine(); //skip header
+		
+		
+		//get candidate individuals
+		String line;
+		
+		while((line=infile.readLine())!=null) {
+			
+			candidates.add(line.split("\\s")[0]);
+			
+		}
+		infile.close();
+		
+		
+		//sample n 
+		int nSampled = 0;
+		int nLeft = candidates.size();
+		int nSampleNeeded = n;
+		int i=0;
+		while(nSampled < n) {
+			
+			int u = rGen.nextInt(nLeft);
+			
+			if(u < nSampleNeeded) {
+				toReturn.add(candidates.get(i));
+				nSampleNeeded--;
+				nSampled++;
+			}
+				
+			i++;
+			nLeft--;
+			
+		}
+
+		//TODO testing
+		//List<String> testReturn = new ArrayList<String>(Arrays.asList("0_3","0_13","1_39","1_86","1_146"));
+		//return testReturn;
+		
+		return toReturn;
+		
+		
+		
+		
+		
+	}
 	
 	//sample connected individuals from first d generations
 	public static Set<String> sampleConnected(int N, int n, int d, Random rGen){
@@ -157,10 +218,10 @@ public class SimulatePedigreeUnderPrior {
 	
 	
 	
-	public static Set<String> sampleFam(int N, int n, int d, int sampleDepth, Random rGen, String filePath) throws IOException{
+	public static List<String> sampleFam(int N, int n, int d, int sampleDepth, Random rGen, String filePath) throws IOException{
 		
 		//sample from population
-		Set<String> samples = sample(N,n,sampleDepth,rGen);
+		List	<String> samples = sampleUniform(String.format("%s%dN.%dd.pop.fam", filePath, N, d), rGen, n);
 		Set<String> ghosts = new HashSet<String>();
 		
 		//open pop fam
@@ -221,55 +282,56 @@ public class SimulatePedigreeUnderPrior {
 	
 	
 	
-	//sample, make true, tped, and tfam files
-	public static void sampleForReal(int N, int n, int d, int sampleDepth, Random rGen, String filePath, double seqError, int t) throws IOException{
-		
-		boolean badSample = true;
-		Set<String> samples = null;
-		Pedigree ped = null;
-		
-		while(badSample){
-		
-			//make fam file of the samples
-			samples = sampleFam(N,n,d,sampleDepth,rGen,filePath);
-		
-			//un-inbred
-			ped = uninbred(String.format("%s%dN.sample.fam", filePath, N), String.format("%ssample.%d.true", filePath, t));
-			
-			badSample = ped.looped;
-			
-		}
-		
-		//relevant columns
-		int[] ids = new int[n]; //0 through ...
-		
-		//make tfam files
+	//make tped, and tfam files
+	public static void makeTpedTfam(int N, int n, int d, int sampleDepth, Random rGen, String filePath, int t, List<String> samples) throws IOException{
+				
+		//make tfam files: individuals must appear in order
+		BufferedReader reader = DataParser.openReader(String.format("%spop.ped", filePath));
 		PrintWriter writer = DataParser.openWriter(String.format("%ssample.%d.tfam", filePath, t));
-		BufferedReader reader = DataParser.openReader(String.format("%s%dN.pop.tfam", filePath, N));
 		String line;
 		int lineNum = 0;
-		int idx = 0;
+		
+		//map name --> column number
+		Map<String, SimplePair<String, Integer>> name2info = new HashMap<String, SimplePair<String, Integer>>();
+		
+		//iterate thorugh ped file. its header is same as the tfam file
 		while((line=reader.readLine())!=null){
 			
 			String[] fields = line.split("\\s");
 			
-			if(samples.contains(fields[1])){
-				writer.write(line+"\n");
-				ids[idx] = lineNum; //column number for tped
-				idx++;
-			}
+			name2info.put(fields[1], new SimplePair<String, Integer>(line, lineNum));
 			
 			lineNum++;
 				
 		}
 		
 		reader.close();
+		
+		//get relevant column numbers, write tfam in order
+		int[] ids = new int[n]; //0 through ..
+		int idx = 0;
+		//write tfam and get relevant column numbers
+		for(String id : samples) {
+			
+			//write tfam
+			String[] fields = name2info.get(id).getFirst().split("\\s");
+			for(int i=0; i<6; i++) 
+				writer.write(fields[i] + " ");
+			writer.write("\n");
+			
+			//column number
+			ids[idx] = name2info.get(id).getSecond();
+			idx++;
+			
+		}
 		writer.close();
 		
-
 		
-		reader = DataParser.openReader(String.format("%s%dN.pop.tped", filePath, N));
-		writer = DataParser.openWriter(String.format("%ssample.tped", filePath, t));
+		
+		reader = DataParser.openReader(String.format("%spop.tped", filePath));
+		writer = DataParser.openWriter(String.format("%stemp", filePath, t));
+		
+		
 		
 		while((line=reader.readLine())!=null){
 			
@@ -278,22 +340,11 @@ public class SimulatePedigreeUnderPrior {
 			//write header
 			writer.write(String.format("%s %s %s %s ", fields[0],fields[1],fields[2],fields[3]));
 			
+			
 			for(int i=0; i<ids.length; i++){
 				
 				String a1 = fields[2*ids[i]+4];
 				String a2 = fields[2*ids[i]+5];
-				
-				
-				//add error
-				if(rGen.nextDouble() < seqError){
-					a1 = a1.equals("A") ? "T" : "A";
-				}
-				
-				if(rGen.nextDouble() < seqError){
-					a2 = a2.equals("A") ? "T" : "A";
-				}
-				
-				
 				
 				writer.write(String.format("%s %s ", a1, a2));
 				
@@ -313,11 +364,100 @@ public class SimulatePedigreeUnderPrior {
 	}
 	
 	
+	
+	//add error. NOTE: ONLY WORKS FOR NUMERIC ENCODING OF ALLELES
+	public static void addError(String tpedPath, String freqPath, String outPath, double epsilon1, double epsilon2, Random rGen) throws IOException {
+		
+		//open files
+		BufferedReader reader = DataParser.openReader(tpedPath);
+		BufferedReader reader2 = DataParser.openReader(freqPath);
+		PrintWriter writer = DataParser.openWriter(outPath);
+		
+		//error rates
+		double e1 = epsilon1 / (1+epsilon1);
+		
+		
+		String line;
+		String line2;
+		
+		while((line=reader.readLine()) != null && (line2=reader2.readLine()) != null) {
+			
+			String[] fields = line.split("\\s");
+			
+			//number of alleles
+			int k = line2.split("\\s").length;
+			String[] alleles = new String[k];
+			for(int i=0; i<k; i++) alleles[i] = (i+1) + "";
+			
+			
+			//write header
+			writer.write(String.format("%s %s %s %s ", fields[0], fields[1], fields[2], fields[3]));
+			
+			
+			//for every ind in at ths locus
+			for(int i=0; i<fields.length/2-2; i++) {
+				
+				String a1 = fields[2*i + 4];
+				String a2 = fields[2*i + 5];
+				
+				
+				//dropout for heterozygote
+				if(!a1.equals(a2)) {
+					
+					if(rGen.nextDouble() < 2*e1) { //drop out
+						
+						if(rGen.nextDouble() < .5)
+							a1 = a2;
+						else
+							a2 = a1;
+						
+					}
+
+				}
+
+				
+				//sequence error
+				if(rGen.nextDouble() < epsilon2) {
+					
+					int oldIdx = a1.charAt(0) - '0';
+					int toAdd = rGen.nextInt(k-1) + 1;
+					int newIdx = (oldIdx + toAdd) % k;
+					a1 = alleles[newIdx];
+					
+				}
+				
+				if(rGen.nextDouble() < epsilon2) {
+					
+					int oldIdx = a2.charAt(0) - '0';
+					int toAdd = rGen.nextInt(k-1) + 1;
+					int newIdx = (oldIdx + toAdd) % k;
+					a2 = alleles[newIdx];
+					
+					
+				}
+				
+				writer.write(String.format("%s %s ", a1, a2));	
+				
+				
+			}
+			
+			writer.write("\n");
+			
+		}
+		
+
+		writer.close();
+
+		
+		
+	}
+	
+	
 	//disconnect inbred connections
-	public static Pedigree uninbred(String filePath, String truePath) throws IOException{
+	public static Pedigree uninbred(String filePath, String truePath, List<String> samples) throws IOException{
 		
 		//make pedigree graph
-		Pedigree ped = new Pedigree(filePath, truePath);
+		Pedigree ped = new Pedigree(filePath, truePath, samples);
 		return ped;
 		
 		
@@ -330,17 +470,26 @@ public class SimulatePedigreeUnderPrior {
 		//init simulator
 		SimulatorStreamPed sim = new SimulatorStreamPed(recomb);
 		
+		//maps name to column
+		Map<String, Integer> name2id = new HashMap<String, Integer>();
+		
+		//map for founder generation
+		for(int i=0; i<N; i++) {
+			String key = String.format("%d_%d", depth, i);
+			name2id.put(key, i);
+		}
+		
 		//init writer
 		PrintWriter writer = DataParser.openWriter(outPath);
 		
 		//first generation
-		simulateOneGeneration(sim, writer, pedPath, founderGenotypePath, depth-1, rGen, N, tempPath);
+		simulateOneGeneration(sim, writer, pedPath, founderGenotypePath, depth-1, rGen, N, tempPath, name2id);
 		
 		
 		//other generations
 		for(int i=depth-2; i>=0; i--){
 			
-			simulateOneGeneration(sim, writer, pedPath, tempPath, i, rGen, N, tempPath);
+			simulateOneGeneration(sim, writer, pedPath, tempPath, i, rGen, N, tempPath, name2id);
 			
 			
 		}
@@ -351,7 +500,7 @@ public class SimulatePedigreeUnderPrior {
 	}
 	
 	
-	public static void simulateOneGeneration(SimulatorStreamPed sim, PrintWriter writer, String pedPath, String parentPath, int childDepth, Random rGen, int N, String tempPath) throws IOException{
+	public static void simulateOneGeneration(SimulatorStreamPed sim, PrintWriter writer, String pedPath, String parentPath, int childDepth, Random rGen, int N, String tempPath, Map<String, Integer> name2id ) throws IOException{
 		
 		
 		//open reader
@@ -373,9 +522,13 @@ public class SimulatePedigreeUnderPrior {
 			int d = Integer.parseInt(fields[0].split("_")[0]);
 			if(d!=childDepth) continue;
 			
+			//TODO fix this
 			//get mom and dad IDs
-			int dadID = Integer.parseInt(fields[1].split("_")[1]);
-			int momID = Integer.parseInt(fields[2].split("_")[1]);
+			int dadID = name2id.get(fields[1]);
+			int momID = name2id.get(fields[2]);
+			
+			//int dadID = Integer.parseInt(fields[1].split("_")[1]);
+			//int momID = Integer.parseInt(fields[2].split("_")[1]);
 			
 			//simulate
 			String pedLine = sim.makeChildrenReturnPedline(parentPath, parentPath, momID, dadID, rGen, 1);
@@ -394,8 +547,10 @@ public class SimulatePedigreeUnderPrior {
 			writer.write(String.format("1 %s %s %s %d -9 %s\n", fields[0], fields[1], fields[2], sex, pedLine));
 			writer.flush();
 			
+			//update
+			name2id.put(fields[0], id); //child
 			id++;
-			System.out.println(id);
+			//System.out.println(fields[0]);
 
 
 			
@@ -438,8 +593,61 @@ public class SimulatePedigreeUnderPrior {
 	}		
 
 		
+
+	public static void ped2tped(String fileName, String mapPath) throws IOException {
 		
-	
+		BufferedReader infile = DataParser.openReader(fileName+".ped");
+		int nSnp = DataParser.countLines(mapPath); 
+		int nIndiv = DataParser.countLines(fileName+".ped");
+
+		
+		//store snps
+		String[][] ped = new String[nIndiv][2*nSnp];
+		int i = 0;
+		
+		String line;
+		while((line=infile.readLine())!=null) {
+			
+			String[] fields = line.split("\\s");
+			
+			for(int j=0; j<2*nSnp; j++) {
+				
+				ped[i][j] = fields[j+6];
+				
+			}
+			
+			i++;
+			
+		}
+		infile.close();
+		
+		
+		
+		//write tped
+		PrintWriter outfile = DataParser.openWriter(fileName+".tped");
+		infile = DataParser.openReader(mapPath);
+		int j = 0;
+		
+		while((line=infile.readLine())!=null) {
+			
+			String[] fields = line.split("\\s");
+			
+			//writer header
+			for(int k=0; k<4; k++) outfile.write(fields[k]+" ");
+			
+			
+			for(i=0; i<ped.length; i++) {
+				
+				outfile.write(ped[i][2*j]+" "+ped[i][2*j+1]+" ");
+				
+			}
+			outfile.write("\n");
+			j++;
+			
+		}
+		infile.close();
+		outfile.close();
+	}
 	
 	
 	
@@ -467,7 +675,7 @@ public class SimulatePedigreeUnderPrior {
 		*/
 		
 
-		sampleForReal(N, n, d, sampleDepth, rGen, resultDir, seqError, 0);
+		//sampleForReal(N, n, d, sampleDepth, rGen, resultDir, seqError, 0);
 		
 		
 	

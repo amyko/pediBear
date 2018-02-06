@@ -8,6 +8,7 @@ import java.util.Random;
 import java.util.Set;
 
 import dataStructures.Node;
+import dataStructures.Pedigree;
 import utility.ArrayUtility;
 
 //gasbarra prior
@@ -42,7 +43,7 @@ public class Prior {
 	double log2 = Math.log(2);
 
 
-	
+	//TODO when does this return NA? Implement alpha = inf, beta = infi
 	public Prior(Random rGen, int maxDepth, int minN, int maxN, int stepSize) {
 				
 		//prior 
@@ -68,18 +69,17 @@ public class Prior {
 	
 	
 	
-	public double computePrior(List<Node> nodes, int nActiveNodes) {
+	public double computePrior(Pedigree currPedigree, List<Node> nodes, int nActiveNodes, int N, double alpha, double beta) {
 		
-		//hyper parameters
-		int N = rGen.nextInt((maxN - minN)/stepSize)*stepSize + minN;
-		//int N = 200;
+
 		int Nf = N/2;
 		int Nm = Nf;
-		beta = rGen.nextDouble(); //TODO limit
-		alpha = rGen.nextDouble();
-		//beta = .01;
-		//alpha = .1;
+
 		
+		// set hyper parameters
+		currPedigree.setHyperParameters(N, alpha, beta);
+		
+
 		//clear
 		ArrayUtility.clear(F);
 		ArrayUtility.clear(M);
@@ -104,13 +104,19 @@ public class Prior {
 			
 			double childProb = getProbForChild(child, N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
 			
+			if(Double.isInfinite(childProb) || Double.isNaN(childProb)) {
+				return Double.NEGATIVE_INFINITY;
+			}
+			
+			
 			totalProb += childProb;
 			
 		}
 		
-		
+
 		//TODO sample depth?
 		return totalProb;
+		//return 0;
 		
 		
 		

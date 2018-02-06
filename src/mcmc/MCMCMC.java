@@ -25,7 +25,7 @@ public class MCMCMC {
 	final static int maxTuneTrialTune = 10; //max number of tune trials inside Tune
 	final static int maxTuneTrialBurnIn = 10; //max number of tune trials inside BurnIn
 	final static int tuneInterval = 50000;
-	final static int maxDelta = 10;
+	final static int maxDelta = 1;
 	final static int minDelta = 0;
 
 	String outPath; 
@@ -53,7 +53,8 @@ public class MCMCMC {
 	private int missingParentCounter = 0;
 	public Map<String, PedInfo> ped2info = new HashMap<String, PedInfo>();
 	private final List<Node> anc = new ArrayList<Node>();
-
+	public int[][][] pair_results; // for frog data
+	public int[] pop_results; //for frog data
 
 
 	//TODO parallelize 
@@ -78,6 +79,10 @@ public class MCMCMC {
 		this.swapInterval = swapInterval;
 		this.tuned = false;
 		this.nSwaps = nSwaps;
+		
+		int n = chains.get(0).getPedigree().numIndiv;
+		pair_results = new int[n][n][5];
+		pop_results = new int[50]; //100 through 5000
 		
 		
 	}
@@ -215,7 +220,7 @@ public class MCMCMC {
 				
 				 
 				
-				if(i==1838){
+				if(i==350){
 					//Node myNode = chains.get(j).getPedigree().getNode(6);
 					//String toWrite = "";
 					//for(Node x : myNode.getParents()) toWrite += x.iid+" ";
@@ -233,6 +238,7 @@ public class MCMCMC {
 				}
 				*/
 				
+				
 			
 				
 				//chains.get(j).getPedigree().printAdjMat();
@@ -241,6 +247,7 @@ public class MCMCMC {
 			
 				
 				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
+				
 				
 				
 		
@@ -315,7 +322,11 @@ public class MCMCMC {
 		//now start sampling
 		for(int i = 0; i < runLength; i++){
 			
-
+			if((i%100000) == 0) {
+				System.out.println(i);
+			}
+			
+			
 			//sample from cold chain
 			if(i % sampleRate == 0){
 				
@@ -448,6 +459,42 @@ public class MCMCMC {
 	private void sample(Pedigree currPedigree){
 		
 		
+		//this is for one-gen only
+		//update counts for each pair
+		for(int i=0; i<currPedigree.numIndiv; i++) {
+			for(int j=i+1; j<currPedigree.numIndiv; j++){
+
+				Path rel = currPedigree.getRelationships()[i][j];
+				int k = 2;
+				
+				if(rel.getNumVisit() == 1) {
+					if(rel.getUp() == 1)
+						k = 1;
+					else
+						k = 4;
+				}
+				else if(rel.getNumVisit() == 2) {
+					if(rel.getUp() == 1)
+						k = 0;
+					else
+						k = 3;
+				}
+				
+				
+				pair_results[i][j][k]++; 
+				
+
+				
+			}
+				
+		}
+		
+		
+		//pop count
+		int rounded_pop = ((currPedigree.getEffectivePop() + 99) / 100 )  - 1;
+		pop_results[rounded_pop]++;		
+		
+		/*
 		//number of ancestors for each sampled node
 		String numAncString = "";
 		String toWrite = "";
@@ -474,7 +521,7 @@ public class MCMCMC {
 		//TODO testing
 		//write
 		//pairWriter.write(String.format("%s\n", toWrite));
-		toWrite += numAncString;
+		//toWrite += numAncString;
 		
 		
 		//if new pedigree, record fam, multiplier, and likelihood
@@ -499,7 +546,7 @@ public class MCMCMC {
 		//lkhd and count
 		info = ped2info.get(toWrite);
 		info.count++;
-		
+		*/
 
 
 	}

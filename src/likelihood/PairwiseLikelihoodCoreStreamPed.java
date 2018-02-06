@@ -1511,7 +1511,8 @@ public class PairwiseLikelihoodCoreStreamPed {
 		
 		//uncle-type relationship
 		if((path.getUp() > path.getDown() && path.getDown()==1) || (path.getDown() > path.getUp() && path.getUp()==1)){
-			p11 = Math.pow(1-rhoBetween, m-2) * (.5*(Math.pow(1-rhoBetween, 2) + 2*rhoBetween) + .5*((1-rhoBetween) + 2*rhoBetween*Math.pow(1-rhoBetween, 2)));
+			//p11 = Math.pow(1-rhoBetween, m-2) * (.5*(Math.pow(1-rhoBetween, 2) + 2*rhoBetween) + .5*((1-rhoBetween) + 2*rhoBetween*Math.pow(1-rhoBetween, 2)));
+			p11 = Math.pow(1-rhoBetween, m-2) * (2/3.0*(Math.pow(1-rhoBetween, 2) + 2*rhoBetween) + 1/3.0*(3*rhoBetween *(1-rhoBetween) + Math.pow(1-rhoBetween, 2)));
 		}
 		
 		//cousin-type relationship

@@ -61,7 +61,6 @@ public class Pedigree {
 	
 	
 	//NEW PRIOR
-	private int effectivePop;
 	private int minN;
 	private int maxN;
 	private int[] nNodes;
@@ -76,6 +75,9 @@ public class Pedigree {
 	
 	//gasbarra prior
 	private Prior priorCalculator;
+	private double[] beta = new double[] {.01, .01};
+	private double[] alpha = new double[] {1,1};
+	private int[] effectivePop;
 	
 	
 	//for primus
@@ -141,7 +143,7 @@ public class Pedigree {
 		this.poissonScale = poissonScale;
 		this.minN = minN;
 		this.maxN = maxN;
-		this.effectivePop = maxN;
+		this.effectivePop = new int[] {maxN, maxN};
 		this.stepSize = stepSize;
 	
 		this.priorCalculator = priorCalculator;
@@ -232,6 +234,36 @@ public class Pedigree {
 		core.setMarginals(fileName+".marginal");
 		core.setLikelihoods(fileName+".pairwise");
 		
+		
+		/*
+		//make everyone FS
+		Node mom = makeNewNode(1, 0);
+		Node dad = makeNewNode(1, 1);
+		for(int i=0; i<numIndiv; i++) {
+			
+			Node child = nodes.get(curr).get(i);
+			
+			child.addParent(mom);
+			child.addParent(dad);
+			mom.addChild(child);
+			dad.addChild(child);
+			
+		}
+		
+		//update matrix
+		List<Node> ped = new ArrayList<Node>();
+		for(int i=0; i<numIndiv; i++) {
+			updateAdjMat(nodes.get(curr).get(i));
+			ped.add(nodes.get(curr).get(i));
+		}
+		
+		
+
+		
+		logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		*/
+		
+		
 		//compute current likelihood
 		for(int i=0; i<numIndiv; i++){
 			logLikelihood[curr] += core.getMarginal(nodes.get(0).get(i));
@@ -239,8 +271,9 @@ public class Pedigree {
 		}
 		
 		
+		
 		//prior
-		updateNumSingletons();
+		//updateNumSingletons();
 		updatePrior(false);
 		logLikelihood[curr] += prior[curr];
 		
@@ -252,7 +285,7 @@ public class Pedigree {
 	
 	
 	//this is for simulation only
-	public Pedigree(String inPath, String truePath) throws IOException{
+	public Pedigree(String inPath, String truePath, List<String> samples) throws IOException{
 		
 		this.lambda = 0;
 		this.logLambda = 0;
@@ -260,7 +293,7 @@ public class Pedigree {
 		logFact = null;
 		log = new double[500]; //TODO set this better
 		poissonScale = 0;
-		effectivePop = 1000;
+		effectivePop = null;
 
 	 
 		
@@ -274,7 +307,7 @@ public class Pedigree {
 		nodes.add(new ArrayList<Node>(300));
 		
 
-		//fill up nodess
+		//fill up nodes
 		BufferedReader reader = DataParser.openReader(inPath);
 		reader.readLine();//header
 		String line;
@@ -285,21 +318,24 @@ public class Pedigree {
 		while((line=reader.readLine())!=null){
 			
 			String[] fields = line.split("\t");
+			//boolean sampled = fields[4].equals("000000") ? true : false;
+			boolean sampled = samples.contains(fields[0])? true : false;
+			
+			if(!sampled) continue;
+			
 			
 			String childIdx = fields[0];
 			String fid = fields[0].split("_")[0];
 			String iid = fields[0].split("_")[1];
-			int sex = fields[4].equals("1") ? 0 : 1;
-			boolean sampled = fields[4].equals("000000") ? true : false;
-			
-			
+			int sex = fields[3].equals("1") ? 1 : 0;
+	
+
 			Node child = new Node(fid, iid, sex, sampled, idx);
 			nodes.get(0).add(child);
 			name2node.put(childIdx, child);
 			idx2node.put(idx, child);
-			
-			//increment
 			idx++;
+			
 
 		}
 		reader.close();
@@ -327,21 +363,37 @@ public class Pedigree {
 			Node dad = name2node.get(fields[1]);
 			Node mom = name2node.get(fields[2]);
 			
+			if(child==null) {
+				child = new Node("child", fields[0], Integer.parseInt(fields[3]), false, idx);
+				idx++;
+				name2node.put(fields[0], child);
+			}
 			
-			if(dad!=null){
-				child.addParent(dad);
-				dad.addChild(child);
+			if(dad==null) {
+				dad = new Node("dad", fields[1], 1, false, idx);
+				idx++;
+				name2node.put(fields[1], dad);
 			}
-			if(mom!=null){
-				child.addParent(mom);
-				mom.addChild(child);
+			child.addParent(dad);
+			dad.addChild(child);
+			
+			if(mom==null) {
+				mom = new Node("mom", fields[2], 0, false, idx);
+				idx++;
+				name2node.put(fields[2], mom);
 			}
+			
+			
+	
+			child.addParent(mom);
+			mom.addChild(child);
+			
 			
 
 		}
 		reader.close();
 			
-		
+		/*
 		//un-inbred: disconnect inbred connections
 		for(Node x : nodes.get(0)){
 			
@@ -374,6 +426,8 @@ public class Pedigree {
 			
 			
 		}
+		*/
+		
 		
 	
 		
@@ -383,7 +437,7 @@ public class Pedigree {
 			if(!x.sampled) continue;
 			
 			updateAdjMat(x);
-			
+		
 		}
 		
 		
@@ -391,12 +445,13 @@ public class Pedigree {
 		PrintWriter writer = DataParser.openWriter(truePath);
 
 		
-		//print relationships
+		//write true
+		String pairwise = "";
+		List<Node> anc = new ArrayList<Node>();
 		for(int i=0; i<relationships[0].length; i++){
 
 			Node node1 = idx2node.get(i);
 			if(node1.sampled==false) continue;
-			
 			
 			for(int j=i+1; j<relationships[0].length; j++){
 				
@@ -404,8 +459,13 @@ public class Pedigree {
 				if(node2.sampled==false) continue;
 				
 				Path rel = relationships[0][i][j];
+				
+				pairwise += String.format("%d%d%d", rel.getUp(),rel.getDown(),rel.getNumVisit());
+				
+				
+				
 				if(rel.getNumVisit()==-1){
-					//System.out.println("Bad");
+					System.out.println("Bad");
 					looped = true;
 				}
 				
@@ -416,11 +476,14 @@ public class Pedigree {
 				//write name1 name2 relationship
 				String name1 = String.format("%s_%s", node1.fid, node1.iid);
 				String name2 = String.format("%s_%s", node2.fid, node2.iid);
-				writer.write(String.format("%s\t%s\t%d\t%d\t%d\n", name1, name2, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				//writer.write(String.format("%s\t%s\t%d\t%d\t%d\n", name1, name2, rel.getUp(), rel.getDown(), rel.getNumVisit()));
+				
 				
 			}
 			
 		}
+		
+		writer.write(pairwise);
 
 		writer.close();
 		
@@ -443,11 +506,19 @@ public class Pedigree {
 	}
 	
 	public void setEffectivePop(int Ne){
-		this.effectivePop = Ne;
+		this.effectivePop[curr] = Ne;
 	}
 	
 	public void setPrior(double prior){
 		this.prior[curr] = prior;
+	}
+	
+	public void setHyperParameters(int N, double alpha, double beta) {
+		
+		this.effectivePop[curr] = N;
+		this.alpha[curr] = alpha;
+		this.beta[curr] = beta;
+		
 	}
 	
 	
@@ -470,8 +541,9 @@ public class Pedigree {
 	}
 	
 	public int getEffectivePop(){
-		return effectivePop;
+		return effectivePop[curr];
 	}
+	
 	
 
 	public Node getNode(int index){
@@ -976,6 +1048,89 @@ public class Pedigree {
 	
 	
 	
+	public void switchChildAncWithOppositeSex(Node desc, Node anc) {
+		
+		//get cluster
+		clearVisit();
+		List<Node> ped = desc.getConnectedSampledNodes(new ArrayList<Node>());
+
+
+		//subtract old terms
+		this.logLikelihood[curr] -= likelihoodLocalPedigree(ped);	
+		this.logLikelihood[curr] -= prior[curr];
+		
+		//switch places
+		if(anc.getDepth()==desc.getDepth()+1)
+			switchParentChild(anc, desc);
+		
+		else{
+			//switch nodes
+			//save descendant parents & children
+			List<Node> descParents = new ArrayList<Node>();
+			List<Node> descChildren = new ArrayList<Node>();
+			for(Node p : desc.getParents()){
+				descParents.add(p);
+				p.removeChild(desc);
+				p.addChild(anc);
+			}
+			for(Node p : desc.getChildren()){
+				descChildren.add(p);
+				p.removeParent(desc);
+				p.addParent(anc);
+			}
+			int descDepth = desc.getDepth();
+			
+			desc.getParents().clear();
+			desc.getChildren().clear();
+			
+			//save anc parents & children
+			List<Node> ancParents = new ArrayList<Node>();
+			List<Node> ancChildren = new ArrayList<Node>();
+			for(Node p : anc.getParents()){
+				ancParents.add(p);
+				p.removeChild(anc);
+				p.addChild(desc);
+			}
+			for(Node p : anc.getChildren()){
+				ancChildren.add(p);
+				p.removeParent(anc);
+				p.addParent(desc);
+			}
+			
+			anc.getParents().clear();
+			anc.getChildren().clear();
+			
+			//update
+			anc.setParents(descParents);
+			anc.setChildren(descChildren);
+			desc.setParents(ancParents);
+			desc.setChildren(ancChildren);
+			desc.setDepth(anc.getDepth());
+			anc.setDepth(descDepth);
+		}
+			
+
+		//switch sex
+		clearVisit();
+		switchSexHelper(desc);
+		clearVisit();
+		switchSexHelper(anc);
+	
+		//update adj matrix 
+		for(Node ind : ped){
+			updateAdjMat(ind);
+		}
+
+
+		//add new terms
+		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
+		updatePrior(true);
+		this.logLikelihood[curr] += prior[curr];
+		
+	}
+	
+	
+	
 	public void op2po(Node lowerNode, Node middleNode, Node upperNode){
 		
 		//get cluster
@@ -1094,7 +1249,8 @@ public class Pedigree {
 		if(parent.getNumVisit() > 0) return;
 		
 		//switch sex and mark visit
-		parent.setSex((parent.getSex()+1) % 2);
+		if(!parent.sampled) //TODO make this more robust
+			parent.setSex((parent.getSex()+1) % 2);
 		parent.setNumVisit(parent.getNumVisit()+1);
 		
 		//recurse on neighbor parents
@@ -2037,8 +2193,32 @@ public class Pedigree {
 	*/
 	
 	//gasbarra prior
-	public void updatePrior(boolean sampleNe){
-		prior[curr] = priorCalculator.computePrior(nodes.get(curr), nActiveNodes[curr]);
+	public void updatePrior(boolean changeHyperParams){
+		
+		//sample hyperparameters
+		if(changeHyperParams) {
+			// update hyper parameters (one at a time)
+			double u = rGen.nextDouble();
+			
+			if(u < 1/3d) {//change pop size
+				//effectivePop[curr] = rGen.nextInt((maxN - minN)/stepSize)*stepSize + minN;
+				effectivePop[curr] = (int) ( Math.log(1 - rGen.nextDouble()) / (1d/(-10 * numIndiv))) + 100;
+				//effectivePop[curr] = (int)((temp + 99)/100) * 100 + 100;
+
+			}
+			
+			else if(u < 2/3d) {//change dominant father
+				//alpha[curr] = rGen.nextInt(10)*1 + .1; //used for simulations
+				alpha[curr] = rGen.nextInt(10)*1 + .1; //used for frogs
+			}
+			
+			else {//change degree of monogamy
+				//beta[curr] = rGen.nextInt(10)*.2 + .01; //used for simulations
+				beta[curr] = rGen.nextInt(10)*.1 + .001; //used for simulations
+			}
+		}
+		
+		prior[curr] = priorCalculator.computePrior(this, nodes.get(curr), nActiveNodes[curr], effectivePop[curr], alpha[curr], beta[curr]);
 	}
 	
 	
