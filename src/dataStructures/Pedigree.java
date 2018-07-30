@@ -5,26 +5,17 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 //import org.apache.commons.math3.distribution.NormalDistribution;
 
-
-
-
-
-
-
-
-import java.util.Set;
-
 import utility.ArrayUtility;
 import utility.DataParser;
 import likelihood.PairwiseLikelihoodCoreStreamPed;
 import likelihood.Prior;
+import likelihood.PriorNoLoop;
 
 //This is the data structure that stores information about all of the individuals in the sample
 //Essentially the nodes themselves encode the pedigree graph, and this class contains
@@ -45,7 +36,7 @@ public class Pedigree {
 	private final Path[][][] relationships; 
 	private final List<ArrayList<Node>> nodes = new ArrayList<ArrayList<Node>>(2);
 	private int[] nActiveNodes = new int[2];
-	private double[] logLikelihood = new double[2];
+	private double[] logLikelihood = new double[2]; //includes prior (i.e. Pr(X|theta)*Pr(theta))
 	private double[] prior = new double[2];
 	public int curr;
 	private int copy;
@@ -53,32 +44,23 @@ public class Pedigree {
 
 	
 	//for prior for unrelatedness
-	private final double lambda;
-	private final double logLambda;
 	private final double[] logFact;
-	public final int[] nSingletons;
-	private final double poissonScale; //multiplier for poisson 
 	
 	
 	//NEW PRIOR
-	private int minN;
-	private int maxN;
 	private int[] nNodes;
 	private int[] nUnsampledDads;
 	private int[] nUnsampledMoms;
-	private int[] nSampledMoms;
-	private int[] nSampledDads;
 	private final double[] log;
-	private int totalUnits;
-	private int stepSize;
 	
 	
 	//gasbarra prior
+	private PriorNoLoop priorCalculatorNoLoop;
 	private Prior priorCalculator;
-	private double[] beta = new double[] {.01, .01};
-	private double[] alpha = new double[] {1,1};
-	private int[] effectivePop;
-	
+	private double[] beta;
+	private double[] alpha;
+	private int[] N;
+
 	
 	//for primus
 	public boolean looped = false;
@@ -120,41 +102,28 @@ public class Pedigree {
 	
 	
 	//TODO handle known relationships; effective pop size
-	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age, double poissonScale, int minN, int maxN, int stepSize, Prior priorCalculator) throws IOException{
+	public Pedigree(String fileName, PairwiseLikelihoodCoreStreamPed core, int maxDepth, int maxSampleDepth, Random rGen, int maxNumNodes, double lambda, int numIndiv, Map<String, Double> name2Age, 
+			int minN, int maxN, double alpha_0, double beta_0, Prior priorCalculator, PriorNoLoop priorCalculatorNoLoop) throws IOException{
 		
 		this.numIndiv = numIndiv;
 		this.maxDepth = maxDepth;
 		this.maxSampleDepth = maxSampleDepth;
-		this.lambda = lambda;
-		this.logLambda = Math.log(lambda);
 		this.core = core;
 		this.rGen = rGen;
 		this.curr = 0;
 		this.copy = 1;
-		this.nSingletons = new int[2];
 		this.logFact = new double[numIndiv+1];
-		nSingletons[curr] = numIndiv;
 		nNodes = new int[maxDepth+1];
 		nUnsampledDads = new int[maxDepth+1];
 		nUnsampledMoms = new int[maxDepth+1];
-		nSampledMoms = new int[maxDepth+1];
-		nSampledDads = new int[maxDepth+1];
 		log = new double[5000]; //TODO set this better
-		this.poissonScale = poissonScale;
-		this.minN = minN;
-		this.maxN = maxN;
-		this.effectivePop = new int[] {maxN, maxN};
-		this.stepSize = stepSize;
+		this.N = new int[] {maxN, 0};
+		this.beta = new double[] {beta_0, 0};
+		this.alpha = new double[] {alpha_0, 0};
 	
 		this.priorCalculator = priorCalculator;
-		
-		
-		
-		
-		
-		for(int i=0; i<=maxDepth; i++) totalUnits+=(i+1);
-		
-		
+		this.priorCalculatorNoLoop = priorCalculatorNoLoop;
+
 
 		//log factorials
 		logFact[0] = 0;
@@ -233,37 +202,9 @@ public class Pedigree {
 		//initialize pairwise & marginal likelihoods
 		core.setMarginals(fileName+".marginal");
 		core.setLikelihoods(fileName+".pairwise");
-		
-		
-		/*
-		//make everyone FS
-		Node mom = makeNewNode(1, 0);
-		Node dad = makeNewNode(1, 1);
-		for(int i=0; i<numIndiv; i++) {
-			
-			Node child = nodes.get(curr).get(i);
-			
-			child.addParent(mom);
-			child.addParent(dad);
-			mom.addChild(child);
-			dad.addChild(child);
-			
-		}
-		
-		//update matrix
-		List<Node> ped = new ArrayList<Node>();
-		for(int i=0; i<numIndiv; i++) {
-			updateAdjMat(nodes.get(curr).get(i));
-			ped.add(nodes.get(curr).get(i));
-		}
-		
-		
 
-		
-		logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		*/
-		
-		
+			
+
 		//compute current likelihood
 		for(int i=0; i<numIndiv; i++){
 			logLikelihood[curr] += core.getMarginal(nodes.get(0).get(i));
@@ -273,10 +214,8 @@ public class Pedigree {
 		
 		
 		//prior
-		//updateNumSingletons();
-		updatePrior(false);
+		updatePrior(true);
 		logLikelihood[curr] += prior[curr];
-		
 	
 		
 	}
@@ -285,17 +224,17 @@ public class Pedigree {
 	
 	
 	//this is for simulation only
-	public Pedigree(String inPath, String truePath, List<String> samples) throws IOException{
+	public Pedigree(String inPath, String truePath, List<String> samples, Prior computer) throws IOException{
 		
-		this.lambda = 0;
-		this.logLambda = 0;
-		this.nSingletons = null;
-		logFact = null;
-		log = new double[500]; //TODO set this better
-		poissonScale = 0;
-		effectivePop = null;
-
-	 
+		
+		this.curr = 0;
+		this.copy = 1;
+		this.logFact = null;
+		log = new double[5000]; //TODO set this better
+		this.N = new int[] {0, 0};
+		this.beta = new double[] {0, 0};
+		this.alpha = new double[] {0, 0};
+		
 		
 		this.numIndiv = 20;
 		this.maxDepth = 5;
@@ -393,44 +332,7 @@ public class Pedigree {
 		}
 		reader.close();
 			
-		/*
-		//un-inbred: disconnect inbred connections
-		for(Node x : nodes.get(0)){
-			
-			if(x.getParents().size()!=2) continue;
-			
-			
-			Node p1 = x.getParents().get(0);
-			Node p2 = x.getParents().get(1);
-			
-			List<Node> gp1 = new ArrayList<Node>();
-			gp1.addAll(p1.getParents());
-			List<Node> gp2 = new ArrayList<Node>();
-			gp2.addAll(p2.getParents());
-			
-			for(Node g1 : gp1){
-				
-				for(Node g2 : gp2){
-					
-					//disconnect inbred
-					if(g1.getIndex()==g2.getIndex()){
-						
-						disconnect(g1, p1);
-						disconnect(g1, p2);
-						
-					}
-					
-				}
-				
-			}
-			
-			
-		}
-		*/
-		
-		
-	
-		
+
 		//record paths
 		for(Node x : nodes.get(0)){
 			
@@ -440,7 +342,17 @@ public class Pedigree {
 		
 		}
 		
-		
+		/*
+		//computing prior for true pedigree
+		setAlpha(.1);
+		setBeta(.01);
+		for(int N = 500; N<3001; N += 100) {
+			setNe(N);
+			double prior = computer.computePrior(this);
+			System.out.print(String.format("%.2f, ", prior));
+		}
+		*/
+
 		//write to path
 		PrintWriter writer = DataParser.openWriter(truePath);
 
@@ -486,17 +398,16 @@ public class Pedigree {
 		writer.write(pairwise);
 
 		writer.close();
-		
 
 		
 	}
 	
 	
+
 	
 	
 	////// SETTERS ////////
 	public void setLogLikelihood(double lkhd){
-		//this.logLikelihood = lkhd;
 		logLikelihood[curr] = lkhd;
 	}
 	
@@ -505,20 +416,18 @@ public class Pedigree {
 		this.nActiveNodes[curr] = n;
 	}
 	
-	public void setEffectivePop(int Ne){
-		this.effectivePop[curr] = Ne;
-	}
-	
 	public void setPrior(double prior){
 		this.prior[curr] = prior;
 	}
 	
-	public void setHyperParameters(int N, double alpha, double beta) {
-		
-		this.effectivePop[curr] = N;
-		this.alpha[curr] = alpha;
-		this.beta[curr] = beta;
-		
+	public void setAlpha(double new_alpha) {
+		this.alpha[curr] = new_alpha;
+	}
+	public void setBeta(double new_beta) {
+		this.beta[curr] = new_beta;
+	}
+	public void setN(int new_N) {
+		this.N[curr] = new_N;
 	}
 	
 	
@@ -531,6 +440,14 @@ public class Pedigree {
 		return prior[curr];
 	}
 	
+	public double getAlpha() {
+		return alpha[curr];
+	}
+	
+	public double getBeta() {
+		return beta[curr];
+	}
+	
 	
 	public Path[][] getRelationships(){
 		return relationships[curr];
@@ -540,8 +457,8 @@ public class Pedigree {
 		return nActiveNodes[curr];
 	}
 	
-	public int getEffectivePop(){
-		return effectivePop[curr];
+	public int getN(){
+		return N[curr];
 	}
 	
 	
@@ -618,6 +535,31 @@ public class Pedigree {
 		
 		return currNode;
 
+		
+	}
+	
+	
+	// convert (N, alpha, beta) into Ne, given by gasbarra paper
+	public int getNe() {
+		
+		int Nf = getN() / 2;
+		int Nm = Nf;
+		double alpha = getAlpha();
+		double beta = getBeta();
+		
+		
+		//compute Ne_father
+		double Ne_f = (Nf * alpha + 1) / (alpha + 1);
+		
+		//Ne_mother
+		double Ne_m = (beta + 1) / (Nm*beta + 1) * (alpha + 1) / (Nf*alpha + 1) + (Nf-1)*alpha / (Nm*(Nf*alpha + 1));
+		Ne_m = 1/Ne_m;
+		
+		double Ne = 4*Ne_f*Ne_m/(Ne_f+Ne_m);
+		
+		
+		
+		return((int) Ne);
 		
 	}
 	
@@ -817,12 +759,10 @@ public class Pedigree {
 			this.logLikelihood[curr] += likelihoodLocalPedigree(parentPed);
 		}
 		
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		
+
 		ijPrime[0] = clean(child);
 		ijPrime[1] = clean(parent);
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 	
@@ -880,7 +820,7 @@ public class Pedigree {
 		//this.logLikelihood[curr] += getSingletonProb();
 		ijPrime[0] = clean(parent);
 	    ijPrime[1] = clean(splitParent);
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		       
 		
@@ -955,9 +895,8 @@ public class Pedigree {
 		
 		deleteNode(donor);
 		
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -965,6 +904,7 @@ public class Pedigree {
 
 	
 	//at least one of them has to be sampled
+	// TODO do we need prior? 
 	public void swap(Node child, Node parent){//works
 		
 		//get cluster
@@ -1124,7 +1064,7 @@ public class Pedigree {
 
 		//add new terms
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1200,7 +1140,7 @@ public class Pedigree {
 
 		//add new terms
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 	
 		
@@ -1222,7 +1162,7 @@ public class Pedigree {
 			i.setDepth(i.getDepth() + offset);
 		}
 		
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 	
 	}
@@ -1237,7 +1177,7 @@ public class Pedigree {
 		//shift cluster
 		switchSexHelper(parent);
 		
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1312,10 +1252,7 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1390,9 +1327,7 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1429,9 +1364,7 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1474,9 +1407,7 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1534,9 +1465,7 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1601,9 +1530,7 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1661,9 +1588,7 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1729,9 +1654,7 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 	}
@@ -1793,7 +1716,7 @@ public class Pedigree {
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
 		//updateNumSingletons();
 		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1850,9 +1773,7 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -1933,7 +1854,7 @@ public class Pedigree {
 
 		//add new terms
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 	
 	
@@ -1994,9 +1915,7 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
@@ -2048,26 +1967,14 @@ public class Pedigree {
 		
 		//add new likelihood
 		this.logLikelihood[curr] += likelihoodLocalPedigree(ped);
-		//updateNumSingletons();
-		//this.logLikelihood[curr] += getSingletonProb();
-		updatePrior(true);
+		updatePrior(false);
 		this.logLikelihood[curr] += prior[curr];
 		
 		
 	}
 	
 	
-	
-	public void noChange(){
-			
-		this.logLikelihood[curr] -= prior[curr];
-		updatePrior(true);
-		this.logLikelihood[curr] += prior[curr];
-		
-		
-	}
-	
-	
+
 	
 	////////////////////////   PRIOR   ////////////////////////
 	/*
@@ -2192,36 +2099,67 @@ public class Pedigree {
 	}
 	*/
 	
-	//gasbarra prior
-	public void updatePrior(boolean changeHyperParams){
+	//compute gasbarra prior according to current values
+	public void updatePrior(boolean change_theta){
 		
-		//sample hyperparameters
-		if(changeHyperParams) {
-			// update hyper parameters (one at a time)
-			double u = rGen.nextDouble();
-			
-			if(u < 1/3d) {//change pop size
-				//effectivePop[curr] = rGen.nextInt((maxN - minN)/stepSize)*stepSize + minN;
-				effectivePop[curr] = (int) ( Math.log(1 - rGen.nextDouble()) / (1d/(-10 * numIndiv))) + 100;
-				//effectivePop[curr] = (int)((temp + 99)/100) * 100 + 100;
-
-			}
-			
-			else if(u < 2/3d) {//change dominant father
-				//alpha[curr] = rGen.nextInt(10)*1 + .1; //used for simulations
-				alpha[curr] = rGen.nextInt(10)*1 + .1; //used for frogs
-			}
-			
-			else {//change degree of monogamy
-				//beta[curr] = rGen.nextInt(10)*.2 + .01; //used for simulations
-				beta[curr] = rGen.nextInt(10)*.1 + .001; //used for simulations
-			}
-		}
+		// when changing theta, compute prior the long way
+		if(change_theta)
+			prior[curr] = priorCalculatorNoLoop.computePrior(this);
+		// for changing pedigree config, do it the simple way
+		else
+			prior[curr] = priorCalculator.computePrior(this);
 		
-		prior[curr] = priorCalculator.computePrior(this, nodes.get(curr), nActiveNodes[curr], effectivePop[curr], alpha[curr], beta[curr]);
 	}
 	
 	
+	public void changeAlpha(double new_alpha) {
+		
+		//subtract current prior
+		this.logLikelihood[curr] -= prior[curr];
+		
+		//set new alpha
+		alpha[curr] = new_alpha;
+		
+		//update prior value
+		updatePrior(true);
+		
+		//add in new prior
+		this.logLikelihood[curr] += prior[curr];
+		
+	}
+	
+	public void changeBeta(double new_beta) {
+		
+		
+		//subtract current prior
+		this.logLikelihood[curr] -= prior[curr];
+		
+		//set new alpha
+		beta[curr] = new_beta;
+		
+		//update prior value
+		updatePrior(true);
+		
+		//add in new prior
+		this.logLikelihood[curr] += prior[curr];
+		
+	}
+	
+	public void changeN(int new_Ne) {
+		
+		//subtract current prior
+		this.logLikelihood[curr] -= prior[curr];
+		
+		//set new alpha
+		N[curr] = new_Ne;
+		
+		//update prior value
+		updatePrior(true);
+		
+		//add in new prior
+		this.logLikelihood[curr] += prior[curr];
+		
+	}
 
 	
 	
@@ -2410,14 +2348,6 @@ public class Pedigree {
 	}
 	
 	
-	private double getSingletonProb(){
-		
-		return poissonScale * (nSingletons[curr]*logLambda - lambda - logFact[this.nSingletons[curr]]);
-		
-	}
-	
-	
-	
 	
 
 	public double likelihoodAllPedigrees(){
@@ -2508,7 +2438,7 @@ public class Pedigree {
 		}
 		
 
-		updatePrior(false);
+		updatePrior(true);
 		return toReturn + prior[curr];
 		
 	}
@@ -2580,8 +2510,10 @@ public class Pedigree {
 		
 		nActiveNodes[copy] = nActiveNodes[curr];
 		logLikelihood[copy] = logLikelihood[curr];
-		nSingletons[copy] = nSingletons[curr];
 		prior[copy] = prior[curr];
+		alpha[copy] = alpha[curr];
+		beta[copy] = beta[curr];
+		N[copy] = N[curr];
 		
 		
 	}
@@ -2626,30 +2558,6 @@ public class Pedigree {
 		}
 		
 	}
-	
-	
-	public void updateNumSingletons(){
-		
-		
-		this.clearVisit();
-		
-		int numCluster = 0;
-		
-		for(int i=0; i<numIndiv; i++){
-			
-			Node ind = nodes.get(curr).get(i);
-			
-			if(ind.getNumVisit()>0) continue;
-			
-			numCluster++;
-			ind.getConnectedNodes(new ArrayList<Node>());
-			
-		}
-		
-		nSingletons[curr] = numCluster;
-		
-	}
-	
 	
 
 	

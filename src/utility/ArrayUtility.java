@@ -78,6 +78,25 @@ public class ArrayUtility {
 	}
 
 	
+	public static int maxIndex(int[] counts) {
+		
+		int best_idx = 0;
+		int best = counts[0];
+		
+		for(int i=1; i<counts.length; i++) {
+			
+			if(counts[i] > best) {
+				best_idx = i;
+				best = counts[i];
+			}
+		}
+		
+		return best_idx;
+		
+		
+	}
+	
+	
 	
 	/*
 	public static List<PedigreeNode> deepCloneList (List<PedigreeNode> toBeCloned){

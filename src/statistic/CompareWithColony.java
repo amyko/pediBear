@@ -132,6 +132,9 @@ public class CompareWithColony {
 				int max = -1;
 				int maxIdx = -1;
 				for(int k=0; k<5; k++) {
+					//TODO skip unrelated
+					//if(k == 2) continue;
+					
 					if(counts[i][j][k] > max) {
 						max = counts[i][j][k];
 						maxIdx = k;
@@ -139,10 +142,12 @@ public class CompareWithColony {
 				}
 				
 				
-				//if count / UR_count < c, assign as UR
-				if(maxIdx !=2 && counts[i][j][2] > 0 && (double) max / counts[i][j][2] < thresh) {
+				/*
+				//if UR_count * thresh > sum of all other counts, assign as UR
+				if(counts[i][j][2]*thresh > counts[i][j][0] + counts[i][j][1] + counts[i][j][3] + counts[i][j][4]) {
 					maxIdx = 2;
 				}
+				*/
 				
 				
 				
@@ -232,7 +237,7 @@ public class CompareWithColony {
 		}
 		
 		
-		
+		/*
 		//normalize acc
 		for(int i=0; i<acc.length; i++) {
 			
@@ -251,6 +256,7 @@ public class CompareWithColony {
 			}
 			
 		}
+		*/
 		
 		
 		return acc;

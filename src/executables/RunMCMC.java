@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import likelihood.LDStreamPedMissing;
 import likelihood.PairwiseLikelihoodCoreStreamPed;
 import likelihood.PreProcess;
 import likelihood.Prior;
+import likelihood.PriorNoLoop;
 import mcmc.MCMCMC;
 import mcmcMoves.Contract;
 import mcmcMoves.Cut;
@@ -34,7 +36,6 @@ import mcmcMoves.HStoPO;
 import mcmcMoves.Link;
 import mcmcMoves.Move;
 import mcmcMoves.NephewtoUncle;
-import mcmcMoves.NoChange;
 import mcmcMoves.OPtoPO;
 import mcmcMoves.POtoFS;
 import mcmcMoves.POtoHS;
@@ -50,14 +51,20 @@ import mcmcMoves.SwapUp;
 import mcmcMoves.SwitchChildAncWithOppositeSex;
 import mcmcMoves.SwitchSex;
 import mcmcMoves.UncletoNephew;
+import mcmcMoves.UpdateAlpha;
+import mcmcMoves.UpdateBeta;
+import mcmcMoves.UpdateNe;
+import simulator.SimulatePedigreeUnderPrior;
 import statistic.Accuracy;
 import statistic.CompareWithColony;
+import utility.ArrayUtility;
 import utility.DataParser;
+import utility.MapUtility;
 
 public class RunMCMC{
 	
 	//MCMC parameter
-	public static String fileName = "/Users/amy/eclipse-workspace/mcmc/simulations/sim_n20_3gen/";
+	public static String fileName = "/Users/amy/eclipse-workspace/mcmc/simulations2/";
 	public static String refPopFileName = "/Users/amy/eclipse-workspace/mcmc/simulations/";
 	public static String ageFileName = "";
 	public static double maf = 0.01;
@@ -77,37 +84,31 @@ public class RunMCMC{
 	//public static int runLength = 1;
 	public static int numThreads = 1;
 	public static double credibleInterval = .95;
-	public static double beta = 0;
 	
 	
 	//MCMC parameters
-	public static int nChain = 3;
+	public static int nChain = 1;
 	public static int nBranch = 1;
-	public static int burnIn = 500000;
-	public static int runLength = 1000000;
+	public static int burnIn = 1000000;
+	public static int runLength = 2000000;
 	public static int sampleRate = 50;
 	public static double deltaT = .5;
 	public static int swapInterval = 1;
 	public static int nSwaps = 1;
 	
 	//misc
-	public static int maxNumNodes = 200;
+	public static int maxNumNodes = 1000;
 	public static Map<String, Double> name2age = null;
 	public static Random rGen = new Random(102574);
-	
-	//prior: the minum should be at least allow everyone to be unrelated
-	//public static int minN = numIndiv * (int) Math.pow(2, maxDepth);
-	public static int minN = 200;
-	public static int maxN = 1000;
-	public static int stepSize = 100;
-
-	
-	
+	public static int minN = 5;
+	public static int maxN = 3000;
+	public static int stepSize = 50;
 	//relationships for likelihood computation
 	private static List<Relationship> relationships = new ArrayList<Relationship>();
 
 
 	public static void computeLikelihoods() throws IOException{
+	
 		
 		//init relationships
 		initRelationships();
@@ -255,7 +256,7 @@ public class RunMCMC{
 	}
 	
 
-	public static MCMCMC runThreads(String myFile, String outfile) throws IOException{
+	public static MCMCMC runThreads(String myFile, String outfile, double alpha_sd, double alpha_min, double alpha_max, double beta_sd, double beta_min, double beta_max) throws IOException{
 		
 		Random rGen = new Random(1025742);
 		
@@ -283,10 +284,12 @@ public class RunMCMC{
 		
 		*/
 		
-		Move[] moves = new Move[]{new Link("link", .3), new Cut("cut", .2), 
+
+		//single generation inference
+		Move[] moves = new Move[]{new Link("link", .2), new Cut("cut", .2), 
 				new Split("split", .1),  new SwitchSex("switchSex", .1),  
 				new FStoSelf("fs2self", .1), new SelftoFS("self2fs", .1),
-				new NoChange("noChange", .1)};
+				new UpdateAlpha("updateAlpha", .05, alpha_sd, alpha_min, alpha_max), new UpdateBeta("updateBeta", .05, beta_sd, beta_min, beta_max), new UpdateNe("updateNe", .1, minN, maxN, stepSize)};
 		
 		
 		double prob = 0d;
@@ -296,8 +299,10 @@ public class RunMCMC{
 		System.out.println(prob);
 		
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
-		Prior priorCalculator = new Prior(rGen, maxDepth, minN, maxN, stepSize);
-
+		
+		// TODO testing prior no loop
+		PriorNoLoop priorCalculatorNoLoop = new PriorNoLoop(rGen, maxDepth);
+		Prior priorCalculator = new Prior(rGen, maxDepth);
 		
 
 		
@@ -327,7 +332,8 @@ public class RunMCMC{
 		if(nChain>1){
 		
 			int currIdx = 0;
-			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize, priorCalculator);
+			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, 
+					minN, maxN, (alpha_min+alpha_max)/2, (beta_min+beta_max)/2, priorCalculator, priorCalculatorNoLoop);
 			Chain superHeatedChain = new Chain(nChain-1, ped);
 			superHeatedChain.setHeat(deltaT);
 			chains.add(superHeatedChain);
@@ -338,7 +344,8 @@ public class RunMCMC{
 			
 				for(int chain=nChain-2; chain >= 0; chain--){
 					
-					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize, priorCalculator);
+					ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, 
+							minN, maxN, (alpha_min+alpha_max)/2, (beta_min+beta_max)/2, priorCalculator, priorCalculatorNoLoop);
 					Chain myChain = new Chain(chain, ped);
 					
 					//temp
@@ -388,7 +395,8 @@ public class RunMCMC{
 		}
 		
 		else{
-			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, beta, minN, maxN, stepSize, priorCalculator);
+			Pedigree ped = new Pedigree(myFile, core, maxDepth, sampleDepth, rGen, maxNumNodes, poissonMean, numIndiv, name2age, 
+					minN, maxN, (alpha_min+alpha_max)/2, (beta_min+beta_max)/2, priorCalculator, priorCalculatorNoLoop);
 			Chain myChain = new Chain(0, ped);
 			
 			//temp
@@ -972,7 +980,7 @@ public class RunMCMC{
 	public static void main(String[] args) throws IOException{
 	
 	
-
+		/*
 		/////// for frog data ////////
 		
 		//run mcmc
@@ -997,39 +1005,51 @@ public class RunMCMC{
 		
 		// assign relationship
 		assign(outFile + ".pairAssignment", outFile + ".pairCounts", 1);
-
+		 */
 		
 		
-		/*
+		
 		//////// FOR SIMULATIONS /////////
 		//file paths
-		String outPath = "/Users/amy/eclipse-workspace/mcmc/simulations/";
-		PrintWriter writer = DataParser.openWriter(outPath+"test.acc");
-		writer.write("TEST\tinCI\tinCI2\tnCIped\n");
-		//PrintWriter priorWriter = DataParser.openWriter(outPath+"posterior.prior");
-		//PrintWriter pedWriter = DataParser.openWriter(outPath+"posterior.pedigree");
+		String fileName = "/Users/amy/eclipse-workspace/mcmc/simulations2/";
 		String sim = "sample";
 		
 		//get truePed
 		//Map<Path,double[]> path2omega = Accuracy.getPathToOmega(outPath + "pathToOmega.txt");
 		
 		double[][] totalAcc = new double[5][5];
-		int T = 50;
-		double thresh = 4; // threshold for calling a relative
+		int T = 10;
+		double thresh = 1; // threshold for calling a relative
+		int[] pops = new int[T];
+		double alpha_sd = .005; //.005
+		double alpha_min = .001; //.001
+		double alpha_max = 2; //2
+		double beta_sd = .005; //.005
+		double beta_min = .001; //.001
+		double beta_max = 1; //1
 		
+		/*
+		//TODO testing prior for true pedigree
+		List<String> samples = new ArrayList<String>();
+		for(int i=0; i<200; i++) {
+			samples.add(String.format("0_%d", i));
+		}
+		new Pedigree(outPath+"gasbarra.fam", outPath+"test", samples, new Prior(rGen, maxDepth));
+		*/
+
 		//run
 		for(int t=0; t<T; t++){
 			
 			System.out.println(t);
 			
-			String outFile = String.format("%s%s", fileName, sim);
-			String myFile = String.format("%s.%d", outFile, t);
-			String truePed = getTruePed(String.format("%ssim_n20/%s.%d.true", outPath, sim, t));
+			String outFile = String.format("%s%s.%d", fileName, sim, t);
+			String myFile = String.format("%s%s.%d", fileName, sim, t);
+			String truePed = getTruePed(String.format("%s%s.%d.true", fileName, sim, t));
 			
-			MCMCMC mcmcmc = runThreads(myFile, outFile);
+			MCMCMC mcmcmc = runThreads(myFile, outFile, alpha_sd, alpha_min, alpha_max, beta_sd, beta_min, beta_max);
 		
-			
-			double[][] acc = CompareWithColony.accuracyMatrix(outPath + "sample.0.true", fileName + "sample.count", numIndiv, thresh);
+			//accuracy matrix
+			double[][] acc = CompareWithColony.accuracyMatrix(String.format("%ssample.%d.true", fileName, t), String.format("%ssample.%d.count", fileName, t), numIndiv, thresh);
 			
 			for(int i=0; i<acc.length; i++) {
 				for(int j=0; j<acc[0].length; j++) {
@@ -1041,8 +1061,11 @@ public class RunMCMC{
 			}
 			
 			
+			//best estiamte of Ne
+			pops[t] = MapUtility.maxValue(mcmcmc.Ne_count);
 			
-			writeAcc(writer, truePed, outFile+".count", t);
+			
+			//writeAcc(writer, truePed, outFile+".count", t);
 			//writeMapFam(outFile);
 			
 			//testing relative occupancy without likelihood
@@ -1053,25 +1076,37 @@ public class RunMCMC{
 			
 		}
 
-		writer.close();
+		//writer.close();
 		//priorWriter.close();
 		
+		
+		//print accuracy matrix
 		for(int i=0; i<totalAcc.length; i++) {
+			
+			double rowSum = 0d;
 			
 			for(int j=0; j<totalAcc[0].length; j++) {
 				
-
+				rowSum += totalAcc[i][j];
 				
-				System.out.print(String.format("%.2f ", totalAcc[i][j]/T));
+			}
+			
+			for(int j=0; j<totalAcc[0].length; j++) {
+				
+				System.out.print(String.format("%d ", (int) totalAcc[i][j]));
 				
 			}
 			System.out.println();
 			
 		}
 		
+		//print pops
+		for(int x : pops)
+			System.out.print(String.format("%d, ", x));
+		System.out.println("\n");
 		
 		System.out.println("DONE");
-		*/
+		
 		
 		
 	}

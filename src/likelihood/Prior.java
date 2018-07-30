@@ -2,7 +2,6 @@ package likelihood;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -16,24 +15,18 @@ public class Prior {
 	
 	
 	//gasbarra prior
-	private double alpha = 0;
-	private double beta = 0;
 	private int[] F;
 	private int[] M;
 	private int[] Fs;
 	private int[] Ms;
-	private Map<Integer, Integer> Cf;
-	private Map<Integer, HashMap<Integer, Integer>> Cfm;
+	private Map<Integer, Integer> Cf; // number of children father f has so far
+	private Map<Integer, HashMap<Integer, Integer>> Cfm; // number of children couple (f,m) has so far
 	private int[] nFSampled;
 	private int[] nMSampled;
 	private int[] kSoFar;
 	Set<Integer> oldF = new HashSet<Integer>();
 	Set<Integer> oldM = new HashSet<Integer>();
 	
-	private Random rGen;
-	private int minN;
-	private int maxN;
-	private int stepSize;
 	private int maxDepth;
 	
 	//ghost nodes
@@ -43,8 +36,8 @@ public class Prior {
 	double log2 = Math.log(2);
 
 
-	//TODO when does this return NA? Implement alpha = inf, beta = infi
-	public Prior(Random rGen, int maxDepth, int minN, int maxN, int stepSize) {
+	//TODO when does this return NA? Implement alpha = inf, beta = inf
+	public Prior(Random rGen, int maxDepth) {
 				
 		//prior 
 		F = new int[maxDepth+1];
@@ -56,29 +49,29 @@ public class Prior {
 		nFSampled = new int[maxDepth+1];
 		nMSampled = new int[maxDepth+1];
 		kSoFar = new int[maxDepth+1];
-		
-		this.rGen = rGen;
-		this.minN = minN;
-		this.maxN = maxN;
-		this.stepSize = stepSize;
 		this.maxDepth = maxDepth;
-		
+	
 		
 	}
 	
 	
+
 	
 	
-	public double computePrior(Pedigree currPedigree, List<Node> nodes, int nActiveNodes, int N, double alpha, double beta) {
+	
+	
+	public double computePrior(Pedigree currPedigree) {
 		
 
+		int N = currPedigree.getN();
+		double alpha = currPedigree.getAlpha();
+		double beta = currPedigree.getBeta();
+		int nActiveNodes = currPedigree.getNActiveNodes();
+		
+		
 		int Nf = N/2;
 		int Nm = Nf;
 
-		
-		// set hyper parameters
-		currPedigree.setHyperParameters(N, alpha, beta);
-		
 
 		//clear
 		ArrayUtility.clear(F);
@@ -89,20 +82,20 @@ public class Prior {
 		Cfm.clear();
 		ArrayUtility.clear(nFSampled);
 		ArrayUtility.clear(nMSampled);
-		countSampledNodes(nodes, nFSampled, nMSampled);
+		countSampledNodes(currPedigree, nFSampled, nMSampled);
 		ArrayUtility.clear(kSoFar);
 		oldF.clear();
 		oldM.clear();
 		
-		
+
 		double totalProb = 0;
 		
 		//for every node
 		for(int i=0; i<nActiveNodes; i++) {
 			
-			Node child = nodes.get(i);
+			Node child = currPedigree.getNode(i);
 			
-			double childProb = getProbForChild(child, N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
+			double childProb = getProbForChild(child, N, Nf, Nm, alpha, beta);
 			
 			if(Double.isInfinite(childProb) || Double.isNaN(childProb)) {
 				return Double.NEGATIVE_INFINITY;
@@ -115,16 +108,15 @@ public class Prior {
 		
 
 		//TODO sample depth?
-		return totalProb;
 		//return 0;
-		
+		return totalProb;
 		
 		
 	}
 	
 	
-	
-	private double getProbForChild(Node child, int N, int Nf, int Nm,  int[] F, int[] M, int[] Fs, int[] Ms, int[] kSoFar, int[] nFSampled, int[] nMSampled, Map<Integer, Integer> Cf, Map<Integer, HashMap<Integer, Integer>> Cfm, Set<Integer> oldF, Set<Integer> oldM, double alpha, double beta) {
+	// returns log probability of this node choosing its parents
+	private double getProbForChild(Node child, int N, int Nf, int Nm, double alpha, double beta) {	
 		
 		if(child.getDepth()>=maxDepth) return 0;
 		
@@ -245,11 +237,11 @@ public class Prior {
 		//recurse on ghost parents
 		if(f==-1) {
 			ghostNode.setDepth(child.getDepth()+1);
-			toReturn += getProbForChild(ghostNode, N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
+			toReturn += getProbForChild(ghostNode, N, Nf, Nm, alpha, beta);
 		}
 		if(m==-1) {
 			ghostNode.setDepth(child.getDepth()+1);
-			toReturn += getProbForChild(ghostNode, N, Nf, Nm, F, M, Fs, Ms, kSoFar, nFSampled, nMSampled, Cf, Cfm, oldF, oldM, alpha, beta);
+			toReturn += getProbForChild(ghostNode, N, Nf, Nm, alpha, beta);
 		}
 		
 		return toReturn;
@@ -258,10 +250,12 @@ public class Prior {
 	}
 	
 	
-	private static void countSampledNodes(List<Node> nodes, int[] nFSampled, int[] nMSampled) {
+	private static void countSampledNodes(Pedigree currPedigree, int[] nFSampled, int[] nMSampled) {
 		
 
-		for(Node x : nodes) {
+		for(int i=0; i<currPedigree.getNActiveNodes(); i++) {
+			
+			Node x = currPedigree.getNode(i);
 			
 			//count sampled nodes
 			if(x.sampled) {
@@ -298,6 +292,73 @@ public class Prior {
 		return toReturn;
 	}
 	
+	
+	
+	public static void main(String[] args) {
+		
+		
+		// build pedigree
+		Node c1 = new Node("fam","c1", 1, true, -1, 0, 0);
+		Node c2 = new Node("fam", "c2", 0, true, -1, 0, 1);
+		Node c3 = new Node("fam","c3", 1, true, -1, 0, 2);
+		Node c4 = new Node("fam", "c4", 0, true, -1, 0, 3);
+		Node c5 = new Node("fam","c5", 1, true, -1, 0, 4);
+		Node c6 = new Node("fam", "c6", 0, true, -1, 0, 5);
+		Node p1 = new Node("fam", "p1", 1, false, -1, 1, 6);
+		Node p2 = new Node("fam", "p2", 0, false, -1, 1, 7);
+		Node p3 = new Node("fam", "p3", 1, false, -1, 1, 8);
+
+		
+		p1.addChild(c1);
+		p1.addChild(c2);
+		c1.addParent(p1);
+		c2.addParent(p1);
+		
+		p2.addChild(c3);
+		p2.addChild(c4);
+		c3.addParent(p2);
+		c4.addParent(p2);
+		
+		p3.addChild(c5);
+		p3.addChild(c6);
+		c5.addParent(p3);
+		c6.addParent(p3);
+		
+		 
+		
+		// mating parameters
+		double alpha = .1;
+		double beta = .01;
+		int maxgen = 2;
+		
+		Random rgen = new Random();
+		
+		
+		for(int N = 200; N < 201; N+=50) {
+			
+			int Nf = N/2;
+			int Nm = Nf;
+			
+			Prior prior = new Prior(rgen, maxgen);
+			double m1 = prior.getProbForChild(c1, N, Nf, Nm, alpha, beta);
+			double m2 = prior.getProbForChild(c2, N, Nf, Nm, alpha, beta);
+			double m3 = prior.getProbForChild(c3, N, Nf, Nm, alpha, beta);
+			double m4 = prior.getProbForChild(c4, N, Nf, Nm, alpha, beta);
+			double m5 = prior.getProbForChild(c5, N, Nf, Nm, alpha, beta);
+			double m6 = prior.getProbForChild(c6, N, Nf, Nm, alpha, beta);
+			double m7 = prior.getProbForChild(p1, N, Nf, Nm, alpha, beta);
+			double m8 = prior.getProbForChild(p2, N, Nf, Nm, alpha, beta);
+			double m9 = prior.getProbForChild(p3, N, Nf, Nm, alpha, beta);
+			
+			double prob = m1 + m2 + m3 + m4 + m5 + m6 + m7 + m8 + m9;
+			
+			System.out.print(String.format("%f, ", prob));
+		}
+
+		
+		
+		
+	}
 	
 
 }

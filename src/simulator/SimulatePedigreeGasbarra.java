@@ -16,7 +16,7 @@ import utility.DataParser;
 public class SimulatePedigreeGasbarra {
 	
 	//simulate pedigree for given samples
-	public static int[][] simulatePedigreeForSamples(int N, int Nf, int Nm, int nGen, double alpha, double beta, Random random, String outPath, boolean[][] sampled) throws IOException {
+	public static int[][] simulatePedigreeForSamples(int N, int Nf, int Nm, int nGen, double alpha, double beta, Random random, String outPath, boolean[][] sampled, boolean allowCycles) throws IOException {
 		
 		//make graph
 		List<List<Node>> nodes = new ArrayList<List<Node>>();
@@ -29,7 +29,7 @@ public class SimulatePedigreeGasbarra {
 				
 				int sex = i<Nf ? 1 : 0;
 				
-				nodes.get(gen).add(new Node(""+1, ""+i, sex, false, index));	
+				nodes.get(gen).add(new Node(""+gen, ""+i, sex, false, index));	
 				index++;
 			}
 		
@@ -50,6 +50,7 @@ public class SimulatePedigreeGasbarra {
 			Set<Integer> oldF = new HashSet<Integer>();
 			Set<Integer> oldM = new HashSet<Integer>();
 			int k = 0; //number of children assigned so far
+
 			
 			//for each sample in this generation
 			for(int ind=0; ind<N; ind++) {
@@ -65,7 +66,7 @@ public class SimulatePedigreeGasbarra {
 				double cdf = 0;
 				int f = -1;
 				
-				for(f=0; f<Nf; f++) {
+				for(f=0; f<Nf; f++) {//each candidate father
 						
 					if(oldF.contains(f))  //old father
 						cdf += (alpha + Cf[f]) / (Nf*alpha + k);
@@ -76,12 +77,11 @@ public class SimulatePedigreeGasbarra {
 					//test for cycles
 					Node father = nodes.get(gen+1).get(f);
 					boolean cyclic = cyclic(nodes, father, child);
-					
-					if(cyclic) System.out.println("Father cyclic");
-					
-					
+				
+					//if(cyclic) System.out.println("Father cyclic");
+		
 					//assign & update values
-					if(!cyclic && u < cdf) {
+					if(u < cdf && (!cyclic || allowCycles)) {
 						
 						assignment[gen][2*ind] = f;
 						if(f >= F) F++;
@@ -113,7 +113,7 @@ public class SimulatePedigreeGasbarra {
 					
 					if(oldM.contains(m)) // old mother
 						cdf += (beta + Cfm[gen][f][m]) / (Nm*beta + Cf[f]);
-					else
+					else // new mother
 						cdf += beta / (Nm*beta + Cf[f]);
 					
 					
@@ -121,13 +121,11 @@ public class SimulatePedigreeGasbarra {
 					//test for cycles
 					Node mother = nodes.get(gen+1).get(m+Nm);
 					boolean cyclic = cyclic(nodes, mother, child);
-
 					
-					if(cyclic) System.out.println("Mother cyclic");
-					
+					//if(cyclic) System.out.println("Mother cyclic");
 					
 					//assign
-					if(!cyclic && u < cdf) {
+					if(u < cdf && (!cyclic || allowCycles)) {
 						assignment[gen][2*ind+1] = m;
 						if(m >= M) M++;
 						oldM.add(m);
@@ -164,6 +162,7 @@ public class SimulatePedigreeGasbarra {
 				String fid = String.format("%d_%d", gen+1, f);
 				String mid = String.format("%d_%d", gen+1, m+Nf);
 				writer.write(String.format("%s\t%s\t%s\t%d\t%s\n", id, fid, mid, sex, "999999"));
+				writer.flush();
 				
 						
 			}
@@ -582,104 +581,16 @@ public class SimulatePedigreeGasbarra {
 		double alpha = beta * N /2; //dominant father e.g. infinity = no dominance
 		String dir = "/Users/amy/eclipse-workspace/mcmc/simulations/";
 		double recomb = 1.3e-8;
+		boolean allowCycles = false;
 		
 		
 		boolean[][] sampled = new boolean[N][N];
 		for(int i=0; i<20; i++) {
 			sampled[0][i] = true;
 		}
-		simulatePedigreeForSamples(N, Nf, Nm, maxDepth, alpha, beta, rGen, dir, sampled);
+		simulatePedigreeForSamples(N, Nf, Nm, maxDepth, alpha, beta, rGen, dir, sampled, allowCycles);
 		
-		
-		//SimulatePedigreeUnderPrior.simulatePopulationPed(dir+"200founders.200N.10k.tped", dir+"200N.2d.pop.fam", dir+"200N.pop.ped", maxDepth, recomb, rGen, N, dir+"temp");
-		
-		
-		/*
-		int T = 1;
-		int n = 10 ;
-		int sampleDepth = 1;
-		double seqError = 0;
-		for(int t=0; t<T; t++) {
-			SimulatePedigreeUnderPrior.sampleForReal(N, n, maxDepth, sampleDepth, rGen, dir, seqError, t);
-		}
-		*/
-		
-		
-		/*
-		//theoretical
-		List<List<Integer>> config = new ArrayList<List<Integer>>();
-		config.add(new ArrayList<Integer>(Arrays.asList(0,0,1,1)));
-		config.add(new ArrayList<Integer>(Arrays.asList(0,0,1,1,1,1,2,2)));
-		int[][] fSampled = new int[][] {{0,0}, {0,0,0}};
-		int[][] mSampled = new int[][] {{0,0}, {0,0,0}};
-		double theoProb = computePedigreeProb(N, Nf, Nm, alpha, beta, config, fSampled, mSampled, maxDepth);
-		System.out.println(theoProb);
-		*/
-		
-		/*
-		//test
-		List<Node> nodes = new ArrayList<Node>();
-		nodes.add(new Node("1","0", 0, false, -1, 0, 0));
-		nodes.add(new Node("1","1", 0, false, -1, 0, 1));
-		nodes.add(new Node("1","2", 0, false, -1, 1, 2));
-		//nodes.add(new Node("1","3", 0, false, -1, 1, 3));
-		//nodes.add(new Node("1","3", 0, false, -1, 2, 4));
-		//nodes.add(new Node("1","3", 1, false, -1, 2, 5));
-		connect(nodes.get(2), nodes.get(0));
-		connect(nodes.get(2), nodes.get(1));
-		//connect(nodes.get(4), nodes.get(2));
-		//connect(nodes.get(4), nodes.get(3));
-		//connect(nodes.get(5), nodes.get(3));
-		//connect(nodes.get(5), nodes.get(2));
-		//connect(nodes.get(5), nodes.get(3));
-		
-		
-		double testProb = computePedigreeProbWithGraph(N, Nf, Nm ,alpha, beta, maxDepth, nodes);
-		
-		
-		System.out.println(testProb);
-		/*
-		
-		
-		
-		/*
-		//simulate
-		int[][] counts = new int[maxDepth][Nf];
-		
-		String outPath = "/Users/amy/eclipse-workspace/mcmc/";
-		int[][] assignments = simulatePopulationPedigree(N, Nf, Nm, maxDepth, alpha, beta, random, outPath);
 
-		
-		for(int g=0; g<maxDepth; g++) {
-			
-			for(int j=0; j<assignments[0].length/2; j++) {
-				
-				counts[g][assignments[g][2*j]]++;
-				
-			}
-			
-		}
-		
-		
-		
-		for(int g=0; g<maxDepth; g++) {
-			
-			System.out.println("GEN");
-			
-			for(int i=0; i<counts[0].length; i++) {
-
-					
-				if(counts[g][i]>0) System.out.println(counts[g][i]);
-					
-				
-
-				
-			}
-			
-			
-		}	
-		*/
-		
 		
 	
 		

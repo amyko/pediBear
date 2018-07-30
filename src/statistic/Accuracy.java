@@ -50,7 +50,7 @@ public class Accuracy {
 		
 		//TODO PRINT
 		//print best map
-		System.out.println(bestPed);
+		//System.out.println(bestPed);
 		
 		return null;
 	}

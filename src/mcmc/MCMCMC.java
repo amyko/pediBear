@@ -3,6 +3,7 @@ package mcmc;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,8 @@ public class MCMCMC {
 	final PrintWriter lkhdWriter;
 	final PrintWriter famWriter;// label + fam
 	final PrintWriter countWriter; // label + count
+	final PrintWriter NeWriter;
+	final PrintWriter thetaWriter;
 	final Random rGen;
 	final int nChain;
 	public int nSwapSuccess;
@@ -53,8 +56,10 @@ public class MCMCMC {
 	private int missingParentCounter = 0;
 	public Map<String, PedInfo> ped2info = new HashMap<String, PedInfo>();
 	private final List<Node> anc = new ArrayList<Node>();
-	public int[][][] pair_results; // for frog data
-	public int[] pop_results; //for frog data
+	public int[][][] pair_results; // (id1, id2) -> count(FS, HS, UR, FC, HC)
+	public Map<Integer, Integer> Ne_count;
+
+	
 
 
 	//TODO parallelize 
@@ -71,6 +76,8 @@ public class MCMCMC {
 		this.lkhdWriter = DataParser.openWriter(outPath+".lkhd");
 		this.famWriter = DataParser.openWriter(outPath+".fam");
 		this.countWriter = DataParser.openWriter(outPath+".count");
+		this.NeWriter = DataParser.openWriter(outPath+".Ne");
+		this.thetaWriter = DataParser.openWriter(outPath+".theta");
 		this.rGen = rGen;
 		this.nChain = chains.size();
 		this.nSwapAttempt = 0;
@@ -82,7 +89,10 @@ public class MCMCMC {
 		
 		int n = chains.get(0).getPedigree().numIndiv;
 		pair_results = new int[n][n][5];
-		pop_results = new int[50]; //100 through 5000
+		Ne_count = new HashMap<Integer, Integer>();
+		
+		//header for .theta file
+		thetaWriter.print("N\talpha\tbeta\tNe\n");
 		
 		
 	}
@@ -243,8 +253,6 @@ public class MCMCMC {
 				
 				//chains.get(j).getPedigree().printAdjMat();
 				//System.out.println();
-	
-			
 				
 				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
 				
@@ -332,6 +340,7 @@ public class MCMCMC {
 				
 				sample(chains.get(this.coldChain).getPedigree());
 				convergence(chains.get(this.coldChain).getPedigree());
+				writeTheta(chains.get(this.coldChain).getPedigree());
 			
 			}
 			
@@ -356,13 +365,17 @@ public class MCMCMC {
 		
 		//TODO
 		//write counts
+		System.out.println(String.format("%.4f", chains.get(coldChain).getPedigree().getAlpha()));
+		System.out.println(String.format("%.4f", chains.get(coldChain).getPedigree().getBeta()));
 		writeCounts();
-		
+
 		//close outfile
 		pairWriter.close();
 		famWriter.close();
 		lkhdWriter.close();
 		countWriter.close();
+		NeWriter.close();
+		thetaWriter.close();
 
 		
 		
@@ -371,11 +384,34 @@ public class MCMCMC {
 	
 	private void writeCounts(){
 		
+		/*
+		//write pair counts
+		for(int i=0; i<pair_results.length; i++) {
+			
+			for (int j = i+1; j<pair_results.length; j++) {
+				
+				countWriter.write(String.format("%d %d %d %d %d %d %d\n", i, j, pair_results[i][j][0], pair_results[i][j][1], pair_results[i][j][2] ,pair_results[i][j][3], pair_results[i][j][4]));
+				
+			}
+			
+		}
+		*/
+		
+		//write counts of Ne
+		List<Integer> sortedKeys = new ArrayList<Integer>(Ne_count.keySet());
+		Collections.sort(sortedKeys);
+		for(int pop : sortedKeys) {
+			NeWriter.write(String.format("%d %d\n", pop, Ne_count.get(pop)));
+		}
+		
+		
+		//write pedigree label
 		for(String key : ped2info.keySet()){
 
 			countWriter.write(String.format("%s\t%d\n", key, ped2info.get(key).count));	
 	
 		}
+		
 		
 	}
 	
@@ -458,46 +494,16 @@ public class MCMCMC {
 	//write relationship to file
 	private void sample(Pedigree currPedigree){
 		
-		
-		//this is for one-gen only
-		//update counts for each pair
-		for(int i=0; i<currPedigree.numIndiv; i++) {
-			for(int j=i+1; j<currPedigree.numIndiv; j++){
-
-				Path rel = currPedigree.getRelationships()[i][j];
-				int k = 2;
-				
-				if(rel.getNumVisit() == 1) {
-					if(rel.getUp() == 1)
-						k = 1;
-					else
-						k = 4;
-				}
-				else if(rel.getNumVisit() == 2) {
-					if(rel.getUp() == 1)
-						k = 0;
-					else
-						k = 3;
-				}
-				
-				
-				pair_results[i][j][k]++; 
-				
-
-				
-			}
-				
-		}
-		
-		
 		//pop count
-		int rounded_pop = ((currPedigree.getEffectivePop() + 99) / 100 )  - 1;
-		pop_results[rounded_pop]++;		
+		int N = currPedigree.getNe();
+		N = (int) Math.round(N / 10.0) * 10;// round to nearest 10
+		int N_count = Ne_count.containsKey(N)? Ne_count.get(N) : 0;
+		Ne_count.put(N, N_count+1);
 		
-		/*
+
 		//number of ancestors for each sampled node
 		String numAncString = "";
-		String toWrite = "";
+		StringBuilder sb = new StringBuilder(currPedigree.numIndiv * (currPedigree.numIndiv) / 2 * 3);
 		
 		//ind 1
 		for(int i=0; i<currPedigree.numIndiv; i++){
@@ -511,7 +517,10 @@ public class MCMCMC {
 			for(int j=i+1; j<currPedigree.numIndiv; j++){
 				
 				Path rel = currPedigree.getRelationships()[i][j];			 
-				toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
+				//toWrite += String.format("%d%d%d", rel.getUp(), rel.getDown(), rel.getNumVisit());
+				sb.append(rel.getUp());
+				sb.append(rel.getDown());
+				sb.append(rel.getNumVisit());
 				
 			}
 			
@@ -526,6 +535,7 @@ public class MCMCMC {
 		
 		//if new pedigree, record fam, multiplier, and likelihood
 		PedInfo info; 
+		String toWrite = sb.toString();
 		if(!ped2info.containsKey(toWrite)){			
 			
 			//lkhd & multiplier & initialize count
@@ -546,7 +556,7 @@ public class MCMCMC {
 		//lkhd and count
 		info = ped2info.get(toWrite);
 		info.count++;
-		*/
+		
 
 
 	}
@@ -574,7 +584,16 @@ public class MCMCMC {
 		
 	}
 	
+	
+	// write current parameters out to a file
+	private void writeTheta(Pedigree currPedigree) {
+		
+		thetaWriter.write(String.format("%d\t%f\t%f\t%d\n", currPedigree.getN(), currPedigree.getAlpha(), currPedigree.getBeta(), currPedigree.getNe()));
 
+		
+	}
+
+	
 	
 	private void recordCranefootFam(Node ind, Pedigree currPedigree){
 		
@@ -783,6 +802,19 @@ public class MCMCMC {
 	}
 	
 	
+	public static int getIndex(double d) {
+		
+		if(Math.abs(d - .001) < 1e-6) {
+			return 0;
+		}
+		else if(Math.abs(d-.01) < 1e-6) {
+			return 1;
+		}
+		else if(Math.abs(d-.1) < 1e-6) {
+			return 2;
+		}
+		else return 3;
+	}
 
 	
 	

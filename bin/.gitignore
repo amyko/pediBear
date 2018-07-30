@@ -1,4 +1,5 @@
-/simulator/
-/dataStructures/
 /likelihood/
+/dataStructures/
 /executables/
+/mcmc/
+/test/
