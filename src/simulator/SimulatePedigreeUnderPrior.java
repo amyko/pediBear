@@ -499,7 +499,6 @@ public class SimulatePedigreeUnderPrior {
 		
 	}
 	
-	
 	public static void simulateOneGeneration(SimulatorStreamPed sim, PrintWriter writer, String pedPath, String parentPath, int childDepth, Random rGen, int N, String tempPath, Map<String, Integer> name2id ) throws IOException{
 		
 		
@@ -579,6 +578,9 @@ public class SimulatePedigreeUnderPrior {
 			tempFile.write(header[i]);
 			
 			for(int j=0; j<tped[0].length; j++){
+				
+				if(tped[2*i][j] == null) //break if all remaining individuals are null
+					break;
 				
 				tempFile.write(String.format("%s %s ",tped[2*i][j], tped[2*i+1][j]));
 				

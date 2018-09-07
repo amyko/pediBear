@@ -1,13 +1,15 @@
 package likelihood;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import dataStructures.Node;
 import dataStructures.Pedigree;
+import dataStructures.SimplePair;
 import utility.ArrayUtility;
 
 //gasbarra prior
@@ -20,7 +22,7 @@ public class Prior {
 	private int[] Fs;
 	private int[] Ms;
 	private Map<Integer, Integer> Cf; // number of children father f has so far
-	private Map<Integer, HashMap<Integer, Integer>> Cfm; // number of children couple (f,m) has so far
+	private Map<Integer, Map<Integer, Integer>> Cfm; // number of children couple (f,m) has so far
 	private int[] nFSampled;
 	private int[] nMSampled;
 	private int[] kSoFar;
@@ -37,7 +39,7 @@ public class Prior {
 
 
 	//TODO when does this return NA? Implement alpha = inf, beta = inf
-	public Prior(Random rGen, int maxDepth) {
+	public Prior(int maxDepth) {
 				
 		//prior 
 		F = new int[maxDepth+1];
@@ -45,7 +47,7 @@ public class Prior {
 		Fs = new int[maxDepth+1];
 		Ms = new int[maxDepth+1];
 		Cf = new HashMap<Integer,Integer>();
-		Cfm = new HashMap<Integer, HashMap<Integer, Integer>>();
+		Cfm = new HashMap<Integer, Map<Integer, Integer>>();
 		nFSampled = new int[maxDepth+1];
 		nMSampled = new int[maxDepth+1];
 		kSoFar = new int[maxDepth+1];
@@ -79,14 +81,14 @@ public class Prior {
 		ArrayUtility.clear(Fs);
 		ArrayUtility.clear(Ms);
 		Cf.clear();
-		Cfm.clear();
+		for(Integer key : Cfm.keySet())
+			Cfm.get(key).clear();
 		ArrayUtility.clear(nFSampled);
 		ArrayUtility.clear(nMSampled);
 		countSampledNodes(currPedigree, nFSampled, nMSampled);
 		ArrayUtility.clear(kSoFar);
 		oldF.clear();
 		oldM.clear();
-		
 
 		double totalProb = 0;
 		
@@ -119,6 +121,7 @@ public class Prior {
 	private double getProbForChild(Node child, int N, int Nf, int Nm, double alpha, double beta) {	
 		
 		if(child.getDepth()>=maxDepth) return 0;
+		
 		
 		double toReturn = 0;
 	
@@ -214,9 +217,9 @@ public class Prior {
 		
 		//update counts
 		kSoFar[child.getDepth()]++;
-		if(f!=-1) {
-			if(!Cf.containsKey(f)) Cf.put(f, 1);
-			else Cf.put(f, Cf.get(f)+1);
+		if(f!=-1) {		
+			int curr_count = Cf.getOrDefault(f, 0);
+			Cf.put(f, curr_count + 1);
 			oldF.add(f);
 		}
 		
@@ -225,12 +228,15 @@ public class Prior {
 		
 		if(f!=-1 && m!=-1) {
 			
+			// init hash map if not already there
 			if(!Cfm.containsKey(f))
-				Cfm.put(f, new HashMap<Integer, Integer>());	
-			if(!Cfm.get(f).containsKey(m))
-				Cfm.get(f).put(m, 1);
-			else
-				Cfm.get(f).put(m, Cfm.get(f).get(m)+1);
+				Cfm.put(f, new HashMap<Integer, Integer>());
+			
+			// update count
+			int curr_count = Cfm.get(f).getOrDefault(m, 0);
+			Cfm.get(f).put(m, curr_count + 1);
+
+			
 		}
 		
 		
@@ -297,6 +303,7 @@ public class Prior {
 	public static void main(String[] args) {
 		
 		
+		
 		// build pedigree
 		Node c1 = new Node("fam","c1", 1, true, -1, 0, 0);
 		Node c2 = new Node("fam", "c2", 0, true, -1, 0, 1);
@@ -330,8 +337,7 @@ public class Prior {
 		double alpha = .1;
 		double beta = .01;
 		int maxgen = 2;
-		
-		Random rgen = new Random();
+
 		
 		
 		for(int N = 200; N < 201; N+=50) {
@@ -339,7 +345,7 @@ public class Prior {
 			int Nf = N/2;
 			int Nm = Nf;
 			
-			Prior prior = new Prior(rgen, maxgen);
+			Prior prior = new Prior(maxgen);
 			double m1 = prior.getProbForChild(c1, N, Nf, Nm, alpha, beta);
 			double m2 = prior.getProbForChild(c2, N, Nf, Nm, alpha, beta);
 			double m3 = prior.getProbForChild(c3, N, Nf, Nm, alpha, beta);

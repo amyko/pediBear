@@ -4,7 +4,6 @@ import java.util.List;
 
 import mcmc.MCMCMC;
 import dataStructures.Node;
-import dataStructures.Path;
 import dataStructures.Pedigree;
 
 

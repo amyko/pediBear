@@ -44,8 +44,8 @@ public class SimulatePedigreeGasbarra {
 		
 		for(int gen=0; gen < nGen; gen++){ //generation by generation
 			
-			int F = 0;
-			int M = 0;
+			//int F = 0;
+			//int M = 0;
 			int[] Cf = new int[Nf];
 			Set<Integer> oldF = new HashSet<Integer>();
 			Set<Integer> oldM = new HashSet<Integer>();
@@ -84,7 +84,7 @@ public class SimulatePedigreeGasbarra {
 					if(u < cdf && (!cyclic || allowCycles)) {
 						
 						assignment[gen][2*ind] = f;
-						if(f >= F) F++;
+						//if(f >= F) F++;
 						oldF.add(f);
 						
 						connect(father, child);
@@ -127,7 +127,7 @@ public class SimulatePedigreeGasbarra {
 					//assign
 					if(u < cdf && (!cyclic || allowCycles)) {
 						assignment[gen][2*ind+1] = m;
-						if(m >= M) M++;
+						//if(m >= M) M++;
 						oldM.add(m);
 						
 						connect(mother, child);

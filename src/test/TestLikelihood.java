@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -87,11 +88,11 @@ public class TestLikelihood {
 		
 		
 		//margina for microsats
-		public static void computeMarginalsMicrosat(PairwiseLikelihoodCoreMicrosatellites core, String fileName, String fPath, int[] ids, boolean withInbreeding, int t) throws IOException{
+		public static void computeMarginalsMicrosat(PairwiseLikelihoodCoreMicrosatellites core, String fileName, String fPath, int[] ids, boolean withInbreeding, boolean adjust_af, int t) throws IOException{
 			
 			//compute
 			String freqPath = String.format("%s.%d.freq", fileName, t);
-			double[] marginals = core.computeMarginalMicrosat(fileName+".tped", freqPath, fPath, ids, withInbreeding);
+			double[] marginals = core.computeMarginalMicrosat(fileName+".tped", freqPath, fPath, ids, withInbreeding, adjust_af);
 			
 			
 			//open outfile
@@ -108,7 +109,7 @@ public class TestLikelihood {
 		
 		
 		//pairwise for snp data
-		public static void computePairwiseMicrosat(PairwiseLikelihoodCoreMicrosatellites core, String fileName, String fPath, int[] ids, List<Relationship> relationships, boolean withInbreeding, int t) throws IOException{
+		public static void computePairwiseMicrosat(PairwiseLikelihoodCoreMicrosatellites core, String fileName, String fPath, int[] ids, List<Relationship> relationships, boolean withInbreeding, boolean adjust_af, int t) throws IOException{
 			
 			int numIndiv = ids.length;
 			int numRel = relationships.size();
@@ -119,7 +120,7 @@ public class TestLikelihood {
 			//PrintWriter writer = DataParser.openWriter(String.format("%s.pairwise", fileName));
 			
 				
-			double[][][] lkhd = core.computePairwiseMicrosat(fileName+".tped", freqPath, fPath, ids, relationships, withInbreeding);
+			double[][][] lkhd = core.computePairwiseMicrosat(fileName+".tped", freqPath, fPath, ids, relationships, withInbreeding, adjust_af);
 
 			//write to file
 			for(int k=0; k<numRel; k++){
@@ -152,17 +153,17 @@ public class TestLikelihood {
 		
 		
 		
-		public static void simulate(int N, int d, double alpha, double beta, Random rgen, String dir, boolean[][] sampled, int sampleSize, int sampleDepth, double recombRate, double epsilon1, double epsilon2, String freqPath, boolean allowCycles, boolean estimateAF, int nSnp, int t) throws IOException {
+		public static void simulate(int N, int d, double alpha, double beta, Random rgen, String dir, boolean[][] sampled, int sampleSize, int sampleDepth, double recombRate, double epsilon1, double epsilon2, String founderPath, boolean allowCycles, boolean estimateAF, int nSnp, int k, int t) throws IOException {
 			
-			
-			//simulate sample pedigree
-			SimulatePedigreeGasbarra.simulatePedigreeForSamples(N, N/2, N/2, d, alpha, beta, rgen, dir, sampled, allowCycles);
+			//TODO undo this comment to simulate gasbarra pedigree
+			//simulate sample pedigree, produces gasbarra.fam file
+			//SimulatePedigreeGasbarra.simulatePedigreeForSamples(N, N/2, N/2, d, alpha, beta, rgen, dir, sampled, allowCycles);
 			
 			//simulate genotypes according to pedigree given in gasbarra.fam; outputs ped file containing simulated individuals
-			SimulatePedigreeUnderPrior.simulatePopulationPed(String.format("%smicrosat.%dloci.%dN.founders.tped", dir, nSnp, N), dir+"gasbarra.fam", dir+"pop.ped", d, recombRate, rgen, N, dir+"temp");
+			SimulatePedigreeUnderPrior.simulatePopulationPed(founderPath+".tped", dir+"gasbarra.fam", dir+"pop.ped", d, recombRate, rgen, N, dir+"temp");
 			
 			//make tped/tfam for population pedigree; the second argument contains "map" file containing position info
-			SimulatePedigreeUnderPrior.ped2tped(dir+"pop", String.format("%smicrosat.%dloci.%dN.founders.tped", dir, nSnp, N));
+			SimulatePedigreeUnderPrior.ped2tped(dir+"pop", founderPath+".tped");
 					
 			//sample individuals. NOTE: the individuals must appear in order.
 			List<String> samples = new ArrayList<String>();
@@ -180,11 +181,11 @@ public class TestLikelihood {
 		
 			
 			//add error
-			SimulatePedigreeUnderPrior.addError(dir+"temp", freqPath, dir+"sample.tped", epsilon1, epsilon2, rgen);
+			SimulatePedigreeUnderPrior.addError(dir+"temp", founderPath+".freq", dir+"sample.tped", epsilon1, epsilon2, rgen);
 			
 			
 			//estimate allele frequency
-			estimateAlleleFreq(dir+"sample.tped", freqPath, String.format("%ssample.%d.freq", dir, t), estimateAF);
+			estimateAlleleFreq(dir+"sample.tped", founderPath+".freq", String.format("%ssample.%d.freq", dir, t), estimateAF);
 			
 			
 			//make f file
@@ -482,34 +483,50 @@ public class TestLikelihood {
 			int n = samples.size();
 			Path[][] rel = new Path[n][n];
 			Map<String, SimplePair<String, String>> id2parents = new HashMap<String, SimplePair<String, String>>(); // id -> (fid, mid)
-			Map<String, ArrayList<String>> id2children = new HashMap<String, ArrayList<String>>();
-			Map<String, Integer> id2idx = new HashMap<String, Integer>();
+			Map<String, HashSet<String>> id2children = new HashMap<String, HashSet<String>>(); //id --> list of its children
+			Map<String, HashSet<String>> id2grandchildren = new HashMap<String, HashSet<String>>(); //id --> list of its grandchildren
 			List<String> parents = new ArrayList<String>(); //generation 1 individuals
+			List<String> grandparents = new ArrayList<String>(); //generation 2 individuals
+			Map<String, Integer> id2idx = new HashMap<String, Integer>();
+			
+			//record index
+			for(int i=0; i<samples.size(); i++)
+				id2idx.put(samples.get(i), i);
 			
 			//read relationships; make nodes with children
 			BufferedReader reader = DataParser.openReader(famFile);
 			reader.readLine(); //skip header
 			String line;
-			int idx = 0;
 			while((line = reader.readLine()) != null) {
 				String[] fields = line.split("\\s");
 				// record parents
 				id2parents.put(fields[0], new SimplePair<String, String>(fields[1], fields[2]));
 				if(fields[0].charAt(0)=='1') parents.add(fields[0]);
+				else if(fields[0].charAt(0)=='2') grandparents.add(fields[0]);
 				// record children
-				if(id2children.get(fields[1]) == null) id2children.put(fields[1], new ArrayList<String>());
-				if(id2children.get(fields[2]) == null) id2children.put(fields[2], new ArrayList<String>());
+				if(id2children.get(fields[1]) == null) id2children.put(fields[1], new HashSet<String>());
+				if(id2children.get(fields[2]) == null) id2children.put(fields[2], new HashSet<String>());
 				id2children.get(fields[1]).add(fields[0]);
 				id2children.get(fields[2]).add(fields[0]);
-				//record index
-				id2idx.put(fields[0], idx);
-				idx++;
-				
 			}
 			reader.close();
 			
 			
+			//fill up id2grandchildren
+			for(String gp : grandparents) {
+				//get gp's children: they are parents
+				for(String parent : id2children.get(gp)) {
+					for(String gc : id2children.get(parent)) {
+						if(id2grandchildren.get(gp)==null) 
+							id2grandchildren.put(gp, new HashSet<String>());
+						id2grandchildren.get(gp).add(gc);
+					}
+				}
+			}
+			
+			
 			//record FS or HS in the current generation
+			//for each pair of samples in the current generation
 			for(int i=0; i<n; i++) {
 				
 				SimplePair<String, String> p1 = id2parents.get(samples.get(i));
@@ -570,9 +587,10 @@ public class TestLikelihood {
 								
 								if (i>= j) continue;
 								
-								// unrelated or HC/FC
+								// already FS, HS, FC or HC
 								if(rel[i][j].getNumVisit() != 0)
 									inbred = true;
+								// if UR or HC or FC, remark as FC
 								if(rel[i][j].getNumVisit() == 0 || rel[i][j].getUp() == 2) {
 									rel[i][j] = new Path(2,2,2);
 									rel[j][i] = new Path(2,2,2);
@@ -606,7 +624,7 @@ public class TestLikelihood {
 								// unrelated so far
 								if(rel[i][j].getNumVisit() != 0)
 									inbred = true;
-								if(rel[i][j].getNumVisit() == 0) {
+								else {
 									rel[i][j] = new Path(2,2,1);
 									rel[j][i] = new Path(2,2,1);
 								}
@@ -628,6 +646,93 @@ public class TestLikelihood {
 				
 			}
 			
+
+			//record second FC, second HC
+			for(String id1 : grandparents) {
+				
+				SimplePair<String, String> p1 = id2parents.get(id1);
+				
+				for(String id2 : grandparents) {
+					
+					if(id1.equals(id2)) continue; 
+					
+					SimplePair<String, String> p2 = id2parents.get(id2);
+					
+					//second FC
+					if(p1.getFirst().equals(p2.getFirst()) && p1.getSecond().equals(p2.getSecond())) {
+						
+						boolean inbred = false;
+						numRel++;
+
+						//grandchildren of id1 and id2 are full cousins
+						for(String c1 : id2grandchildren.get(id1)) {
+							
+							int i = id2idx.get(c1);
+							
+							for(String c2 : id2grandchildren.get(id2)) {
+								
+								int j = id2idx.get(c2);
+								
+								if (i>= j) continue;
+								
+								// unrelated or HC/FC
+								if(rel[i][j].getNumVisit() != 0)
+									inbred = true;
+								if(rel[i][j].getNumVisit() == 0 || rel[i][j].getUp() == 3) {
+									rel[i][j] = new Path(3,3,2);
+									rel[j][i] = new Path(3,3,2);
+								}
+								
+								
+							}
+						}
+						
+						if(inbred) numInbred++;
+
+		
+					}
+					//HC
+					else if(p1.getFirst().equals(p2.getFirst()) || p1.getSecond().equals(p2.getSecond())) {
+
+						numRel++;
+						boolean inbred = false;
+						
+						//children of id1 and id2 are full cousins
+						for(String c1 : id2grandchildren.get(id1)) {
+							
+							int i = id2idx.get(c1);
+							
+							for(String c2 : id2grandchildren.get(id2)) {
+								
+								int j = id2idx.get(c2);
+								
+								if(i >= j) continue;
+								
+								// unrelated so far
+								if(rel[i][j].getNumVisit() != 0)
+									inbred = true;
+								else {
+									rel[i][j] = new Path(3,3,1);
+									rel[j][i] = new Path(3,3,1);
+								}
+	
+
+								
+							}
+							
+						}
+						
+						if(inbred) numInbred++;
+
+					}
+			
+					
+					
+					
+				}
+				
+			}
+
 			
 			//write true
 			PrintWriter writer = DataParser.openWriter(outPath);
@@ -754,29 +859,28 @@ public class TestLikelihood {
 			String dir = "/Users/amy/eclipse-workspace/mcmc/simulations2/";
 			Random rgen = new Random(5265646); 
 			int N = 1000; //population size
-			int nSnp = 20;
-			int d = 2; //maxDepth
+			int nSnp = 2000;
+			int k = 2; // alleles for snp
+			int d = 1; //maxDepth
 			int sampleDepth = 1; //not relevant right now
-			double alpha = .2;
-			double beta = .01; //degree of monogamy; but can't control polygamy of mothers 
-			int sampleSize = 20;
-			double epsilon1 = .05; //allele drop out rate (.05)
-			double epsilon2 = .02; //other errors (.02)
+			double alpha = 10;
+			double beta = .0001; //degree of monogamy; but can't control polygamy of mothers 
+			int sampleSize = 2;
+			double epsilon1 = 0; //allele drop out rate (.05)
+			double epsilon2 = .01; //other errors (.02)
 			boolean allowCycles = true; // allow cycles in simulation
-			boolean withInbreeding = true; // compute pairwise likelihood with inbreeding
+			boolean withInbreeding = false; // compute pairwise likelihood with inbreeding
 			boolean estimateAF = false;
-
+			boolean adjust_af = false; // add 1 to every count; exclude focal individuals from af estimation
+			boolean linked = true;
 			
 			//individuals
 			int[] indCols = new int[sampleSize];
 			for(int i=0; i<sampleSize; i++) indCols[i] = i;
 
-
-			
-			//SimulatePedigreeGasbarra.simulatePedigreeForSamples(N=200, N/2, N/2, d=2, alpha, beta, rgen, dir, sampled);
-			
-			
 			String testName = "sample";
+			String founderName = String.format("%smicrosat.%dloci.%dN.%dk.founders", dir, nSnp, N, k);
+			if(linked) founderName += ".linked";
 			
 			
 			//pairwise core
@@ -788,13 +892,12 @@ public class TestLikelihood {
 			//LDStreamPedMissing.writeLdOutfile(dir+"indepMarkers.founders", dir+"indepMarkers.founders.info", back, true);	
 
 			
-			for(int t=0; t<10; t++){
+			for(int t=0; t<1; t++){
 				
 				
 				System.out.println(t);
 				
 				//samples
-				//TODO undo the comment below
 				boolean[][] sampled = new boolean[N][N];
 				for(int i=0; i<sampleSize; i++) {
 					sampled[0][i] = true;
@@ -803,23 +906,22 @@ public class TestLikelihood {
 				//file names
 				String fileName = String.format("%s%s",dir,testName);
 				//String infoPath = dir+"indepMarkers.founders.info";
-				String popFreqPath = String.format("%smicrosat.%dloci.%dN.founders.freq", dir, nSnp, N);
 				String fPath = String.format("%ssample.%d.f", dir, t);
 				
 				
 				System.out.println("Simulating");
 				//makeColonyFile(N, d, alpha, beta, rgen, dir, sampled, sampleSize, sampleDepth, recombRate, epsilon1, epsilon2, freqPath, t);
-				simulate(N, d, alpha, beta, rgen, dir, sampled, sampleSize, sampleDepth, recombRate, epsilon1, epsilon2, popFreqPath, allowCycles, estimateAF, nSnp, t);
+				simulate(N, d, alpha, beta, rgen, dir, sampled, sampleSize, sampleDepth, recombRate, epsilon1, epsilon2, founderName, allowCycles, estimateAF, nSnp, k, t);
 				
 				
 				//compute marginal probs
 				System.out.println("Computing marginals");
-				computeMarginalsMicrosat(core, fileName, fPath, indCols, withInbreeding, t);
+				computeMarginalsMicrosat(core, fileName, fPath, indCols, withInbreeding, adjust_af, t);
 				
 				
 				//compute pairwise
 				System.out.println("Computing pairwise likelihoods");		
-				computePairwiseMicrosat(core, fileName, fPath, indCols, relationships, withInbreeding, t);	
+				computePairwiseMicrosat(core, fileName, fPath, indCols, relationships, withInbreeding, adjust_af, t);	
 
 				
 				/*

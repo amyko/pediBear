@@ -35,6 +35,7 @@ public class PairwiseLikelihoodCoreMicrosatellites {
 	//helper data structures
 	PairwiseKey pairwiseKey = new PairwiseKey("11","11","11","11");
 	Map<String, Double> allele2freq = new HashMap<String, Double>();
+	Map<String, Integer> allele2count = new HashMap<String, Integer>();
 	
 	
 	//TODO different error rates at each locus
@@ -164,11 +165,12 @@ public class PairwiseLikelihoodCoreMicrosatellites {
 	//////////////////////////// PRECOMPUTE LIKELIHOOD ///////////////////////////////////	
 	//marginal probability of an individual
 	//missing allele is encoded as 0; but only one missing allele is not allowed (i.e. 0x, x0)
-	public double[] computeMarginalMicrosat(String genoPath, String freqPath, String fPath, int[] ids, boolean withInbreeding) throws IOException{ //works
+	public double[] computeMarginalMicrosat(String genoPath, String freqPath, String fPath, int[] ids, boolean withInbreeding, boolean adjust_af) throws IOException{ //works
 
 		//data structures 
 		double[] toReturn = new double[numIndiv];
 		Map<PairwiseKey, Double> errorProb = new HashMap<PairwiseKey, Double>();
+		int n_alleles = 2*numIndiv;
 
 		//open files
 		BufferedReader genoFile = DataParser.openReader(genoPath); //tped file
@@ -188,7 +190,10 @@ public class PairwiseLikelihoodCoreMicrosatellites {
 			String[] geno = genoLine.split("\\s");
 			String[] alleles = freqFile.readLine().split("\\s");
 			String[] freqs = freqFile.readLine().split("\\s");
-			getOneLocusFreq(alleles, freqs);
+			
+			// init frequencies/counts
+			initOneLocusCount(alleles, freqs, n_alleles);
+			initOneLocusFreq(alleles, freqs);
 					
 			//compute info
 			int k = alleles.length;
@@ -205,10 +210,21 @@ public class PairwiseLikelihoodCoreMicrosatellites {
 				String[] orderedAlleles = orderAlleles(geno[2*ids[i]+4], geno[2*ids[i]+5]);
 				
 				//skip missing data
-				if(orderedAlleles[0].equals("0") && orderedAlleles[1].equals("0")) continue;
-
+				if(orderedAlleles[0].equals("0") || orderedAlleles[1].equals("0")) continue;
 				
+				// adjust freq
+				if(adjust_af) {	
+					updateOneLocusCount(orderedAlleles[0], orderedAlleles[1], -1);
+					updateOneLocusFreq();
+				}
+		
+	
 				toReturn[i] += Math.log(genotypeProbWithError(orderedAlleles[0], orderedAlleles[1], f[i], allele2freq, e1, e2, epsilon2, errorProb, alleles));
+	
+				
+				// re-adjust freq
+				if(adjust_af)
+					updateOneLocusCount(orderedAlleles[0], orderedAlleles[1], 1);
 	
 				
 			}
@@ -225,9 +241,10 @@ public class PairwiseLikelihoodCoreMicrosatellites {
 	
 	
 	//pairwise likelihood for independent sites
-	public double[][][] computePairwiseMicrosat(String genoPath, String freqPath, String fPath, int[] ids, List<Relationship> rel, boolean withInbreeding) throws IOException{
+	public double[][][] computePairwiseMicrosat(String genoPath, String freqPath, String fPath, int[] ids, List<Relationship> rel, boolean withInbreeding, boolean adjust_af) throws IOException{
 		
 		int numRel = rel.size();
+		int n_alleles = 2 * numIndiv;
 		double[][][] toReturn = new double[numRel][numIndiv][numIndiv];
 
 
@@ -252,7 +269,10 @@ public class PairwiseLikelihoodCoreMicrosatellites {
 			String[] geno = genoLine.split("\\s");
 			String[] alleles = freqFile.readLine().split("\\s");
 			String[] freqs = freqFile.readLine().split("\\s");
-			getOneLocusFreq(alleles, freqs);
+			
+			// init frequencies/counts
+			initOneLocusCount(alleles, freqs, n_alleles);
+			initOneLocusFreq(alleles, freqs);
 			
 			
 			//compute info
@@ -273,7 +293,13 @@ public class PairwiseLikelihoodCoreMicrosatellites {
 				double f1 = f[i];
 				
 				//skip missing data
-				if(obs1_ind1.equals("0") && obs2_ind1.equals("0")) continue;
+				if(obs1_ind1.equals("0") || obs2_ind1.equals("0")) continue;
+				
+				
+				// adjust count
+				if(adjust_af) 	
+					updateOneLocusCount(obs1_ind1, obs2_ind1, -1);			
+				
 				
 				for(int j=i+1; j<numIndiv; j++){
 					
@@ -281,10 +307,14 @@ public class PairwiseLikelihoodCoreMicrosatellites {
 					String obs2_ind2 = geno[2*ids[j]+5];
 					double f2 = f[j];
 					
-					if(obs1_ind2.equals("0") && obs2_ind2.equals("0")) continue;
+					if(obs1_ind2.equals("0") || obs2_ind2.equals("0")) continue;
 					
-					//get pairwise genotype probability for each state
-					//double[] pairwiseProb = getPairwiseGenotypeProbWithError(obs1_ind1, obs2_ind1, obs1_ind2, obs2_ind2, freq, possibleGenotypes, e1, e2, epsilon2, errorProb);
+					// adjust count and freq
+					if(adjust_af) {	
+						updateOneLocusCount(obs1_ind2, obs2_ind2, -1);
+						updateOneLocusFreq();
+					}
+					
 					
 					for(int r=0; r<numRel; r++){
 						
@@ -303,18 +333,23 @@ public class PairwiseLikelihoodCoreMicrosatellites {
 						double s7 = (1-f1)*(1-f2)*p1;
 						double s8 = (1-f1)*(1-f2)*p0;
 						double[] delta = new double[] {s0, s1, s2, s3, s4, s5, s6, s7, s8};
+	
 						
-			
 						toReturn[r][i][j] += Math.log(pairwiseGenotypeProbWithError(allele2freq, obs1_ind1, obs2_ind1, obs1_ind2, obs2_ind2, delta, e1, e2, epsilon2, errorProb, alleles));
-						
-						//with inbreeding
-						//toReturn[r][i][j] += Math.log(s0*pairwiseProb[0] + s1*pairwiseProb[1] + s2*pairwiseProb[2] + s3*pairwiseProb[3] + s4*pairwiseProb[4]
-								//+ s5*pairwiseProb[5] + s6*pairwiseProb[6] + s7*pairwiseProb[7] + s8*pairwiseProb[8]);
 						
 						
 					}
 					
+					
+					// re-adjust freq for indiv j
+					if(adjust_af)
+						updateOneLocusCount(obs1_ind2, obs2_ind2, 1);
+					
 				}
+				
+				// re-adjust freq for indiv i
+				if(adjust_af)
+					updateOneLocusCount(obs1_ind1, obs2_ind1, 1);
 			
 			}
 		
@@ -699,11 +734,52 @@ public class PairwiseLikelihoodCoreMicrosatellites {
 	}
 	
 	
-	//update allele2freq map
-	private void getOneLocusFreq(String[] alleles, String[] freqs){ //works
+	//init allele2count map: add 1 to each count
+	private void initOneLocusCount(String[] alleles, String[] freqs, int n_alleles) {
+		
+		allele2count.clear();
+		
+		for(int i=0; i<alleles.length; i++) {
+			int count = (int) (Double.parseDouble(freqs[i]) * n_alleles) + 1;
+			allele2count.put(alleles[i], count);
+		}
+		
+	}
+	
+	//initialize allele2freq map
+	private void initOneLocusFreq(String[] alleles, String[] freqs){ //works
 		
 		allele2freq.clear();
-		for(int i=0; i<alleles.length; i++) allele2freq.put(alleles[i], Double.parseDouble(freqs[i]));
+		for(int i=0; i<alleles.length; i++) 
+			allele2freq.put(alleles[i], Double.parseDouble(freqs[i]));
+		
+	}
+	
+	
+	// subtract focal alleles from the count and update frequency
+	private void updateOneLocusCount(String a, String b, int to_add) {
+						
+		// if the current count is one, don't change
+		allele2count.put(a, allele2count.get(a) + to_add);
+		allele2count.put(b, allele2count.get(b) + to_add);
+
+	}
+	
+	private void updateOneLocusFreq() {
+		
+		//total count
+		double total_count = 0;
+		for(int val : allele2count.values()) {
+			int c = val == 0 ? 1 : val;
+			total_count += c;
+		}
+		
+		
+		// update frequency
+		for(String key : allele2count.keySet()) {
+			int count = allele2count.get(key) == 0? 1 : allele2count.get(key);
+			allele2freq.put(key, count / total_count);
+		}
 		
 	}
 	

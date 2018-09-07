@@ -1,8 +1,8 @@
 package dataStructures;
 
 public class SimplePair<H, T> {
-	private final H first;
-	private final T second;
+	private H first;
+	private T second;
 	
 	public SimplePair(H first, T second){
 		this.first = first;
@@ -16,12 +16,12 @@ public class SimplePair<H, T> {
 	public T getSecond() {
 		return second;
 	}
-	/*
+	
 	public void set(H h, T t){
 		first = h;
 		second = t;
 	}
-	*/
+	
 	
 
 	@Override

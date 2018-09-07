@@ -171,7 +171,7 @@ public class CompareWithColony {
 		
 		
 		//compute accuracy
-		double[][] acc = new double[5][5];
+		double[][] acc = new double[7][5];
 		
 		int k = 0;
 		for(int i=0; i<n; i++) {
@@ -187,48 +187,40 @@ public class CompareWithColony {
 					trueRel = "FC";
 				else if(truth.charAt(k)=='2' && truth.charAt(k+1)=='2' && truth.charAt(k+2)=='1')
 					trueRel = "HC";
+				else if(truth.charAt(k)=='3' && truth.charAt(k+1)=='3' && truth.charAt(k+2)=='2')
+					trueRel = "FC2";
+				else if(truth.charAt(k)=='3' && truth.charAt(k+1)=='3' && truth.charAt(k+2)=='1')
+					trueRel = "HC2";
 
 				
 				k+=3;
-
-				
+			
 				String pred = assignment[i][j];
-				if(trueRel.equals("FS")) {
-					if(pred.equals("FS")) acc[0][0]++;
-					else if(pred.equals("HS")) acc[0][1]++;
-					else if(pred.equals("UR")) acc[0][2]++;
-					else if(pred.equals("FC")) acc[0][3]++;
-					else acc[0][4]++;
-				}
-				else if(trueRel.equals("HS")) {
-					if(pred.equals("FS")) acc[1][0]++;
-					else if(pred.equals("HS")) acc[1][1]++;
-					else if(pred.equals("UR")) acc[1][2]++;
-					else if(pred.equals("FC")) acc[1][3]++;
-					else acc[1][4]++;
-				}
-				else if(trueRel.equals("UR")) {
-					if(pred.equals("FS")) acc[2][0]++;
-					else if(pred.equals("HS")) acc[2][1]++;
-					else if(pred.equals("UR")) acc[2][2]++;
-					else if(pred.equals("FC")) acc[2][3]++;
-					else acc[2][4]++;
-				}
-				else if(trueRel.equals("FC")) {
-					if(pred.equals("FS")) acc[3][0]++;
-					else if(pred.equals("HS")) acc[3][1]++;
-					else if(pred.equals("UR")) acc[3][2]++;
-					else if(pred.equals("FC")) acc[3][3]++;
-					else acc[3][4]++;
-				}
-				else{
-					if(pred.equals("FS")) acc[4][0]++;
-					else if(pred.equals("HS")) acc[4][1]++;
-					else if(pred.equals("UR")) acc[4][2]++;
-					else if(pred.equals("FC")) acc[4][3]++;
-					else acc[4][4]++;
-				}
-					
+				int true_i = 6;
+				if(trueRel.equals("FS"))
+					true_i = 0;
+				else if(trueRel.equals("HS"))
+					true_i = 1;
+				else if(trueRel.equals("UR"))
+					true_i = 2;
+				else if(trueRel.equals("FC"))
+					true_i = 3;
+				else if(trueRel.equals("HC"))
+					true_i = 4;
+				else if(trueRel.equals("FC2"))
+					true_i = 5;
+				
+				int pred_i = 4;
+				if(pred.equals("FS"))
+					pred_i = 0;
+				else if(pred.equals("HS"))
+					pred_i = 1;
+				else if(pred.equals("UR"))
+					pred_i = 2;
+				else if(pred.equals("FC"))
+					pred_i = 3;
+				
+				acc[true_i][pred_i]++;
 				
 				
 			}

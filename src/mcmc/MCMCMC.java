@@ -35,12 +35,12 @@ public class MCMCMC {
 	final int runLength;
 	final int sampleRate;
 	final Move[] moves; 
-	final PrintWriter pairWriter;//pedigree sample expressed in pairwise + numAnc
 	final PrintWriter lkhdWriter;
-	final PrintWriter famWriter;// label + fam
 	final PrintWriter countWriter; // label + count
 	final PrintWriter NeWriter;
-	final PrintWriter thetaWriter;
+	final PrintWriter pairWriter;//count of each relationship (FS, HS, UR, FC, hC) for each pair (i,j)
+	//final PrintWriter famWriter;// label + fam
+	//final PrintWriter thetaWriter;
 	final Random rGen;
 	final int nChain;
 	public int nSwapSuccess;
@@ -72,12 +72,14 @@ public class MCMCMC {
 		this.runLength = runLength;
 		this.sampleRate = sampleRate;
 		this.moves = moves;		
-		this.pairWriter = DataParser.openWriter(outPath+".pair");
 		this.lkhdWriter = DataParser.openWriter(outPath+".lkhd");
-		this.famWriter = DataParser.openWriter(outPath+".fam");
-		this.countWriter = DataParser.openWriter(outPath+".count");
+		//TODO testing
+		countWriter = DataParser.openWriter("/Users/amy/eclipse-workspace/mcmc/simulations2/sample.count");
+		//this.countWriter = DataParser.openWriter(outPath+".count");
 		this.NeWriter = DataParser.openWriter(outPath+".Ne");
-		this.thetaWriter = DataParser.openWriter(outPath+".theta");
+		//this.thetaWriter = DataParser.openWriter(outPath+".theta");
+		//this.famWriter = DataParser.openWriter(outPath+".fam");
+		this.pairWriter = DataParser.openWriter(outPath+".pairAssignment");
 		this.rGen = rGen;
 		this.nChain = chains.size();
 		this.nSwapAttempt = 0;
@@ -92,7 +94,7 @@ public class MCMCMC {
 		Ne_count = new HashMap<Integer, Integer>();
 		
 		//header for .theta file
-		thetaWriter.print("N\talpha\tbeta\tNe\n");
+		//thetaWriter.print("N\talpha\tbeta\tNe\n");
 		
 		
 	}
@@ -216,43 +218,9 @@ public class MCMCMC {
 		
 			//for every chain, update
 			for(int j = 0; j < nChain; j++){
-				
 
 				Move move = chooseMove();
-				
-				/*
-				//TESTING			
-				if(!chains.get(j).getPedigree().sanityCheck()){
-					System.out.println(String.format("(%s,%d,%d)", move.name, i, j));
 
-						
-				}
-				
-				 
-				
-				if(i==350){
-					//Node myNode = chains.get(j).getPedigree().getNode(6);
-					//String toWrite = "";
-					//for(Node x : myNode.getParents()) toWrite += x.iid+" ";
-					//System.out.println(toWrite);
-					//cranefootFamWriter = DataParser.openWriter(outPath+".fam");
-					//writeFamFile(chains.get(j).getPedigree());
-					//System.out.println(String.format("%d %d", i, j));
-					System.out.println(move.name);
-					//System.out.println(chains.get(j).getLikelihood());
-					
-					chains.get(j).getPedigree().printAdjMat();
-					System.out.println();
-					
-					
-				}
-				*/
-				
-				
-			
-				
-				//chains.get(j).getPedigree().printAdjMat();
-				//System.out.println();
 				
 				move.mcmcMove(chains.get(j).getPedigree(), chains.get(j).getHeat());
 				
@@ -340,7 +308,7 @@ public class MCMCMC {
 				
 				sample(chains.get(this.coldChain).getPedigree());
 				convergence(chains.get(this.coldChain).getPedigree());
-				writeTheta(chains.get(this.coldChain).getPedigree());
+				//writeTheta(thetaWriter, chains.get(this.coldChain).getPedigree());
 			
 			}
 			
@@ -367,15 +335,16 @@ public class MCMCMC {
 		//write counts
 		System.out.println(String.format("%.4f", chains.get(coldChain).getPedigree().getAlpha()));
 		System.out.println(String.format("%.4f", chains.get(coldChain).getPedigree().getBeta()));
+		System.out.println(String.format("%d", chains.get(coldChain).getPedigree().getN()));
 		writeCounts();
 
 		//close outfile
-		pairWriter.close();
-		famWriter.close();
 		lkhdWriter.close();
 		countWriter.close();
 		NeWriter.close();
-		thetaWriter.close();
+		//thetaWriter.close();
+		//famWriter.close();
+		pairWriter.close();
 
 		
 		
@@ -384,18 +353,18 @@ public class MCMCMC {
 	
 	private void writeCounts(){
 		
-		/*
+		
 		//write pair counts
 		for(int i=0; i<pair_results.length; i++) {
 			
 			for (int j = i+1; j<pair_results.length; j++) {
 				
-				countWriter.write(String.format("%d %d %d %d %d %d %d\n", i, j, pair_results[i][j][0], pair_results[i][j][1], pair_results[i][j][2] ,pair_results[i][j][3], pair_results[i][j][4]));
+				pairWriter.write(String.format("%d %d %d %d %d %d %d\n", i, j, pair_results[i][j][0], pair_results[i][j][1], pair_results[i][j][2] ,pair_results[i][j][3], pair_results[i][j][4]));
 				
 			}
 			
 		}
-		*/
+		
 		
 		//write counts of Ne
 		List<Integer> sortedKeys = new ArrayList<Integer>(Ne_count.keySet());
@@ -500,6 +469,7 @@ public class MCMCMC {
 		int N_count = Ne_count.containsKey(N)? Ne_count.get(N) : 0;
 		Ne_count.put(N, N_count+1);
 		
+		
 
 		//number of ancestors for each sampled node
 		String numAncString = "";
@@ -521,6 +491,18 @@ public class MCMCMC {
 				sb.append(rel.getUp());
 				sb.append(rel.getDown());
 				sb.append(rel.getNumVisit());
+				
+				
+				//tally pair
+				int r = 2; // unrelated
+				if(rel.getUp()==1) {
+					r = rel.getNumVisit() == 2 ? 0 : 1;
+				}
+				else if(rel.getUp()==2) {
+					r = rel.getNumVisit() == 2 ? 3 : 4;
+				}
+				pair_results[i][j][r]++;
+				
 				
 			}
 			
@@ -545,7 +527,7 @@ public class MCMCMC {
 			
 			//fam
 			missingParentCounter = 0;
-			writeFamFile(chains.get(coldChain).getPedigree(), toWrite);
+			//writeFamFile(famWriter, chains.get(coldChain).getPedigree(), toWrite);
 		
 			//record pedigree
 			ped2info.put(toWrite, info);
@@ -563,7 +545,7 @@ public class MCMCMC {
 	
 	
 
-	private void writeFamFile(Pedigree currPedigree, String pedLabel){
+	private void writeFamFile(PrintWriter famWriter, Pedigree currPedigree, String pedLabel){
 		
 		//header 
 		famWriter.write(String.format(">\t%s\t%f\n", pedLabel, currPedigree.getLogLikelihood()));
@@ -586,7 +568,7 @@ public class MCMCMC {
 	
 	
 	// write current parameters out to a file
-	private void writeTheta(Pedigree currPedigree) {
+	private void writeTheta(PrintWriter thetaWriter, Pedigree currPedigree) {
 		
 		thetaWriter.write(String.format("%d\t%f\t%f\t%d\n", currPedigree.getN(), currPedigree.getAlpha(), currPedigree.getBeta(), currPedigree.getNe()));
 
@@ -643,7 +625,7 @@ public class MCMCMC {
 		
 		
 		//write to file
-		famWriter.write(String.format("%s\t%s\t%s\t%s\t%s\n", name, pa, ma, sex, sampleStatus));
+		//famWriter.write(String.format("%s\t%s\t%s\t%s\t%s\n", name, pa, ma, sex, sampleStatus));
 		
 		
 	}
@@ -773,7 +755,7 @@ public class MCMCMC {
 		
 		
 		if(newLkhd > 0){
-			System.out.println("Positive lkhd");
+			throw new RuntimeException("Positive lkhd");
 		}
 		
 		

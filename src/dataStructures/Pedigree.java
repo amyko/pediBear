@@ -64,6 +64,8 @@ public class Pedigree {
 	
 	//for primus
 	public boolean looped = false;
+	
+	int counter;
 
 	
 	
@@ -612,7 +614,7 @@ public class Pedigree {
 			Node lastNode = nodes.get(curr).set(this.nActiveNodes[curr]-1, nodeToDelete);
 			nodes.get(curr).set(nodeToDelete.getIndex(), lastNode);
 			
-			//update indicies
+			//update indices
 			lastNode.setIndex(nodeToDelete.getIndex());
 			nodeToDelete.setIndex(nActiveNodes[curr] - 1);
 		}
@@ -2100,15 +2102,9 @@ public class Pedigree {
 	*/
 	
 	//compute gasbarra prior according to current values
-	public void updatePrior(boolean change_theta){
-		
-		// when changing theta, compute prior the long way
-		if(change_theta)
-			prior[curr] = priorCalculatorNoLoop.computePrior(this);
-		// for changing pedigree config, do it the simple way
-		else
-			prior[curr] = priorCalculator.computePrior(this);
-		
+	private void updatePrior(boolean change_theta){
+		prior[curr] = priorCalculator.computePrior(this);
+
 	}
 	
 	

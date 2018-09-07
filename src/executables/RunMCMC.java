@@ -77,7 +77,7 @@ public class RunMCMC{
 	public static int iterPerTemp = 40000;
 	public static int maxIter = 10000000;
 	public static double conv = .1;
-	public static int numIndiv = 20;
+	public static int numIndiv = 100;
 	public static double poissonMean = numIndiv;
 	public static boolean conditional = true;
 	public static int numRun = 1;
@@ -89,7 +89,7 @@ public class RunMCMC{
 	//MCMC parameters
 	public static int nChain = 1;
 	public static int nBranch = 1;
-	public static int burnIn = 1000000;
+	public static int burnIn = 5000000;
 	public static int runLength = 2000000;
 	public static int sampleRate = 50;
 	public static double deltaT = .5;
@@ -101,7 +101,7 @@ public class RunMCMC{
 	public static Map<String, Double> name2age = null;
 	public static Random rGen = new Random(102574);
 	public static int minN = 5;
-	public static int maxN = 3000;
+	public static int maxN = 5000;
 	public static int stepSize = 50;
 	//relationships for likelihood computation
 	private static List<Relationship> relationships = new ArrayList<Relationship>();
@@ -301,8 +301,8 @@ public class RunMCMC{
 		PairwiseLikelihoodCoreStreamPed core = new PairwiseLikelihoodCoreStreamPed(errorRate, back, numIndiv);
 		
 		// TODO testing prior no loop
-		PriorNoLoop priorCalculatorNoLoop = new PriorNoLoop(rGen, maxDepth);
-		Prior priorCalculator = new Prior(rGen, maxDepth);
+		PriorNoLoop priorCalculatorNoLoop = new PriorNoLoop(maxDepth);
+		Prior priorCalculator = new Prior(maxDepth);
 		
 
 		
@@ -1017,16 +1017,16 @@ public class RunMCMC{
 		//get truePed
 		//Map<Path,double[]> path2omega = Accuracy.getPathToOmega(outPath + "pathToOmega.txt");
 		
-		double[][] totalAcc = new double[5][5];
-		int T = 10;
+		double[][] totalAcc = new double[7][5];
+		int T = 50;
 		double thresh = 1; // threshold for calling a relative
 		int[] pops = new int[T];
-		double alpha_sd = .005; //.005
-		double alpha_min = .001; //.001
-		double alpha_max = 2; //2
-		double beta_sd = .005; //.005
-		double beta_min = .001; //.001
-		double beta_max = 1; //1
+		double alpha_sd = 1; //1
+		double alpha_min = 1; //1
+		double alpha_max = 20; //20
+		double beta_sd = .0001; //.005
+		double beta_min = .00001; //.0001
+		double beta_max = .1; //.1
 		
 		/*
 		//TODO testing prior for true pedigree
@@ -1049,7 +1049,7 @@ public class RunMCMC{
 			MCMCMC mcmcmc = runThreads(myFile, outFile, alpha_sd, alpha_min, alpha_max, beta_sd, beta_min, beta_max);
 		
 			//accuracy matrix
-			double[][] acc = CompareWithColony.accuracyMatrix(String.format("%ssample.%d.true", fileName, t), String.format("%ssample.%d.count", fileName, t), numIndiv, thresh);
+			double[][] acc = CompareWithColony.accuracyMatrix(String.format("%ssample.%d.true", fileName, t), String.format("%ssample.count", fileName), numIndiv, thresh);
 			
 			for(int i=0; i<acc.length; i++) {
 				for(int j=0; j<acc[0].length; j++) {
